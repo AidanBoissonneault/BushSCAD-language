@@ -1,0 +1,93 @@
+// M1-M7 Test 10: full pipeline integration — imports, fn, env, var, parts,
+//                cross-part ref, radial loop, where, if/else, word sketch,
+//                inset, named planes, shell, all detail types
+base_unit = mm;
+
+import { bracket } from './test-09-components-scope.bscd';
+
+var wall     = 2.5;
+var label    = 'M7';
+env build_mode  fallback 'release';
+env show_serial fallback true;
+env serial      fallback 'SN-0001';
+
+// Reusable function: adds a countersunk-style hole (blind pilot + wide countersink)
+fn cs_hole(pilot_d, cs_d, depth) {
+    sketch pilot = circle(pilot_d);
+    sketch cs = circle(cs_d);
+    return {
+        obj pilot = cut(pilot, depth),
+        obj cs = cut(cs, (depth * 0.4)),
+    }
+}
+
+part housing {
+    sketch body = rect(90, 70);
+    obj body = extrude(body, 48);
+
+    // Shell executes immediately
+    shell: body wall open: top;
+
+    // Inset lid
+    sketch lid_face = rect inset(wall);
+    obj lid_face = extrude(lid_face, 3 , @body.top.center);
+
+    // Engrave brand on outer front wall
+    sketch brand = word(label, size: 8, font: 'sans', align: center);
+    obj brand = cut(brand, 0.6 , @body.outer.front.center);
+
+    // Conditional serial on back wall
+    if show_serial {
+        sketch ser = word(serial, size: 4, font: 'mono', align: center);
+        obj ser = cut(ser, 0.4 , @body.outer.back.center);
+    }
+
+    // Vent slots on left wall — range loop
+    for i in range(4) {
+        sketch vent = rect(4, 14);
+        obj vent = cut(vent, through body , @body.outer.left.center(x: (i - 1) * 12, y: 0));
+    }
+
+    // Radial mounting holes on top — skip none (full 360)
+    for a in radial(4, start: 45deg, sweep: 360deg) {
+        sketch mh = circle(3.5);
+        obj mh = cut(mh, through body , @body.top.center(radius: 30, angle: a));
+    }
+
+    // Named plane above lid for a raised badge
+    plane badge_plane = offset(3 , @lid_face.top.center);
+    sketch badge = roundrect(28, 12, r: 4);
+    obj badge = extrude(badge, 2 , @badge_plane);
+
+    if build_mode == 'release' {
+        fillet(@body.top.perimeter, 2);
+        fillet(@body.bottom.edges, 1.5);
+        fillet(@badge.top.edges, 0.5);
+    } else {
+        chamfer(@body.top.edges, 1);
+    }
+
+    // Place imported bracket on inside back wall
+    place(bracket, @body.outer.top.center(x: 0, y: 0), @center);
+
+    part.color = #1E3A5F;
+}
+
+part base_plate {
+    sketch plate = rect(90, 70);
+    obj plate = extrude(plate, 5 , @housing.bottom.center);
+
+    // Countersunk holes at corners using fn
+    for pt in [
+        @plate.top.front_left(x:  8, y:  8),
+        @plate.top.front_right(x: -8, y:  8),
+        @plate.top.back_left(x:  8, y: -8),
+        @plate.top.back_right(x: -8, y: -8)
+    ] {
+        place(cs_hole(3, 6, 3), @pt);
+    }
+
+    chamfer(@plate.top.edges, 0.5);
+    chamfer(@plate.bottom.edges, 0.3);
+    part.color = #2D6A4F;
+}

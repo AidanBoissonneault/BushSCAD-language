@@ -1,0 +1,69 @@
+// True check: exact sketch primitives, algebra, placement, and wrap modes.
+base_unit = mm;
+
+part sketch_primitives {
+    part.color = #16A34A;
+
+    sketch rectangle = rect(28, 18) at (-70, -35);
+    obj rectangle = extrude(rectangle, 4);
+
+    sketch rounded = roundrect(28, 18, r: 4) at (-35, -35);
+    obj rounded = extrude(rounded, 4);
+
+    sketch circular = circle(18) at (0, -35);
+    obj circular = extrude(circular, 4);
+
+    sketch oval = ellipse(28, 16) at (35, -35);
+    obj oval = extrude(oval, 4);
+
+    sketch triangular = triangle(24, 18) at (70, -35);
+    obj triangular = extrude(triangular, 4);
+
+    sketch polygonal = polygon([(-12,-8),(12,-8),(16,2),(0,12),(-16,2)]) at (-70, 0);
+    obj polygonal = extrude(polygonal, 4);
+
+    sketch path_profile = path(
+        bottom = line((-48, -8), (-24, -8)),
+        right = line(-24, 6),
+        crown = arc((-36, 12), radius: 14, ccw),
+        left = close()
+    );
+    obj path_profile = extrude(path_profile, 4);
+
+    sketch ring = circle(26) - circle(14);
+    obj ring = extrude(ring, 4, @path_profile.top(x: 38, y: 0));
+
+    sketch joined = circle(18) + rect(8, 24) at (0, 12);
+    obj joined = extrude(joined, 4, @path_profile.top(x: 72, y: 0));
+
+    sketch overlap = rect(28, 18) + circle(18) at (10, 0);
+    obj overlap = extrude(overlap, 4, @path_profile.top(x: 105, y: 0));
+
+    sketch corner_shape = rect(24, 16, origin: corner) at (-70, 32);
+    obj corner_shape = extrude(corner_shape, 4);
+
+    sketch ordered_shape = wrap([(-48,24),(-24,24),(-28,42),(-44,46)], ordered, rounded: 2);
+    obj ordered_shape = extrude(ordered_shape, 4);
+
+    sketch convex_shape = wrap([(0,24),(28,24),(12,32),(28,46),(0,46)], convex);
+    obj convex_shape = extrude(convex_shape, 4);
+
+    sketch concave_shape = wrap([(38,24),(66,24),(52,32),(66,46),(38,46)], concave);
+    obj concave_shape = extrude(concave_shape, 4);
+
+    sketch smooth_shape = wrap([(78,24),(106,24),(92,32),(106,46),(78,46)], smooth, tension: 0.35);
+    obj smooth_shape = extrude(smooth_shape, 4);
+
+    sketch regions = path(
+        a_bottom = line((-74, 64), (-54, 64)),
+        a_right = line(-54, 82),
+        a_top = line(-74, 82),
+        a_left = close(),
+        b_bottom = line((-64, 64), (-44, 64)),
+        b_right = line(-44, 82),
+        b_top = line(-64, 82),
+        b_left = close(),
+        overlap_region = a_bottom & b_bottom
+    );
+    obj selected_region = extrude(regions.overlap_region, 4);
+}

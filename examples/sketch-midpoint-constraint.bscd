@@ -1,0 +1,20 @@
+// Midpoint and axis-angle regression for the visual sketch editor.
+sketch midpoint_profile = path(
+  plant bottom = line((0, 0), (40, 0)),
+  right = line((40, 0), (40, 20)),
+  top = line((40, 20), (0, 20)),
+  left = line((0, 20), (0, 0)),
+  construction marker = line((4, 8), (17, 2)),
+  constraint(bottom.start, fixed),
+  constraint(bottom, horizontal),
+  constraint(right, vertical),
+  constraint(top, horizontal),
+  constraint(left, vertical),
+  constraint(bottom, length, 40mm) as width,
+  constraint(right, length, width / 2) as height,
+  constraint(marker.start, fixed),
+  constraint(marker.end, midpoint, bottom),
+  dimension marker.angle to origin.x_axis at (12, 7) as marker_angle
+);
+
+obj midpoint_plate = extrude(midpoint_profile, 5mm);

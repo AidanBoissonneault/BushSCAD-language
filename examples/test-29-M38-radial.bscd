@@ -1,0 +1,86 @@
+// M38 Test 29: radial_extrude / radial_cut — angle+length sweep around an axis
+// with CSS-style easing curves. Layout: side-by-side parts on a base, so all
+// curve types are visible in one render.
+base_unit = mm;
+
+part natural_demo {
+    sketch p = rect(6, 4);
+    obj boss = radial_extrude(p, axis: z, angle: 90, length: 20);
+}
+
+part ease_in_out_demo {
+    sketch p = rect(6, 4);
+    obj boss = radial_extrude(p,
+        axis:      z,
+        angle:     180,
+        length:    40,
+        curve:     ease-in-out,
+        direction: ccw,
+        start:     0,
+        radius:    8);
+}
+
+part ease_in_demo {
+    sketch p = rect(6, 4);
+    obj boss = radial_extrude(p, axis: z, angle: 180, length: 40,
+                              curve: ease-in, radius: 8);
+}
+
+part ease_out_demo {
+    sketch p = rect(6, 4);
+    obj boss = radial_extrude(p, axis: z, angle: 180, length: 40,
+                              curve: ease-out, radius: 8);
+}
+
+part ease_demo {
+    sketch p = rect(6, 4);
+    obj boss = radial_extrude(p, axis: z, angle: 180, length: 40,
+                              curve: ease, radius: 8);
+}
+
+part linear_demo {
+    sketch p = rect(6, 4);
+    obj boss = radial_extrude(p, axis: z, angle: 180, length: 40,
+                              curve: linear, radius: 8);
+}
+
+part step_start_demo {
+    sketch p = rect(6, 4);
+    obj boss = radial_extrude(p, axis: z, angle: 90, length: 20,
+                              curve: step-start, radius: 8);
+}
+
+part step_end_demo {
+    sketch p = rect(6, 4);
+    obj boss = radial_extrude(p, axis: z, angle: 90, length: 20,
+                              curve: step-end, radius: 8);
+}
+
+part bezier_demo {
+    sketch p = rect(6, 4);
+    obj cam = radial_extrude(p,
+        axis:   z,
+        angle:  270,
+        length: 30,
+        curve:  cubic-bezier(0.2, 0.8, 0.4, 1.0),
+        radius: 10);
+}
+
+part direction_demo {
+    sketch p = rect(6, 4);
+    obj boss = radial_extrude(p, axis: z, angle: 120, length: 25,
+                              direction: cw, radius: 8);
+}
+
+part cut_demo {
+    sketch base = rect(60, 60);
+    obj base = extrude(base, 12);
+
+    sketch slot = rect(3, 6);
+    obj groove = radial_cut(slot,
+        axis:   z,
+        angle:  90,
+        length: 6,
+        from:   base.top.center,
+        radius: 15);
+}

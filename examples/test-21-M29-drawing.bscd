@@ -1,0 +1,31 @@
+base_unit = mm;
+
+part main {
+    sketch profile = rect(60, 40);
+    obj base = extrude(profile, 10);
+
+    sketch hole_sk = circle(d: 8);
+    obj hole = cut(hole_sk, through base , @base.top(x: 30, y: 20));
+
+    fillet(@base.edges, 1);
+}
+
+drawing plate_sheet {
+    view main.top scale: 2;
+    dimension main.width;
+    dimension main.hole.center to main.base.left;
+    export dxf './exports/plate.dxf';
+    export svg './exports/plate.svg';
+}
+
+drawing plate_side {
+    view main.left;
+    dimension main.base.back to main.hole.center;
+    export svg './exports/plate_side.svg';
+}
+
+drawing plate_front {
+    view main.front;
+    dimension main.left to main.hole.center;
+    export svg './exports/plate_front.svg';
+}

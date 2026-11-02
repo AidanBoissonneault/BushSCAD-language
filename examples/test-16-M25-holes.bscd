@@ -1,0 +1,21 @@
+use std.hardware.metric;
+
+base_unit = mm;
+
+sketch plate = rect(80, 60);
+obj base = extrude(plate, 5);
+
+// M3 clearance through-hole
+obj m3_hole = hole(M3.clearance, through base , @base.top(x: 10, y: 30));
+
+// M4 counterbore through-hole
+obj m4_cb = hole(M4.counterbore, through base , @base.top(x: 30, y: 10));
+
+// M3 tapped hole (10mm deep)
+obj m3_tap = hole(M3.tap, depth: 10 , @base.top(x: 60, y: 10));
+
+// M3 heat-set insert pocket
+obj insert = heatset_insert(M3, depth: 5 , @base.top(x: 10, y: 40));
+
+// Pattern the clearance holes
+pattern(m3_hole, linear, 3, 20);

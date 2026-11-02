@@ -1,0 +1,21 @@
+// Authored crossings remain intact unless a Trim or Extend operation is authored.
+sketch equal_crossing = path(
+  plant bottom = line((0, 0), (38, 1)),
+  right = line((39, 19)),
+  top = line((1, 20)),
+  left = close(),
+  construction crossing = line((-5, 10), (45, 10)),
+  construction extend_candidate = line((12, -8), (12, -2)),
+  constraint(bottom.start, fixed),
+  constraint(bottom, horizontal),
+  constraint(right, vertical),
+  constraint(top, horizontal),
+  constraint(left, vertical),
+  constraint(bottom, equal, top),
+  constraint(right, equal, left),
+  constraint(bottom, length, 40mm, at: (20, -5)) as width,
+  constraint(right, length, width / 2, at: (45, 10)) as height,
+  dimension top.length at (20, 25) as linked_width
+);
+
+obj equal_crossing_plate = extrude(equal_crossing, 5mm);

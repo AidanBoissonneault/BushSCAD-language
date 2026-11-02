@@ -1,0 +1,22 @@
+// True check: hardware operations, fits, validation queries, and warnings.
+base_unit = mm;
+use std.hardware.metric;
+use std.printing.fdm;
+
+env std_M3_bolt_clearance fallback 0.30;
+
+part manufacturing_plate {
+    sketch plate_profile = roundrect(86, 58, r: 4);
+    obj base = extrude(plate_profile, 10);
+
+    obj mounting_hole = hole(M3.clearance, through base, @base.top(x: -24, y: 0));
+    obj counterbore = hole(M4.counterbore, through base, @base.top.center);
+    obj tapped = hole(M3.tap, depth: 8, @base.top(x: 24, y: 0));
+    obj insert = heatset_insert(M3, depth: 6, @base.top(x: 0, y: 18));
+
+    fit(clearance, M3_bolt, through, mounting_hole);
+    fit(press, M3_insert, into, insert, tight);
+
+    assert(volume(base) > 100);
+    assert(face_area(base.top) > 10);
+}

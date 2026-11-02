@@ -1,0 +1,54 @@
+base_unit = mm;
+
+use std.hardware.metric;
+use std.printing.fdm;
+
+// Per-fit env override: prefix std_ makes the purpose clear
+// This replaces the FDM normal clearance (0.25) for M3_bolt
+env std_M3_bolt_clearance fallback 0.30;
+
+// ── Base plate ────────────────────────────────────────────────────────────────
+
+sketch plate = rect(60, 40);
+obj base = extrude(plate, 8);
+
+// Clearance hole for M3 bolt — uses hardware spec directly
+obj mounting_hole = hole(M3.clearance, through base , @base.top.center);
+// Clearance fit: M3 bolt passes freely through the mounting hole
+fit(clearance, M3_bolt, through, mounting_hole);
+
+// ── Boss for heat-set insert ──────────────────────────────────────────────────
+
+sketch boss_sk = circle(8);
+obj boss = extrude(boss_sk, 6);
+transform(boss, translate(x: -80, y: 0));
+
+obj M3_insert = heatset_insert(M3, depth: 4 , @boss.top.center);
+// Press fit: M3 heat-set insert pressed into the boss
+fit(press, M3_insert, into, boss, tight);
+
+// ── Housing slot (slip fit) ───────────────────────────────────────────────────
+
+sketch housing_sk = rect(60, 40);
+obj housing = extrude(housing_sk, 15);
+transform(housing, translate(x: 80, y: 0));
+
+sketch lid_rail_sk = rect(20, 3.15);
+obj lid_rail = extrude(lid_rail_sk, 1);
+transform(lid_rail, translate(x: 80, y: 0, z: 15));
+
+sketch slot_sk = rect(20, 3.15);
+obj housing_slot = cut(slot_sk, 5 , @housing.front.center);
+// Slip fit: lid rail sits in housing slot with minimal play
+fit(slip, lid_rail, into, housing_slot);
+
+// ── Fit validation assertions ─────────────────────────────────────────────────
+
+// fit_ok expands to: distance(M3_bolt, mounting_hole) >= 0.30 mm (env override active)
+assert(fit_ok(M3_bolt, mounting_hole), warning: 'M3 bolt clearance not satisfied');
+
+// fit_ok expands to: clearance(M3_insert, boss) <= 0.05 mm (tight press)
+assert(fit_ok(M3_insert, boss), warning: 'M3 insert press fit not satisfied');
+
+// General wall thickness check
+assert(wall_thickness(base) >= 2.0);

@@ -1,0 +1,11 @@
+part placed_fuse {
+  obj left = cuboid([24, 20, 8]);
+  transform(left, translate(x: -12));
+
+  obj center = cylinder(8, r: 10);
+
+  obj right = cuboid([24, 20, 8]);
+  transform(right, translate(x: 12));
+
+  fuse(left, center, right);
+}

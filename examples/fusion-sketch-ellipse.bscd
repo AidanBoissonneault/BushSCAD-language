@@ -1,0 +1,3 @@
+sketch seal = ellipse(40, 20);
+
+obj seal_body = extrude(seal, 8);

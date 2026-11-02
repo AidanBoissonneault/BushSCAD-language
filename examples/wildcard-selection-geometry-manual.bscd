@@ -1,0 +1,10 @@
+part wildcard_selection {
+  obj body = extrude(rect(24, 16), 5);
+
+  fillet(@body.top.edges, 0.2);
+  fillet(@body.bottom.edges, 0.2);
+  fillet(@body.front.edges, 0.2);
+  fillet(@body.back.edges, 0.2);
+  fillet(@body.left.edges, 0.2);
+  fillet(@body.right.edges, 0.2);
+}

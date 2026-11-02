@@ -1,0 +1,18 @@
+// Horizontal and vertical two-point dimension regression.
+sketch axis_profile = path(
+  plant bottom = line((0, 0), (38, 1)),
+  right = line((39, 18)),
+  top = line((1, 21)),
+  left = close(),
+  constraint(bottom.start, fixed),
+  constraint(bottom, horizontal),
+  constraint(right, vertical),
+  constraint(top, horizontal),
+  constraint(left, vertical),
+  constraint(bottom.end, distance, bottom.start, 40mm, axis: x, at: (20, -6)) as width,
+  constraint(right.end, distance, right.start, width / 2, axis: y, at: (46, 10)) as height,
+  dimension top.start.distance to top.end axis: x at (20, 26) as measured_width,
+  dimension left.start.distance to left.end axis: y at (-6, 10) as measured_height
+);
+
+obj axis_plate = extrude(axis_profile, 5mm);

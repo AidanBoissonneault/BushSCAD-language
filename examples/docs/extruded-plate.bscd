@@ -1,0 +1,17 @@
+base_unit = mm;
+
+var width = 60;
+
+part plate {
+    sketch base = rect(width, 40);
+    obj body = extrude(base, 10);
+
+    sketch boss_profile = circle(12);
+    obj boss = extrude(boss_profile, 6, @body.top.center);
+
+    sketch flange_profile = rect(width - 10, 6);
+    obj flange = extrude(flange_profile, 4 symmetric, @body.top.center);
+
+    fillet(@body.top.edges, 1);
+    chamfer(@body.bottom.edges, 0.5);
+}

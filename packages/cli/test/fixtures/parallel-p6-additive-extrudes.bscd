@@ -1,0 +1,17 @@
+part pin_plate {
+  sketch base_profile = rect(120, 80);
+  obj base = extrude(base_profile, 8);
+
+  sketch pin_profile_1 = circle(5);
+  obj pin_1 = extrude(pin_profile_1, 12, @base.top(x: 20, y: 40));
+  sketch pin_profile_2 = circle(5);
+  obj pin_2 = extrude(pin_profile_2, 12, @base.top(x: 40, y: 40));
+  sketch pin_profile_3 = circle(5);
+  obj pin_3 = extrude(pin_profile_3, 12, @base.top(x: 60, y: 40));
+  sketch pin_profile_4 = circle(5);
+  obj pin_4 = extrude(pin_profile_4, 12, @base.top(x: 80, y: 40));
+  sketch pin_profile_5 = circle(5);
+  obj pin_5 = extrude(pin_profile_5, 12, @base.top(x: 100, y: 40));
+
+  fuse(base, pin_1, pin_2, pin_3, pin_4, pin_5);
+}

@@ -1,0 +1,61 @@
+// True check: core language, functions, environment, expressions, and loops.
+base_unit = mm;
+
+var sizes = [3, 4, 5];
+var label = 'CORE';
+var enabled = true;
+var model_color = #ffffff;
+var model_material = 'matte pla';
+env true_check_height fallback 8;
+
+fn pedestal(width, depth: 6) {
+    sketch profile = roundrect(width, 14, r: 2);
+    obj body = extrude(profile, depth);
+    @mount = @body.bottom.center;
+}
+
+part core_control_flow {
+    part.color = model_color;
+    part.material = model_material;
+
+    sketch base_profile = rect(120mm, 82mm);
+    obj base = extrude(base_profile, true_check_height);
+
+    if enabled && label == 'CORE' {
+        for i in range(3) where i % 2 == 0 {
+            sketch hole = circle(4 + i);
+            obj hole = cut(hole, through base, @base.top(x: 25 + i * 34, y: 14));
+        }
+    } else {
+        sketch alternate_hole = circle(3);
+        obj alternate_hole = cut(alternate_hole, 2, @base.top.center);
+    }
+
+    for (i, j) in grid(cols: 2, rows: 2, spacing_x: 40, spacing_y: 28) {
+        sketch grid_hole = circle(3);
+        obj grid_hole = cut(grid_hole, 2, @base.top.front_left(x: 20 + i, y: 35 + j));
+    }
+
+    for angle in radial(4) {
+        sketch radial_hole = circle(2);
+        obj radial_hole = cut(radial_hole, 2, @base.top.center(radius: 25, angle: angle));
+    }
+
+    for diameter in sizes {
+        sketch list_hole = circle(diameter);
+        obj list_hole = cut(list_hole, 1.5, @base.top(x: 18 + diameter * 18, y: 68));
+    }
+
+    for (index, diameter) in enumerate(sizes) {
+        sketch enum_hole = circle(diameter / 2);
+        obj enum_hole = cut(enum_hole, 1, @base.top(x: 15 + index * 30, y: 55));
+    }
+
+    plane inspection_plane = offset(14, @base.top);
+    sketch plane_marker = circle(8);
+    obj plane_marker = extrude(plane_marker, 3, @inspection_plane);
+
+    place(pedestal(12, depth: 5), @base.top.front_right(x: -12, y: 12), @mount);
+
+    fillet(@base.perimeter, 2);
+}

@@ -1,0 +1,21 @@
+base_unit = mm;
+
+export part bracket {
+    sketch body = rect(16, 12);
+    obj body = extrude(body, 5);
+    @mount = @body.bottom.front_left;
+    @center = @body.bottom.center;
+}
+
+part frame {
+    sketch base = rect(120, 80);
+    obj base = extrude(base, 10);
+    for pt in [
+        @base.top.front_left(x: 6, y: 6),
+        @base.top.front_right(x: -6, y: 6),
+        @base.top.back_left(x: 6, y: -6),
+        @base.top.back_right(x: -6, y: -6)
+    ] {
+        place(bracket, @pt, @mount);
+    }
+}

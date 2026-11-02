@@ -1,0 +1,19 @@
+base_unit = mm;
+
+part custom_perimeter_selection {
+    sketch custom_profile = path(
+        bottom = line((-18, -10), (18, -10)),
+        lower_right = line((24, 0)),
+        upper_right = line((10, 14)),
+        upper_left = line((-14, 12)),
+        left = close()
+    );
+    obj custom_body = extrude(custom_profile, 8);
+    obj opening = cut(circle(4), through custom_body, @custom_body.top.center);
+    fillet(@custom_body.perimeter, 0.5);
+}
+
+part curved_perimeter_selection {
+    obj curved_body = cylinder(10, d: 20);
+    fillet(@curved_body.perimeter, 0.5);
+}

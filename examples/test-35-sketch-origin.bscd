@@ -1,0 +1,18 @@
+part sketch_origin {
+  sketch base_sk = rect(80, 60);
+  obj base = extrude(base_sk, 8);
+
+  sketch top_pad = rect(18, 12, corner);
+  obj top_pad = extrude(top_pad, 3 , @base.top.back_left(x: 8, y: -8));
+
+  sketch bottom_bore = circle(8, origin: corner);
+  obj bottom_bore = cut(bottom_bore, 3 , @base.bottom.front_right(x: -12, y: -12));
+
+  sketch side_tab = path(
+    bottom = line((0, -8), (14, -8)),
+    right = line(14, 0),
+    top = line(0, 0),
+    left = close()
+  );
+  obj side_tab = extrude(side_tab, 4 , @base.front.top_left(x: 10, y: -4));
+}

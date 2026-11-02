@@ -1,0 +1,16 @@
+// A selected body keeps the local translation applied to its path sketch.
+sketch placed_profile = path(
+  outer_bottom = line((0, 0), (30, 0)),
+  outer_right = line((30, 20)),
+  outer_top = line((0, 20)),
+  outer_close = close(),
+
+  inner_bottom = line((8, 4), (22, 4)),
+  inner_right = line((22, 16)),
+  inner_top = line((8, 16)),
+  inner_close = close(),
+
+  shell = outer_bottom - inner_bottom
+) at (12, -6);
+
+obj placed_shell = extrude(placed_profile.shell, 3);

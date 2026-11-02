@@ -1,0 +1,47 @@
+{
+    "name":  "@bushscad/compiler",
+    "version":  "0.1.0-beta.1",
+    "type":  "module",
+    "exports":  {
+                    ".":  "./src/index.ts",
+                    "./node":  "./src/platform/node/node.ts",
+                    "./paths":  "./src/core/paths.ts"
+                },
+    "scripts":  {
+                    "typecheck":  "tsc --noEmit \u0026\u0026 tsc --noEmit -p tsconfig.test.json",
+                    "test":  "vitest run --maxWorkers=4"
+                },
+    "dependencies":  {
+                         "@bushscad/evaluator":  "^0.1.0-beta.1",
+                         "@bushscad/ir":  "^0.1.0-beta.1",
+                         "@bushscad/occt-bridge":  "^0.1.0-beta.1",
+                         "@bushscad/parser":  "^0.1.0-beta.1",
+                         "@bushscad/resolver":  "^0.1.0-beta.1"
+                     },
+    "devDependencies":  {
+                            "typescript":  "^5.4.0",
+                            "vitest":  "^4.1.5"
+                        },
+    "license":  "Apache-2.0",
+    "description":  "Compiler pipeline APIs for parsing, resolving, evaluating, and compiling BushSCAD models. This package is distributed as TypeScript source for language tooling and bundlers.",
+    "homepage":  "https://bushscad.byaidan.com/",
+    "repository":  {
+                       "type":  "git",
+                       "url":  "https://github.com/AidanBoissonneault/BushSCAD-Language.git",
+                       "directory":  "packages/compiler"
+                   },
+    "bugs":  {
+                 "url":  "https://github.com/AidanBoissonneault/BushSCAD-Language/issues"
+             },
+    "publishConfig":  {
+                          "access":  "public",
+                          "registry":  "https://registry.npmjs.org/"
+                      },
+    "files":  [
+                  "src/**",
+                  "dist/**",
+                  "assets/**",
+                  "LICENSE",
+                  "README.md"
+              ]
+}

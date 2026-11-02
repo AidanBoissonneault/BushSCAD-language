@@ -1,0 +1,5 @@
+part wildcard_selection {
+  obj body = extrude(rect(24, 16), 5);
+
+  fillet(@body.*.edges, 0.2);
+}

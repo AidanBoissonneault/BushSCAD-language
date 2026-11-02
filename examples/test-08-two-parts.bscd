@@ -1,0 +1,40 @@
+// M1-M7 Test 08: two separate parts, cross-part surface reference, list loop
+//                for corner holes, shell (open top), part colors
+base_unit = mm;
+
+part tray {
+    sketch body = rect(100, 80);
+    obj body = extrude(body, 32);
+    shell: body 2 open: top;
+
+    // Corner mounting holes via list loop
+    for pt in [
+        @body.top.front_left(x:  8, y:  8),
+        @body.top.front_right(x: -8, y:  8),
+        @body.top.back_left(x:  8, y: -8),
+        @body.top.back_right(x: -8, y: -8)
+    ] {
+        sketch ph = circle(4);
+        obj ph = cut(ph, through body , @pt);
+    }
+
+    // Keep the top rim radius below the 2mm shell wall thickness.
+    fillet(@body.top.perimeter, 1.5);
+    fillet(@body.bottom.edges, 1);
+    part.color = #1D4ED8;
+}
+
+part cover {
+    // Cross-part reference: snaps to tray top face
+    sketch face = rect(100, 80);
+    obj face = extrude(face, 4 , @tray.top.center);
+
+    // Ventilation grid in the cover
+    for (i, j) in grid(cols: 4, rows: 3, spacing: 18) {
+        sketch vent = roundrect(10, 4, r: 2);
+        obj vent = cut(vent, through face , @face.top.front_left(x: 16 + i, y: 12 + j));
+    }
+
+    chamfer(@face.top.edges, 0.5);
+    part.color = #7C3AED;
+}

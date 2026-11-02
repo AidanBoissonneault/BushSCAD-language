@@ -1,0 +1,10 @@
+export part foot {
+  sketch pad = circle(8);
+  obj pad = extrude(pad, 3);
+
+  sketch screw = circle(3);
+  obj screw = cut(screw, through pad , @pad.top.center);
+
+  chamfer(@pad.bottom.edges, 0.4);
+  part.color = #475569;
+}

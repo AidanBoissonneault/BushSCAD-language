@@ -1,0 +1,27 @@
+// M30 Test: Assemblies and Joints
+// Two-part assembly: housing (fixed) + drawer (slider joint)
+base_unit = mm;
+
+var bodyheight = 50;
+var wall = 2;
+
+part housing {
+    sketch outer = rect(80, 60);
+    obj body = extrude(outer, bodyheight);
+    shell: body 3 open: front;
+    fillet(@body.bottom.edges, wall);
+
+    part.color = #2563EB;
+}
+
+part drawer {
+    sketch panel_profile = rect(74, 44);
+    obj panel = extrude(panel_profile, 40, @housing.inner.back.center);
+    fillet(@panel.front.edges, 1.5);
+    part.color = #DC2626;
+}
+
+slider slide(@drawer.front, @housing.front) {
+    range = 0mm..55mm;
+    default = 20mm;
+}

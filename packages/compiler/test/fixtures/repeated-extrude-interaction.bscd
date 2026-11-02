@@ -1,0 +1,11 @@
+base_unit = mm;
+
+part repeated_extrusions {
+    sketch base_profile = rect(50, 24);
+    obj base = extrude(base_profile, 3);
+
+    for x in [12, 38] {
+        sketch post_profile = circle(6);
+        obj post = extrude(post_profile, 5, @base.top(x: x, y: 12));
+    }
+}

@@ -1,0 +1,100 @@
+// M40 Test 32: isolated solid-tool cut examples.
+// Each part has one scenario and an explicit color for visual debugging.
+base_unit = mm;
+
+part regular_sketch_cut_blue {
+    sketch base_sk = rect(46, 32);
+    obj base = extrude(base_sk, 10);
+
+    sketch pocket_sk = rect(16, 8);
+    obj pocket = cut(pocket_sk, 3 , @base.top.center);
+
+    sketch bore_sk = circle(5);
+    obj bore = cut(bore_sk, through base , @base.top.center(x: 15));
+
+    part.color = #2563EB;
+}
+
+part predefined_tool_top_green {
+    sketch base_sk = rect(46, 32);
+    obj base = extrude(base_sk, 10);
+
+    sketch tool_sk = rect(10, 18);
+    ref punch_tool = extrude(tool_sk, 14);
+
+    obj top_slot = cut(punch_tool, @base.top.center);
+
+    part.color = #16A34A;
+}
+
+part predefined_tool_front_orange {
+    sketch base_sk = rect(50, 34);
+    obj base = extrude(base_sk, 14);
+
+    sketch tool_sk = roundrect(18, 8, r: 4);
+    obj side_tool = extrude(tool_sk, 18 , @base.top.center);
+
+    obj front_port = cut(side_tool, @base.front.center(x: -10));
+
+    part.color = #D97706;
+}
+
+part inline_loft_top_purple {
+    sketch base_sk = rect(52, 36);
+    obj base = extrude(base_sk, 14);
+
+    sketch lower = rect(18, 6);
+    sketch upper = rect(8, 16);
+
+    obj tapered_channel = cut(
+        loft(lower, upper, height: 18),
+        @base.top.center(y: 8)
+    );
+
+    part.color = #7C3AED;
+}
+
+part inline_revolve_top_red {
+    sketch base_sk = rect(48, 34);
+    obj base = extrude(base_sk, 14);
+
+    sketch cutter_profile = rect(4, 10);
+    obj ring_socket = cut(
+        revolve(cutter_profile, 360deg around z, radius: 7),
+        @base.top.center
+    );
+
+    fillet(@ring_socket.bottom.edges, 0.2);
+
+    part.color = #DC2626;
+}
+
+part inline_sweep_right_teal {
+    sketch base_sk = rect(56, 36);
+    obj base = extrude(base_sk, 16);
+
+    sketch sweep_profile = circle(4);
+    path sweep_path = polyline([(0, 0, 0), (0, 0, 12), (10, 0, 20)]);
+
+    obj curved_port = cut(
+        sweep(sweep_profile along sweep_path, orientation: fixed),
+        @base.right.center(y: 8)
+    );
+
+    part.color = #0F766E;
+}
+
+part inline_loft_from_offset_plane_slate {
+    sketch base_sk = rect(48, 34);
+    obj base = extrude(base_sk, 12);
+
+    sketch lower = rect(14, 8);
+    sketch upper = rect(6, 14);
+
+    obj offset_taper = cut(
+        loft(lower, upper, height: 14),
+        @plane(base.top.center, offset: 1)
+    );
+
+    part.color = #475569;
+}

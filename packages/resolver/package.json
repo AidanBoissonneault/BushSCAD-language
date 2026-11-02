@@ -1,0 +1,42 @@
+{
+    "name":  "@bushscad/resolver",
+    "version":  "0.1.0-beta.1",
+    "type":  "module",
+    "exports":  {
+                    ".":  "./src/index.ts"
+                },
+    "scripts":  {
+                    "typecheck":  "tsc --noEmit \u0026\u0026 tsc --noEmit -p tsconfig.test.json",
+                    "test":  "vitest run"
+                },
+    "dependencies":  {
+                         "@bushscad/ir":  "^0.1.0-beta.1",
+                         "@bushscad/parser":  "^0.1.0-beta.1"
+                     },
+    "devDependencies":  {
+                            "typescript":  "^5.4.0",
+                            "vitest":  "^4.1.5"
+                        },
+    "license":  "Apache-2.0",
+    "description":  "Name, scope, import, and reference resolution for BushSCAD programs.",
+    "homepage":  "https://bushscad.byaidan.com/",
+    "repository":  {
+                       "type":  "git",
+                       "url":  "https://github.com/AidanBoissonneault/BushSCAD-Language.git",
+                       "directory":  "packages/resolver"
+                   },
+    "bugs":  {
+                 "url":  "https://github.com/AidanBoissonneault/BushSCAD-Language/issues"
+             },
+    "publishConfig":  {
+                          "access":  "public",
+                          "registry":  "https://registry.npmjs.org/"
+                      },
+    "files":  [
+                  "src/**",
+                  "dist/**",
+                  "assets/**",
+                  "LICENSE",
+                  "README.md"
+              ]
+}

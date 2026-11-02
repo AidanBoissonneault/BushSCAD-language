@@ -1,0 +1,54 @@
+// True check: solid construction, direct primitives, booleans, and details.
+base_unit = mm;
+
+part solid_operations {
+    part.color = #D97706;
+    sketch base_profile = roundrect(88, 58, r: 5);
+    obj base = extrude(base_profile, 10);
+
+    sketch blind_profile = circle(14);
+    obj blind = cut(blind_profile, 4, @base.top(x: -22, y: 0));
+
+    sketch through_profile = circle(10);
+    obj through_hole = cut(through_profile, through base, @base.top(x: 22, y: 0));
+
+    obj tool = cylinder(14, d: 7, @base.top.center);
+    obj solid_cut_result = cut(tool, @base.top.center);
+
+    obj boss = cylinder(8, d: 18, @base.top(x: 0, y: 18));
+    fuse(base, boss);
+
+    fillet(@base.top.perimeter, 1.2);
+    chamfer(@base.bottom.edges, 0.6);
+    draft: boss.sides 2deg;
+}
+
+part shelled_detail {
+    obj body = cube([34, 28, 22]);
+    shell: body 2 open: top;
+}
+
+part threaded_detail {
+    sketch shaft_profile = circle(8);
+    obj shaft = extrude(shaft_profile, 20);
+    thread(shaft, external, 8, 1.25, length: 14, direction: clockwise, degrees: 3);
+}
+
+part direct_primitives {
+    obj block = cuboid([40, 24, 8]);
+    obj ball = sphere(r: 5, @block.top(x: -14, y: -7));
+    obj oval = ellipsoid(radius: [6, 4, 3], @block.top(x: 0, y: -7));
+    obj faceted = geodesicSphere(4, @block.top(x: 14, y: -7));
+    obj pin = cylinder(9, d: 5, @block.top(x: -14, y: 7));
+    obj oval_pin = cylinderElliptic(8, radius: [4, 2], @block.top(x: 0, y: 7));
+    obj cone_tip = cone(8, r: 4, @block.top(x: 14, y: 7));
+    obj taper = frustum(8, r1: 5, r2: 2, @block.right.center);
+    obj rounded_box = roundedCuboid([12, 8, 5], r: 2, @block.left.center);
+    obj rounded_pin = roundedCylinder(8, r: 4, roundingRadius: 1, @block.front.center);
+    obj ring = torus(majorRadius: 7, minorRadius: 1.5, @block.back.center);
+    obj pyramid = polyhedron(
+        points: [[-4,-4,0],[4,-4,0],[4,4,0],[-4,4,0],[0,0,8]],
+        faces: [[0,1,2,3],[0,4,1],[1,4,2],[2,4,3],[3,4,0]],
+        @block.top.center
+    );
+}

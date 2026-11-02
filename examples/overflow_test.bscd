@@ -1,0 +1,6 @@
+part overflow_test {
+    obj main = cuboid([200, 200, 100]);
+    
+    // overflows when box is set to 255 x 255 x 255
+    obj overflow = extrude(rect(40, 40, corner), 40, @main.right);
+}

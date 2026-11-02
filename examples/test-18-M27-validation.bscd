@@ -1,0 +1,10 @@
+base_unit = mm;
+
+sketch plate = rect(21, 40);
+obj base = extrude(plate, 10);
+
+sketch slot_sk = rect(20, 5);
+obj slot = cut(slot_sk, through base , @base.top.center);
+
+assert(wall_thickness(base) >= 2.0);
+assert(clearance(base, slot) >= 0.5, warning: 'Slot may be too tight');

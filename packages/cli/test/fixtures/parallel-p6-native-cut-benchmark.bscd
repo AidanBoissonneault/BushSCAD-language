@@ -1,0 +1,9 @@
+part native_cut_benchmark {
+  sketch base_profile = rect(240, 60);
+  obj base = extrude(base_profile, 8);
+
+  for i in range(24) within base.top.width {
+    sketch hole = circle(3);
+    obj hole = cut(hole, through base, @base.top(x: auto, y: 30));
+  }
+}

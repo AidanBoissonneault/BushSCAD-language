@@ -1,0 +1,75 @@
+// M38 Test 30: simplified radial_extrude / radial_cut syntax.
+// Shows inferred axes , @placement, guided surface-to-surface cuts, and the
+// same from/to/along form used for smooth transitions between placement axes.
+base_unit = mm;
+
+part inferred_axis_extrude {
+    sketch base = rect(42, 32);
+    obj base = extrude(base, 6);
+
+    sketch rib = rect(4, 2);
+    obj rib = radial_extrude(rib,
+        from:   base.top.center,
+        angle:  135,
+        length: 18,
+        radius: 10,
+        curve:  ease-in-out);
+}
+
+part guided_surface_cut {
+    path bend_path = polyline([(0, 0, 12), (10, 0, 6), (24, 0, 12)]);
+
+    sketch body = rect(56, 34);
+    obj body = extrude(body, 12);
+
+    sketch channel = rect(3, 4);
+    obj channel = radial_cut(channel,
+        from:  body.top.center,
+        to:    @body.top.center(x: 24, y: 0),
+        along: bend_path);
+}
+
+part guided_surface_cut_surface_to_surface {
+    sketch body = rect(56, 34);
+    obj body = extrude(body, 12);
+
+    sketch channel = rect(3, 4);
+    obj channel = radial_cut(channel,
+        from:  body.top.center,
+        to:    body.front.center,
+        curve: ease-in-out);
+}
+
+part auto_bridge_extrude_from_to {
+    sketch base = rect(48, 26);
+    obj base = extrude(base, 8);
+
+    sketch brace = rect(3, 5);
+    obj brace = radial_extrude(brace,
+        from:  base.left.center,
+        to:    base.right.center,
+        curve: ease-in-out);
+}
+
+part axis_to_axis_transition {
+    path transition_curve = spline([(0, 0, 0), (12, 6, 8), (24, 0, 16)]);
+
+    sketch pedestal = rect(46, 24);
+    obj pedestal = extrude(pedestal, 8);
+
+    sketch web = rect(3, 5);
+    obj web = radial_extrude(web,
+        from:  pedestal.left.center,
+        to:    pedestal.right.center,
+        along: transition_curve);
+}
+
+part radial_extrude_test {
+    sketch pedestal = rect(46, 24);
+    obj pedestal = extrude(pedestal, 8);
+
+    sketch web = circle(1);
+    obj web = radial_extrude(web, from: pedestal.top.center, to: pedestal.right.center);
+
+    part.color = #444444;
+}

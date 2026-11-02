@@ -1,0 +1,19 @@
+// Verbose equivalent of m40-optional-keyword-args.bscd for geometry comparison.
+
+part m40_optional_keyword_args {
+  sketch base_sk = rect(width: 80, height: 50);
+  obj base = extrude(base_sk, depth: 8);
+
+  sketch boss_sk = roundrect(width: 18, height: 12, r: 2);
+  obj boss = extrude(boss_sk, depth: 5 , @base.top(x: 20, y: 25));
+
+  sketch hole_sk = circle(d: 4);
+  for i in range(count: 3, step: 1) {
+    obj hole = cut(hole_sk, depth: 9 , @base.top(x: 20 + i * 18, y: 25));
+  }
+
+  for (i, j) in grid(cols: 2, rows: 2) {
+    sketch pin_sk = circle(d: 2);
+    obj pin = extrude(pin_sk, depth: 2 , @base.top(x: 8 + i * 64, y: 8 + j * 34));
+  }
+}

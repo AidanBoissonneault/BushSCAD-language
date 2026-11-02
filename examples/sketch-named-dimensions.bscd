@@ -1,0 +1,22 @@
+var profile_width = 40mm;
+
+sketch named_profile = path(
+  plant bottom = line((0, 0), (38, 1)),
+  right = line((39, 18)),
+  top = line((1, 21)),
+  left = close(),
+  construction midpoint_marker = line((20, -8), (18, 2)),
+  constraint(bottom.start, fixed),
+  constraint(bottom, horizontal),
+  constraint(right, vertical),
+  constraint(top, horizontal),
+  constraint(left, vertical),
+  constraint(bottom, length, profile_width, at: (20, -5)) as width_dimension,
+  constraint(right, length, measured_top / 2, at: (45, 10)) as height_dimension,
+  constraint(midpoint_marker.start, fixed),
+  constraint(midpoint_marker.end, midpoint, bottom),
+  dimension top.length at (20, 25) as measured_top,
+  dimension bottom.angle to origin.x_axis at (12, 5) as base_angle
+);
+
+obj named_body = extrude(named_profile, 5mm);

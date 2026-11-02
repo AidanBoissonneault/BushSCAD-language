@@ -1,0 +1,15 @@
+sketch angle_demo = path(
+  reference = line((0, 0), (20, 0)),
+  reference_side = line((10, 12)),
+  reference_close = close(),
+  driven = line((30, 0), (45, 15)),
+  driven_side = line((30, 20)),
+  driven_close = close(),
+  constraint(reference.start, fixed),
+  constraint(reference, horizontal),
+  constraint(driven.start, fixed),
+  constraint(driven, length, 21.213203),
+  constraint(driven, angle, reference, 45deg, at: (34, 8))
+);
+
+obj angle_demo = extrude(angle_demo, 4);

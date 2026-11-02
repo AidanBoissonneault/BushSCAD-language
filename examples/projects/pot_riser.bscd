@@ -1,0 +1,23 @@
+base_unit = mm;
+
+env outerdia fallback 143;
+env innerdia fallback 84;
+
+part main {
+    sketch circ = circle(outerdia);
+    obj circ = extrude(circ, 5);
+
+    sketch cut_circ = circle(innerdia);
+    obj cut_circ = cut(cut_circ, through circ , @circ.top.center);
+
+    var circ_pos = ((outerdia-innerdia)/2+innerdia)/2;
+    sketch small_circ = circle(8);
+    sketch small_circ_outer = circle(10);
+    for i in radial(12, sweep: 360deg) {
+        obj circ_out = extrude(small_circ_outer, 2.3in , @circ.bottom.center(radius: circ_pos, angle: i));
+        obj radh = cut(small_circ, 5in , @circ.top.center(radius: circ_pos, angle: i));
+    }
+
+    fillet(@circ.top.edges, 1);
+    fillet(@circ.bottom.perimeter, 1);
+}

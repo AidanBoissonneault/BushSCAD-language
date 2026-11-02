@@ -1,0 +1,52 @@
+// M1-M7 Test 09: component definitions, lexical scope shadowing, this. context,
+//                anchor declarations (default + named), place, export
+base_unit = mm;
+
+var global_wall = 2;
+
+// Exported reusable bracket — this. resolves at placement time
+export ref bracket {
+    var local_d = 4;  // local var shadows nothing here, but proves local scope
+
+    sketch body = rect(this.width / 5 - local_d, 20);
+    obj body = extrude(body, 5);
+
+    sketch gusset = triangle(8, 8);
+    obj gusset = extrude(gusset, 5 , @body.back.center);
+
+    // Named anchor points
+    @mount = @body.bottom.front_left;
+    @center = @body.bottom.center;
+
+    fillet(@body.top.edges, 1);
+    fillet(@gusset.edges, 0.5);
+    chamfer(@body.bottom.edges, 0.3);
+}
+
+part gusset_block {
+    sketch g = rect(10, 10);
+    obj g = extrude(g, 5);
+    @default = @g.bottom.center;
+    fillet(@g.top.edges, 0.5);
+}
+
+part frame {
+    var global_wall = 3;  // shadows global inside frame
+
+    sketch base = rect(120, 80);
+    obj base = extrude(base, global_wall * 4);
+
+    place(gusset_block, @base.top.front_left(x: 8, y: 8));
+    place(gusset_block, @base.top.front_right(x: -8, y: 8));
+
+    // Place exported bracket using named anchor
+    for pt in [
+        @base.top.front_left(x:  4, y: 28),
+        @base.top.front_right(x: -4, y: 28)
+    ] {
+        place(bracket, @pt, @mount);
+    }
+
+    fillet(@base.top.edges, 2);
+    chamfer(@base.bottom.edges, 0.5);
+}

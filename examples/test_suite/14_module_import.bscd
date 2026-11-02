@@ -1,0 +1,10 @@
+// True check: named and aliased cross-file imports.
+base_unit = mm;
+import { module_pin as imported_pin, module_bracket } from './13_module_library.bscd';
+
+part module_import_consumer {
+    sketch base_profile = rect(64, 42);
+    obj base = extrude(base_profile, 5);
+    place(imported_pin(8, height: 10), @base.top(x: -18, y: 0), @mount) as imported_pin_instance;
+    place(module_bracket, @base.top(x: 14, y: 0), @mount) as imported_bracket_instance;
+}

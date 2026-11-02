@@ -1,0 +1,13 @@
+part array_selection_geometry {
+  sketch hole = circle(4);
+  sketch base = rect(30, 20);
+
+  obj body = extrude(base, 4);
+  obj pocket1 = cut(hole, 1, @body.top(x: 10, y: 10));
+  obj pocket2 = cut(hole, 1, @body.bottom(x: 10, y: 10));
+
+  fillet(@body.top.edges, 0.5);
+  fillet(@body.bottom.edges, 0.5);
+  fillet(@pocket2.top.edges, 0.25);
+  fillet(@pocket2.bottom.edges, 0.25);
+}

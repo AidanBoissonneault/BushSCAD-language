@@ -1,0 +1,21 @@
+base_unit = mm;
+
+part steep_tapered_pot_loft_cut {
+    env body_d fallback 125;
+    env bloom_d fallback 25;
+    env wall fallback 20;
+    env fillet_size fallback 4;
+
+    sketch body_bottom = circle(body_d);
+    sketch body_top = circle(body_d + bloom_d);
+    obj body = loft(body_bottom, body_top, height: 30);
+
+    sketch cutter_bottom = circle(body_d - wall*2);
+    sketch cutter_top = circle(body_d + bloom_d - wall*2);
+    obj pocket = cut(
+        loft(cutter_bottom, cutter_top, height: 25),
+        @body.top.center
+    );
+
+    fillet(@pocket.bottom.edges, fillet_size);
+}

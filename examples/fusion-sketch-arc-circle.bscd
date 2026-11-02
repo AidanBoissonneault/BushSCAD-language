@@ -1,0 +1,10 @@
+sketch recovered_circle = path(
+  q1 = arc((25, -5), (15, 5), 10, ccw),
+  q2 = arc((5, -5), 10, ccw),
+  q3 = arc((15, -15), 10, ccw),
+  q4 = arc((25, -5), 10, ccw),
+  construction radius = line((15, -5), (25, -5)),
+  constraint(q1, diameter, 20, at: (28, 5)) as d0
+);
+
+obj body = extrude(recovered_circle, 6);

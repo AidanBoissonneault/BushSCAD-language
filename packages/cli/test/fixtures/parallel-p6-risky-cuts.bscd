@@ -1,0 +1,13 @@
+part risky_plate {
+  sketch base_profile = rect(100, 60);
+  obj base = extrude(base_profile, 8);
+
+  sketch touching_a_profile = circle(8);
+  obj touching_a = cut(touching_a_profile, through base, @base.top(x: 20, y: 30));
+  sketch touching_b_profile = circle(8);
+  obj touching_b = cut(touching_b_profile, through base, @base.top(x: 36, y: 30));
+  sketch overlapping_profile = circle(8);
+  obj overlapping = cut(overlapping_profile, through base, @base.top(x: 48, y: 30));
+  sketch coincident_profile = circle(8);
+  obj coincident = cut(coincident_profile, through base, @base.top(x: 48, y: 30));
+}

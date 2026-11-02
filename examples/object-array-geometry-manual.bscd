@@ -1,0 +1,12 @@
+part object_array_geometry {
+  sketch base = rect(30, 20);
+  sketch hole = circle(4);
+
+  obj body = extrude(base, 4);
+  obj pocket = cut(hole, 1, @body.top(x: 10, y: 10));
+  obj pocket_0 = cut(hole, 1, @body.bottom(x: 10, y: 10));
+
+  fillet(@pocket.edges, 0.25);
+  fillet(@pocket_0.edges, 0.25);
+  chamfer(@pocket_0.top.edges, 0.05);
+}

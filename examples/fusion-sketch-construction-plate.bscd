@@ -1,0 +1,13 @@
+sketch plate = path(
+  rect(_, _, top: top_side) at ((5) + (40) / 2, (3) + (45) / 2),
+  construction center = line((5.000, 25.500), (45, 25.500)),
+  constraint(center.start, midpoint, left),
+  constraint(center.end, midpoint, right),
+  constraint(top_side.end, vertical, center.start),
+);
+@plate.top_side = 40 at 8.154 as d0;
+@(plate.left, origin.y_axis) = 5 at -3.211 as d1;
+@(plate.bottom, origin.x_axis) = 3 at 47.751 as d2;
+@plate.right = 45 at 27.990 as d3;
+
+obj plate = extrude(plate, 4);

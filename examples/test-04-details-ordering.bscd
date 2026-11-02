@@ -1,0 +1,31 @@
+// M1-M7 Test 04: shell execution ordering, fillet (edges/perimeter/single edge),
+//                chamfer, draft, word sketch (engrave), inset shorthand
+base_unit = mm;
+
+var wall = 2;
+
+part enclosure {
+    sketch body = rect(70, 50);
+    obj body = extrude(body, 36);
+
+    // Shell executes immediately — ops below see hollow geometry
+    shell: body wall open: top;
+
+
+    // Lid using inset shorthand (resolves against body.top dimensions)
+    sketch lid = rect inset(wall);
+    obj lid = extrude(lid, 3 , @body.top.center);
+
+    // Engrave label on inner front wall (valid only after shell)
+    sketch label = word('Front side', size: 10, font: 'Times New Roman', align: center);
+    obj label = cut(label, through body , @body.outer.front.center);
+
+    // Draft on the solid lid side faces (deferred — runs after all geometry ops)
+    draft: lid.sides 13deg;
+
+    // Fillet forms: perimeter-only and single named edge
+    fillet(@body.top.perimeter, 1);
+    fillet(@lid.top.front_edge, 1);
+    chamfer(@body.bottom.edges, 1);
+    chamfer(@lid.bottom.edges, 0.5);
+}

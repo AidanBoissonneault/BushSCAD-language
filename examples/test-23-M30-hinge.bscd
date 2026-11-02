@@ -1,0 +1,25 @@
+// M30 Test: Revolute joint — hinged box lid
+// box (fixed) + lid (revolute around X axis, opens backward)
+base_unit = mm;
+
+part box {
+    sketch sk = rect(80, 60);
+    obj body = extrude(sk, 40);
+    shell: body 3 open: top;
+    fillet(@body.bottom.edges, 2);
+    part.color = #1D4ED8;
+}
+
+part lid {
+    sketch sk = rect(80, 60);
+    obj panel = extrude(sk, 4 , @box.top.center);
+    fillet(@panel.top.edges, 1.5);
+    part.color = #7C3AED;
+}
+
+// Hinge runs along the right edge — right-face normal is +X,
+// so revolute rotates lid in the Y-Z plane (opens backward).
+revolute hinge(@lid.right, @box.right) {
+    range = 0deg..120deg;
+    default = 0deg;
+}

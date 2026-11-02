@@ -1,0 +1,53 @@
+// M36 Test 28: auto distribution in for loops — `within` clause + `auto` keyword
+base_unit = mm;
+
+part panel {
+    sketch base = rect(120, 100);
+    obj base = extrude(base, 8);
+
+    // Linear pattern: 4 holes auto-distributed across the panel width.
+    // within 120 over 4 items -> equal gaps of 24 -> x = 24, 48, 72, 96.
+    for i in range(4) within base.top.width {
+        sketch lh = circle(4);
+        obj lh = cut(lh, through base , @base.top(x: auto, y: 14));
+    }
+
+    // Linear pattern with an inline fixed term: every hole shifted +5 in x.
+    for i in range(3) within base.top.width {
+        sketch sh = circle(3);
+        obj sh = cut(sh, through base , @base.top(x: auto + 5, y: 50));
+    }
+
+    // Two independent rows in one loop: each `x: auto` is its own
+    // distribution of 3 holes across the width (at y = 66 and y = 84).
+    for i in range(3) within base.top.width {
+        sketch ra = circle(2.5);
+        obj ra = cut(ra, through base , @base.top(x: auto, y: 66));
+        sketch rb = circle(2.5);
+        obj rb = cut(rb, through base , @base.top(x: auto, y: 84));
+    }
+
+    // Grid pattern: 3x2 holes auto-distributed; x carries an inline +4 margin.
+    for (i, j) in grid(3, 2) within(base.top.width, base.top.height) {
+        sketch gh = circle(3);
+        obj gh = cut(gh, through base , @base.top(x: auto + 4, y: auto));
+    }
+
+    // `auto` outside a loop, in a parent-face context (like `inset`):
+    // the cover sketch fills the full panel-top width (120).
+    sketch cover = rect(auto, 20);
+    obj cover = extrude(cover, 2 , @base.top.center);
+
+    chamfer(@base.top.edges, 0.5);
+}
+
+// Bad case (uncomment to see the source-mapped error):
+//   inline fixed terms exceed the span -> non-positive spacing.
+// panel2 = {
+//     sketch b2 = rect(40, 40);
+//     obj b2 = extrude(b2, 4);
+//     for i in range(2) within b2.top.width {
+//         sketch h = circle(1);
+//         obj h = cut(h, through b2 , @b2.top(x: auto + 60, y: 5));
+//     }
+// }

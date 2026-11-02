@@ -1,0 +1,469 @@
+{
+  "version": 1,
+  "title": "BushSCAD Released Language True Check",
+  "description": "Physical-model verification of every released language capability using the production compiler, OpenCascade bridge, deterministic renders, and declared geometry expectations.",
+  "cases": [
+    {
+      "id": "01-core-control-flow",
+      "title": "Core language and control flow",
+      "description": "Variables, scalar and collection expressions, environment values, functions, scopes, branches, filters, and every loop iterator construct one inspected plate.",
+      "file": "01_core_control_flow.bscd",
+      "capabilities": [
+        "core.base-unit",
+        "core.inline-units",
+        "core.variables",
+        "core.lists-and-tuples",
+        "core.words-and-booleans",
+        "core.environment",
+        "core.expressions",
+        "core.functions",
+        "core.conditionals",
+        "core.loop-range",
+        "core.loop-grid",
+        "core.loop-radial",
+        "core.loop-list",
+        "core.loop-enumerate",
+        "core.loop-filter",
+        "core.components-and-scope",
+        "core.parts-and-materials",
+        "core.metadata",
+        "reference.named-plane"
+      ],
+      "expectations": {
+        "minMeshes": 1,
+        "minTriangles": 100,
+        "minAbsoluteVolume": 1000,
+        "requiredParts": ["core_control_flow"],
+        "requiredOperations": ["part", "sketch", "extrude", "cut", "fillet"],
+        "requiredChangedOperations": ["extrude", "cut", "modifiers"],
+        "requiredChangedModifiers": [
+          {
+            "partName": "core_control_flow",
+            "kind": "fillet",
+            "target": "base.perimeter"
+          }
+        ],
+        "maxWarnings": 20,
+        "maxTopologyIssues": { "degenerateTriangles": 8 },
+        "allowBoundaryEdges": true,
+        "allowDisconnectedComponents": true
+      }
+    },
+    {
+      "id": "02-sketch-primitives",
+      "title": "Sketch primitives and algebra",
+      "description": "All exact 2D primitives, path segments, local placement, Boolean algebra, origin modes, and wrap intents become visible solids.",
+      "file": "02_sketch_primitives.bscd",
+      "capabilities": [
+        "sketch.rect",
+        "sketch.roundrect",
+        "sketch.circle",
+        "sketch.ellipse",
+        "sketch.triangle",
+        "sketch.polygon",
+        "sketch.path-line",
+        "sketch.path-arc",
+        "sketch.path-close",
+        "sketch.boolean-union",
+        "sketch.boolean-difference",
+        "sketch.boolean-intersection",
+        "sketch.wrap-ordered",
+        "sketch.wrap-convex",
+        "sketch.wrap-concave",
+        "sketch.wrap-smooth",
+        "sketch.corner-origin",
+        "sketch.local-placement",
+        "sketch.path-bodies",
+        "solid.extrude"
+      ],
+      "expectations": {
+        "minMeshes": 1,
+        "minTriangles": 150,
+        "minAbsoluteVolume": 500,
+        "requiredParts": ["sketch_primitives"],
+        "requiredOperations": ["part", "sketch", "extrude"],
+        "requiredChangedOperations": ["extrude"],
+        "maxWarnings": 20,
+        "allowBoundaryEdges": true,
+        "allowDisconnectedComponents": true
+      }
+    },
+    {
+      "id": "03-sketch-constraints",
+      "title": "Parametric sketch constraints",
+      "description": "Driving/reference dimensions, construction geometry, compact assignments, exact offset/fillet, and spline syntax remain solvable and renderable.",
+      "file": "03_sketch_constraints.bscd",
+      "capabilities": [
+        "sketch.construction",
+        "sketch.constraints",
+        "sketch.dimensions",
+        "sketch.compact-dimensions",
+        "sketch.offset",
+        "sketch.fillet",
+        "sketch.spline"
+      ],
+      "expectations": {
+        "minMeshes": 1,
+        "minTriangles": 40,
+        "minAbsoluteVolume": 200,
+        "requiredOperations": ["sketch", "extrude"],
+        "requiredChangedOperations": ["extrude"],
+        "maxWarnings": 20,
+        "allowBoundaryEdges": true,
+        "allowDisconnectedComponents": true
+      }
+    },
+    {
+      "id": "04-solids-and-details",
+      "title": "Solid operations and details",
+      "description": "Extrusions, both sketch cuts, solid-tool cutting, fusion, every direct primitive, and the released detail modifiers produce inspectable geometry.",
+      "file": "04_solids_and_details.bscd",
+      "capabilities": [
+        "solid.cut-blind",
+        "solid.cut-through",
+        "solid.solid-cut",
+        "solid.fuse",
+        "solid.direct-primitives",
+        "detail.fillet",
+        "detail.chamfer",
+        "detail.shell",
+        "detail.draft",
+        "detail.thread"
+      ],
+      "expectations": {
+        "minMeshes": 4,
+        "minTriangles": 300,
+        "minAbsoluteVolume": 1000,
+        "requiredParts": [
+          "solid_operations",
+          "shelled_detail",
+          "threaded_detail",
+          "direct_primitives"
+        ],
+        "requiredOperations": [
+          "extrude",
+          "cut",
+          "solid_cut",
+          "fuse",
+          "solidPrimitive",
+          "shell",
+          "draft",
+          "thread",
+          "fillet",
+          "chamfer"
+        ],
+        "requiredChangedOperations": [
+          "extrude",
+          "cut",
+          "fuse",
+          "solidPrimitive",
+          "shell",
+          "thread"
+        ],
+        "maxWarnings": 20,
+        "maxTopologyIssues": { "degenerateTriangles": 2500 },
+        "allowBoundaryEdges": true,
+        "allowDisconnectedComponents": true
+      }
+    },
+    {
+      "id": "05-advanced-geometry",
+      "title": "Advanced curved geometry",
+      "description": "Revolve, guided loft, cylindrical wrapped cut/extrude, and profile-edge details are built by OCCT.",
+      "file": "05_advanced_geometry.bscd",
+      "capabilities": [
+        "sketch.word",
+        "solid.revolve",
+        "solid.loft",
+        "solid.wrap-extrude",
+        "solid.wrap-cut",
+        "reference.named-edge"
+      ],
+      "expectations": {
+        "minMeshes": 3,
+        "minTriangles": 200,
+        "minAbsoluteVolume": 200,
+        "requiredOperations": ["revolve", "loft"],
+        "requiredChangedOperations": ["revolve", "loft"],
+        "maxWarnings": 20,
+        "allowBoundaryEdges": true,
+        "allowDisconnectedComponents": true
+      }
+    },
+    {
+      "id": "06-sweep-and-radial",
+      "title": "Sweep and radial operations",
+      "description": "Polyline and spline sweeps, a subtractive sweep, and both radial solid operations exercise curved construction paths.",
+      "file": "06_sweep_and_radial.bscd",
+      "capabilities": [
+        "solid.sweep",
+        "solid.sweep-cut",
+        "solid.radial-extrude",
+        "solid.radial-cut"
+      ],
+      "expectations": {
+        "minMeshes": 2,
+        "minTriangles": 100,
+        "minAbsoluteVolume": 100,
+        "requiredOperations": [
+          "path",
+          "sweep",
+          "sweep_cut",
+          "radial_extrude",
+          "radial_cut"
+        ],
+        "requiredChangedOperations": [
+          "sweep",
+          "sweep_cut",
+          "radial_extrude",
+          "radial_cut"
+        ],
+        "maxWarnings": 20,
+        "allowBoundaryEdges": true,
+        "allowDisconnectedComponents": true
+      }
+    },
+    {
+      "id": "07-reference-selectors",
+      "title": "Reference selector matrix",
+      "description": "Faces, perimeters, all edges, named edges, corners, groups, selector variables, generated arrays, indices, wildcards, tags, and inner/outer qualifiers are consumed by real operations.",
+      "file": "07_reference_selectors.bscd",
+      "capabilities": [
+        "reference.face",
+        "reference.perimeter",
+        "reference.edges",
+        "reference.named-edge",
+        "reference.corner",
+        "reference.group",
+        "reference.array",
+        "reference.wildcard",
+        "reference.selector-variable",
+        "reference.index",
+        "reference.inner-outer",
+        "reference.tagged"
+      ],
+      "expectations": {
+        "minMeshes": 2,
+        "minTriangles": 120,
+        "minAbsoluteVolume": 500,
+        "requiredParts": [
+          "object_edges_selector",
+          "inferred_object_edges_selector"
+        ],
+        "requiredOperations": ["extrude", "cut", "fillet", "chamfer", "shell"],
+        "requiredChangedOperations": ["extrude", "cut", "shell", "modifiers"],
+        "requiredChangedModifiers": [
+          {
+            "partName": "object_edges_selector",
+            "kind": "fillet",
+            "target": "body.edges"
+          },
+          {
+            "partName": "inferred_object_edges_selector",
+            "kind": "fillet",
+            "target": "body"
+          }
+        ],
+        "maxWarnings": 20,
+        "maxTopologyIssues": { "degenerateTriangles": 16 },
+        "allowBoundaryEdges": true,
+        "allowDisconnectedComponents": true
+      }
+    },
+    {
+      "id": "08-surface-boundaries",
+      "title": "Surface boundary semantics",
+      "description": "A holed face distinguishes whole-face, outer-perimeter, and all-edge fills before offset and thickening; a surface-bound sketch is also consumed.",
+      "file": "08_surface_boundaries.bscd",
+      "capabilities": [
+        "surface.fill-face",
+        "surface.fill-perimeter",
+        "surface.fill-edges",
+        "surface.offset",
+        "surface.thicken",
+        "sketch.surface-bound"
+      ],
+      "expectations": {
+        "minMeshes": 2,
+        "minTriangles": 80,
+        "minAbsoluteVolume": 100,
+        "requiredOperations": ["surface", "surfaceOffset", "surfaceThicken"],
+        "requiredChangedOperations": ["surfaceThicken"],
+        "maxWarnings": 20,
+        "requiredMeshMetricDifferences": [
+          {
+            "leftBody": "face_skin",
+            "rightBody": "perimeter_skin",
+            "metric": "triangleCount",
+            "minimumDifference": 1
+          },
+          {
+            "leftBody": "edges_skin",
+            "rightBody": "perimeter_skin",
+            "metric": "triangleCount",
+            "minimumDifference": 1
+          }
+        ],
+        "allowBoundaryEdges": true,
+        "allowDisconnectedComponents": true
+      }
+    },
+    {
+      "id": "09-assembly-patterns",
+      "title": "Assembly, patterns, and transforms",
+      "description": "Reusable refs and anchors are placed, aliased, rotated, transformed, linearly/radially patterned, mirrored, and joined with a slider joint.",
+      "file": "09_assembly_patterns.bscd",
+      "capabilities": [
+        "assembly.place",
+        "assembly.anchor",
+        "assembly.rotate",
+        "assembly.pattern-linear",
+        "assembly.pattern-radial",
+        "assembly.mirror",
+        "assembly.transform",
+        "assembly.ref-part-object",
+        "assembly.joints",
+        "reference.position-offset"
+      ],
+      "expectations": {
+        "minMeshes": 2,
+        "minTriangles": 100,
+        "minAbsoluteVolume": 500,
+        "requiredOperations": [
+          "rotate",
+          "patternLinear",
+          "patternRadial",
+          "mirror",
+          "transform",
+          "joint"
+        ],
+        "requiredChangedOperations": [
+          "rotate",
+          "patternLinear",
+          "patternRadial",
+          "mirror",
+          "transform"
+        ],
+        "maxWarnings": 20,
+        "allowBoundaryEdges": true,
+        "allowDisconnectedComponents": true
+      }
+    },
+    {
+      "id": "10-manufacturing-validation",
+      "title": "Manufacturing and validation",
+      "description": "Metric holes, a heat-set insert, tolerance fits, environment overrides, and design assertions validate manufacturing semantics.",
+      "file": "10_manufacturing_validation.bscd",
+      "capabilities": [
+        "solid.hole",
+        "solid.heatset-insert",
+        "manufacturing.fit",
+        "manufacturing.assert"
+      ],
+      "expectations": {
+        "minMeshes": 1,
+        "minTriangles": 100,
+        "minAbsoluteVolume": 500,
+        "requiredOperations": ["fit"],
+        "maxWarnings": 20,
+        "allowBoundaryEdges": true,
+        "allowDisconnectedComponents": true
+      }
+    },
+    {
+      "id": "11-sheet-and-drawing",
+      "title": "Sheet metal and drawings",
+      "description": "A sheet base receives two flanges and a flat-pattern export while a solid part produces a dimensioned drawing.",
+      "file": "11_sheet_and_drawing.bscd",
+      "capabilities": [
+        "manufacturing.drawing",
+        "manufacturing.sheet",
+        "manufacturing.flange",
+        "manufacturing.flat-pattern"
+      ],
+      "expectations": {
+        "minMeshes": 2,
+        "minTriangles": 40,
+        "requiredOperations": ["part", "flange", "flat_pattern"],
+        "maxWarnings": 20,
+        "allowBoundaryEdges": true,
+        "allowDisconnectedComponents": true
+      }
+    },
+    {
+      "id": "12-imported-assets",
+      "title": "Imported shapes and fonts",
+      "description": "A STEP model and TrueType font pass through the asset pipeline; the shape is wrapped by a ref, repaired, anchored, and placed.",
+      "file": "12_imported_assets.bscd",
+      "capabilities": [
+        "assets.shape-import",
+        "assets.font-import",
+        "detail.heal",
+        "detail.defeature"
+      ],
+      "expectations": {
+        "minMeshes": 1,
+        "minTriangles": 40,
+        "requiredOperations": ["importShape", "heal", "defeature"],
+        "maxWarnings": 20,
+        "allowBoundaryEdges": true,
+        "allowDisconnectedComponents": true
+      }
+    },
+    {
+      "id": "13-module-library",
+      "title": "Exported module library",
+      "description": "Exported values, functions, and refs remain independently renderable and reusable.",
+      "file": "13_module_library.bscd",
+      "capabilities": [],
+      "expectations": {
+        "minMeshes": 1,
+        "minTriangles": 30,
+        "requiredOperations": ["part"],
+        "maxWarnings": 20,
+        "allowBoundaryEdges": true,
+        "allowDisconnectedComponents": true
+      }
+    },
+    {
+      "id": "14-module-import",
+      "title": "Cross-file module import",
+      "description": "Named and aliased imports resolve exported functions and refs across BushSCAD files.",
+      "file": "14_module_import.bscd",
+      "capabilities": ["core.import-export"],
+      "expectations": {
+        "minMeshes": 1,
+        "minTriangles": 30,
+        "requiredOperations": ["part"],
+        "maxWarnings": 20,
+        "allowBoundaryEdges": true,
+        "allowDisconnectedComponents": true
+      }
+    },
+    {
+      "id": "15-edge-intersections",
+      "title": "Edge intersection selectors",
+      "description": "Two aliased rectangle components cross in one Boolean sketch, and their default sides select only the generated solid edge at the crossing.",
+      "file": "15_edge_intersections.bscd",
+      "capabilities": ["sketch.component-alias", "reference.edge-intersection"],
+      "expectations": {
+        "minMeshes": 1,
+        "minTriangles": 40,
+        "minAbsoluteVolume": 1000,
+        "requiredParts": ["edge_intersections"],
+        "requiredOperations": ["sketch", "extrude", "fillet"],
+        "requiredChangedOperations": ["extrude", "modifiers"],
+        "requiredChangedModifiers": [
+          {
+            "partName": "edge_intersections",
+            "kind": "fillet",
+            "target": "crossed_body.(h.top, v.right)"
+          }
+        ],
+        "maxWarnings": 4,
+        "allowBoundaryEdges": true,
+        "allowDisconnectedComponents": true
+      }
+    }
+  ]
+}

@@ -1,0 +1,16 @@
+sketch plate = path(
+    origin((10, 5)),
+    plant bottom = line((0, 0), (78, 2)),
+    right = line((82, 39)),
+    top = line((1, 43)),
+    left = close(),
+    constraint(bottom.start, fixed),
+    constraint(bottom, horizontal),
+    constraint(right, vertical),
+    constraint(top, horizontal),
+    constraint(left, vertical),
+    constraint(bottom, length, 80),
+    constraint(right, length, 40)
+);
+
+obj plate = extrude(plate, 4);

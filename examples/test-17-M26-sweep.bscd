@@ -1,0 +1,21 @@
+base_unit = mm;
+
+// 1. Straight polyline sweep — cylindrical rod along Z axis
+sketch rod_section = circle(8);
+path rod_path = polyline([(0, 0, 0), (0, 0, 80)]);
+obj rod = sweep(rod_section along rod_path);
+
+// 2. Multi-segment polyline — L-shaped channel (XZ plane so profile has clear depth)
+sketch channel_section = rect(10, 6);
+path channel_path = polyline([(0, 20, 0), (40, 20, 0), (40, 20, 30)]);
+obj channel = sweep(channel_section along channel_path);
+
+// 3. Spline path sweep — curved handle
+sketch handle_section = circle(12);
+path handle_path = spline([(0, -30, 0), (30, -30, 20), (60, -30, 0)]);
+obj handle = sweep(handle_section along handle_path);
+
+// 4. Fixed-orientation sweep — tube with no twist
+sketch tube_section = circle(6);
+path tube_path = spline([(0, -70, 0), (20, -70, 15), (40, -70, 0)]);
+obj tube = sweep(tube_section along tube_path, orientation: fixed);

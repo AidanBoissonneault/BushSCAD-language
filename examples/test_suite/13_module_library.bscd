@@ -1,0 +1,23 @@
+// True check support module that is also independently renderable.
+base_unit = mm;
+
+export var module_height = 7;
+
+export fn module_pin(diameter, height: module_height) {
+    sketch profile = circle(diameter);
+    obj pin = extrude(profile, height);
+    @mount = @pin.bottom.center;
+}
+
+export part module_bracket {
+    sketch profile = roundrect(28, 16, r: 2);
+    obj bracket = extrude(profile, 5);
+    @mount = @bracket.bottom.center;
+}
+
+part module_library_preview {
+    sketch base_profile = rect(54, 34);
+    obj base = extrude(base_profile, 4);
+    place(module_pin(6), @base.top(x: -14, y: 0), @mount);
+    place(module_bracket, @base.top(x: 12, y: 0), @mount);
+}

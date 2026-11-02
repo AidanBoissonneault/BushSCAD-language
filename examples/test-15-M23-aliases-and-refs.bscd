@@ -1,0 +1,110 @@
+// M23 Test 15: Object Aliases and Ref Parts
+// Covers: obj x = fn(), place ... as alias, ref name { ... }
+base_unit = mm;
+workplane = XY;
+
+// ── Functions used for obj-from-call and placement ───────────────────────────
+
+fn peg(d, h) {
+    sketch s = circle(d);
+    obj peg = extrude(s, h);
+}
+
+fn small_cap() {
+    sketch s = circle(8);
+    obj cap = extrude(s, 2);
+}
+
+fn boss(d, h) {
+    sketch s = circle(d);
+    obj boss = extrude(s, h);
+    fillet(@boss.top, 0.4);
+}
+
+// ── Feature 3: ref — geometry block deferred until placed ────────────────────
+
+ref mount_pin {
+    sketch pin = circle(3);
+    obj pin = extrude(pin, 5);
+}
+
+ref corner_peg {
+    sketch peg = circle(4);
+    obj peg = extrude(peg, 8);
+    chamfer(@peg.top, 0.5);
+}
+
+// ── Main part ────────────────────────────────────────────────────────────────
+
+part demo_plate {
+    sketch base = rect(100, 70);
+    obj base = extrude(base, 6);
+
+    // Feature 1: obj bound , @function call — binds the fn's primary geometry
+    obj top_cap = small_cap();
+    obj raised_boss = boss(12, 5);
+
+    // Feature 2: place with alias — each instance gets its own name
+    place(peg(5, 12), @base.top(x: 20, y: 20)) as peg_a;
+    place(peg(5, 12), @base.top(x: 80, y: 20)) as peg_b;
+    place(peg(5, 12), @base.top(x: 20, y: 50)) as peg_c;
+    place(peg(5, 12), @base.top(x: 80, y: 50)) as peg_d;
+
+    // Operate on individual aliases independently
+    rotate peg_b 45deg around z;
+    rotate peg_d 90deg around z;
+    fillet(@peg_c.top, 1);
+
+    // Feature 3: ref placed multiple times — independent instances each time
+    place(mount_pin, @base.top(x: 50, y: 10));
+    place(mount_pin, @base.top(x: 50, y: 60));
+    place(mount_pin, @base.top(x: 10, y: 35));
+    place(mount_pin, @base.top(x: 90, y: 35));
+}
+
+// ── Ref declared at top level, placed inside a component ─────────────────────
+
+ref hex_stud {
+    sketch face = circle(10);
+    obj stud = extrude(face, 8);
+}
+
+part stud_plate {
+    sketch plate = rect(60, 60);
+    obj plate = extrude(plate, 4);
+
+    place(hex_stud, @plate.top(x: 15, y: 15)) as stud_a;
+    place(hex_stud, @plate.top(x: 45, y: 15)) as stud_b;
+    place(hex_stud, @plate.top(x: 15, y: 45)) as stud_c;
+    place(hex_stud, @plate.top(x: 45, y: 45)) as stud_d;
+
+    fillet(@stud_a.top, 0.5);
+    rotate stud_b 30deg around z;
+}
+
+// ── Component-scoped ref + obj-from-call ─────────────────────────────────────
+
+fn pillar(w, h) {
+    sketch s = rect(w, w);
+    obj pillar = extrude(s, h);
+}
+
+part bracket_assembly {
+    sketch bracket_base = rect(80, 40);
+    obj bracket_base = extrude(bracket_base, 5);
+
+    ref inner_post {
+        sketch post = circle(6);
+        obj post = extrude(post, 15);
+    }
+
+    // obj , @call inside a part body
+    obj front_cap = small_cap();
+
+    place(inner_post, @bracket_base.top(x: 20, y: 20)) as post_left;
+    place(inner_post, @bracket_base.top(x: 60, y: 20)) as post_right;
+
+    place(pillar(8, 10), @bracket_base.top(x: 40, y: 20)) as center_pillar;
+    fillet(@center_pillar.top, 1);
+    fillet(@post_left.top, 0.5);
+}

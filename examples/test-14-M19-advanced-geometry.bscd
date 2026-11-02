@@ -1,0 +1,93 @@
+// M19 Test 14: advanced geometry coverage
+// Covers function-style path sketches, revolve, loft with an open guide,
+// cylindrical wrap cut/extrude placement, and modifiers on revolve-generated
+// named profile faces.
+
+base_unit = mm;
+workplane = XY;
+
+ref m19_vase_geometry {
+    sketch vase_profile = path(
+        plant foot = line((6, 0), (18, 0)),
+        wall = line((16, 32)),
+        lip = arc((12, 36), 4, ccw),
+        inner = line(8, 4),
+        heel = arc((6, 0), 4, ccw)
+    );
+
+    obj vase = revolve(vase_profile, 360deg around y);
+
+    fillet(@vase.lip.edges, 0.5);
+    chamfer(@vase.foot.edges, 0.35);
+
+    @vase_bottom = @vase.foot.center;
+    @vase_side = @vase.wall.center;
+    @vase_top = @vase.top.center;
+
+    part.material = 'petg';
+}
+
+ref m19_loft_geometry {
+    sketch loft_base = path(
+        front = line((-14, -8), (14, -8)),
+        right = arc((14, 8), 10, ccw),
+        back = line(-14, 8),
+        left = arc((-14, -8), 10, ccw)
+    );
+
+    sketch loft_mid = path(
+        front = line((-10, -6), (10, -6)),
+        right = line(10, 6),
+        back = line((-10, 6)),
+        left = close()
+    );
+
+    sketch loft_top = path(
+        front = line((-6, -4), (6, -4)),
+        right = line((6, 4)),
+        back = line(-6, 4),
+        left = close()
+    );
+
+    sketch rail = path(
+        rise = line((0, 0), (0, 24)),
+        lean = arc((8, 38), 16, cw)
+    );
+
+    obj lofted_handle = loft(
+        loft_base,
+        loft_mid,
+        loft_top,
+        height: 38,
+        guide: rail
+    );
+
+    part.material = 'marble pla';
+}
+
+ref m19_cylinder_geometry {
+    obj cyl = extrude(circle(28), 34);
+
+    sketch label = word('M19', 5, 'sans', center);
+    obj wrapped_label_cut = cut(label, 0.8, @cyl.curved(0deg));
+
+    sketch rib_profile = rect(2, 14);
+    obj wrapped_rib = extrude(rib_profile, 1.2, @cyl.curved(45deg, wrap));
+
+    part.material = 'silk pla';
+}
+
+part base_plate {
+    sketch project_base = rect(255, 255);
+
+    obj base = extrude(project_base, 5) {
+        @base_center = @base.top.center;
+        @base_side = @base.left.center;
+    };
+
+    place(m19_cylinder_geometry, @base_center(radius: 60, angle: 0deg));
+    place(m19_loft_geometry, @base_center(radius: 60, angle: 180deg));
+    place(m19_vase_geometry, @base_center, @vase_bottom);
+
+    part.material = 'clear resin';
+}

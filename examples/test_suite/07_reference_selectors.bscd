@@ -1,0 +1,64 @@
+// True check: face/edge/corner selectors, groups, arrays, variables, wildcards, and indices.
+base_unit = mm;
+
+part named_edge_selector {
+    sketch profile = rect(44, 30, bottom: mounting_edge) at (-120, 0);
+    obj body = extrude(profile, 8);
+    fillet(@body.mounting_edge.edges, 0.35);
+}
+
+part explicit_group_selector {
+    sketch profile = roundrect(44, 30, r: 3) at (-80, 0);
+    obj body = extrude(profile, 8);
+    chamfer(@body.[top, bottom].perimeter, 0.25);
+}
+
+part variable_selector {
+    var caps = [top, bottom];
+    sketch profile = roundrect(44, 30, r: 3) at (-40, 0);
+    obj body = extrude(profile, 8);
+    fillet(@body.caps.perimeter, 0.3);
+}
+
+part wildcard_selector {
+    sketch profile = roundrect(44, 30, r: 3);
+    obj body = extrude(profile, 8);
+    fillet(@body.*.edges, 0.05);
+}
+
+part tagged_corner_selector {
+    sketch profile = rect(44, 30) at (40, 0);
+    obj body = extrude(profile, 8) {
+        @tagged_top = @body.top;
+        @tagged_edge = @body.top.front_edge;
+    };
+    fillet(@tagged_edge, 0.2);
+    obj corner_pin = cylinder(4, d: 3, @tagged_top.front_left(x: 5, y: 5));
+}
+
+part generated_array_selector {
+    sketch profile = rect(44, 30) at (80, 0);
+    obj body = extrude(profile, 8);
+    obj pocket = cut(circle(5), 2, @body.[top, bottom]);
+    obj index_marker = cylinder(3, d: 2, @pocket[1].bottom.center);
+}
+
+part qualified_surfaces {
+    sketch profile = rect(44, 30) at (120, 0);
+    obj hollow = extrude(profile, 24);
+    shell: hollow 3 open: top;
+    obj insert = extrude(rect(24, 12), 2, @hollow.inner.bottom.center);
+    fillet(@hollow.outer.bottom.perimeter, 0.35);
+}
+
+part object_edges_selector {
+    sketch profile = rect(20, 14) at (-16, -46);
+    obj body = extrude(profile, 6);
+    fillet(@body.edges, 1);
+}
+
+part inferred_object_edges_selector {
+    sketch profile = rect(20, 14) at (16, -46);
+    obj body = extrude(profile, 6);
+    fillet(@body, 1);
+}

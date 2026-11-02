@@ -1,0 +1,6 @@
+// M41 geometry baseline: explicit through target.
+
+part m41_through {
+    obj base = extrude(rect(60, 40), 8);
+    obj hole = cut(circle(8), through base , @base.top(30, 20));
+}

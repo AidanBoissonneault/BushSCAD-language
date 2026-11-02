@@ -1,0 +1,8 @@
+part repeated_pins {
+  part.material = 'matte pla';
+
+  for i in range(6) {
+    obj pin = roundedCylinder(14, r: 4, roundingRadius: 1);
+    transform(pin, translate(x: -40 + i * 16, y: 0, z: 0));
+  }
+}

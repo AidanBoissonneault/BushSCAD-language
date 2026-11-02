@@ -1,0 +1,45 @@
+// M40 Test 31: solid-tool cuts keep regular sketch cuts working.
+base_unit = mm;
+
+part solid_tool_cut_showcase {
+    sketch base_sk = rect(90, 60);
+    obj base = extrude(base_sk, 18);
+
+    // Regression: regular blind and through sketch cuts remain valid.
+    sketch pocket_sk = rect(18, 10);
+    obj pocket = cut(pocket_sk, 4 , @base.top.center(x: -28, y: 0));
+
+    sketch bore_sk = circle(6);
+    obj bore = cut(bore_sk, through base , @base.top.center(x: 28, y: 0));
+
+    // Predefined solid tool: remains visible, but a placed copy cuts the base.
+    sketch tool_sk = rect(8, 16);
+    obj side_tool = extrude(tool_sk, 22);
+    obj side_channel = cut(side_tool, @base.front.center(x: -20));
+
+    // Inline loft solid tool , @the top face.
+    sketch loft_a = rect(16, 6);
+    sketch loft_b = rect(8, 14);
+    obj tapered_channel = cut(
+        loft(loft_a, loft_b, height: 24),
+        @base.top.center(x: 0, y: 16)
+    );
+
+    // Inline revolve tool , @an offset plane.
+    sketch cutter_profile = rect(5, 10);
+    obj rounded_socket = cut(
+        revolve(cutter_profile, 360deg around z, radius: 6),
+        @plane(base.top.center, offset: 1)
+    );
+
+    // Inline sweep tool , @a different side.
+    path sweep_path = polyline([(0, 0, 0), (0, 0, 16), (10, 0, 22)]);
+    sketch sweep_profile = circle(4);
+    obj swept_port = cut(
+        sweep(sweep_profile along sweep_path, orientation: fixed),
+        @base.right.center(y: 8)
+    );
+
+    chamfer(@base.bottom.edges, 0.5);
+    fillet(@pocket.bottom.edges, 1);
+}

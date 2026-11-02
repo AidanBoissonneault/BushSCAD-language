@@ -1,0 +1,42 @@
+{
+  "name": "bushscad-language",
+  "description": "BushSCAD language, compiler, and public language-tooling workspace",
+  "version": "1.0.2",
+  "private": true,
+  "packageManager": "npm@10.9.4",
+  "workspaces": [
+    "packages/*"
+  ],
+  "scripts": {
+    "docs:check": "node --no-warnings --experimental-strip-types scripts/docs/publish-language-reference.ts --check",
+    "docs:publish": "node --no-warnings --experimental-strip-types scripts/docs/publish-language-reference.ts",
+    "licenses": "node --experimental-strip-types scripts/licensing/generate-licenses.ts",
+    "build:cli": "npm run build --workspace=@bushscad/cli",
+    "typecheck": "npm run typecheck --workspaces --if-present && npm run typecheck:scripts",
+    "typecheck:scripts": "tsc --noEmit -p scripts/tsconfig.json",
+    "test": "npm run test --workspaces --if-present",
+    "test:language:visual": "npm run build --workspace=@bushscad/model-analysis && node packages/model-analysis/dist/cli.js suite examples/test_suite --out .bushscad-analysis/test-suite",
+    "lint": "eslint . --cache",
+    "fallow": "fallow",
+    "fallow:dupes": "fallow dupes",
+    "format": "prettier . --write",
+    "format:check": "prettier . --check"
+  },
+  "devDependencies": {
+    "@eslint/js": "^10.0.1",
+    "@types/markdown-it": "^14.2.0",
+    "@types/node": "^25.9.4",
+    "eslint": "^10.2.1",
+    "eslint-config-prettier": "^10.1.8",
+    "eslint-plugin-vue": "^10.9.0",
+    "fallow": "^2.54.2",
+    "globals": "^17.5.0",
+    "markdown-it": "^15.0.3",
+    "playwright": "1.60.0",
+    "prettier": "^3.8.3",
+    "typescript": "^5.4.0",
+    "typescript-eslint": "^8.59.1",
+    "vue-eslint-parser": "^10.4.1"
+  },
+  "license": "Apache-2.0"
+}

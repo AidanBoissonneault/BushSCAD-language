@@ -1,0 +1,42 @@
+// M1-M7 Test 06: env vars, if/else, ternary operator, where filter on range and grid
+base_unit = mm;
+
+var include_slots = false;
+env build_mode  fallback 'release';
+env hole_count  fallback 4;
+env thick       fallback false;
+env extra_slots fallback 2;
+
+part plate {
+    // Ternary: depth driven by env bool
+    sketch base = rect(80, 60);
+    obj base = extrude(base, thick ? 16 : 8);
+
+    // if with loop inside
+    if include_slots {
+        for i in range(hole_count) {
+            sketch sh = rect(8, 4);
+            obj sh = cut(sh, through base , @base.top(x: 10 + (i * 16), y: 30));
+        }
+    }
+
+    // where on range: skip odd indices
+    for i in range(6) where i % 2 == 0 {
+        sketch wh = circle(3);
+        obj wh = cut(wh, through base , @base.top(x: 10 + (i * 12), y: 50));
+    }
+
+    // where on grid: skip middle column
+    for (i, j) in grid(cols: 3, rows: 2, spacing: 22) where i != 1 {
+        sketch gf = circle(2.5);
+        obj gf = cut(gf, through base , @base.top(x: 10 + i, y: 8 + j));
+    }
+
+    // if/else on env string comparison
+    if build_mode == 'release' {
+        //fillet(@base.top.edges, 2);
+        chamfer(@base.bottom.edges, 0.5);
+    } else {
+        chamfer(@base.top.edges, 1);
+    }
+}

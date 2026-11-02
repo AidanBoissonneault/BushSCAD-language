@@ -1,0 +1,19 @@
+// M40: optional keyword arguments for built-in value parameters.
+
+part m40_optional_keyword_args {
+  sketch base_sk = rect(80, 50);
+  obj base = extrude(base_sk, 8);
+
+  sketch boss_sk = roundrect(18, 12, 2);
+  obj boss = extrude(boss_sk, 5 , @base.top(20, 25));
+
+  sketch hole_sk = circle(4);
+  for i in range(3) {
+    obj hole = cut(hole_sk, 9 , @base.top(20 + i * 18, y: 25));
+  }
+
+  for (i, j) in grid(2, 2) {
+    sketch pin_sk = circle(2);
+    obj pin = extrude(pin_sk, 2 , @base.top(8 + i * 64, 8 + j * 34));
+  }
+}

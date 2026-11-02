@@ -1,0 +1,6 @@
+// M41 geometry comparison: inferred through target , @placement surface.
+
+part m41_through {
+    obj base = extrude(rect(60, 40), 8);
+    obj hole = cut(circle(8), through , @base.top(20, 20));
+}

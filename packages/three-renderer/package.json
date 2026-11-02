@@ -1,0 +1,47 @@
+{
+    "name":  "@bushscad/three-renderer",
+    "version":  "0.1.0-beta.1",
+    "type":  "module",
+    "exports":  {
+                    ".":  "./src/index.ts",
+                    "./sketch-preview":  "./src/sketch-preview/sketch-preview.ts"
+                },
+    "scripts":  {
+                    "typecheck":  "tsc --noEmit \u0026\u0026 tsc --noEmit -p tsconfig.test.json",
+                    "test":  "vitest run --passWithNoTests"
+                },
+    "dependencies":  {
+                         "@bushscad/ir":  "^0.1.0-beta.1"
+                     },
+    "peerDependencies":  {
+                             "three":  "^0.165.0"
+                         },
+    "devDependencies":  {
+                            "@types/three":  "^0.165.0",
+                            "three":  "^0.165.0",
+                            "typescript":  "^5.4.0",
+                            "vitest":  "^4.1.5"
+                        },
+    "license":  "Apache-2.0",
+    "description":  "Three.js rendering components for BushSCAD model and sketch previews. This package is distributed as TypeScript source for browser and editor bundlers.",
+    "homepage":  "https://bushscad.byaidan.com/",
+    "repository":  {
+                       "type":  "git",
+                       "url":  "https://github.com/AidanBoissonneault/BushSCAD-Language.git",
+                       "directory":  "packages/three-renderer"
+                   },
+    "bugs":  {
+                 "url":  "https://github.com/AidanBoissonneault/BushSCAD-Language/issues"
+             },
+    "publishConfig":  {
+                          "access":  "public",
+                          "registry":  "https://registry.npmjs.org/"
+                      },
+    "files":  [
+                  "src/**",
+                  "dist/**",
+                  "assets/**",
+                  "LICENSE",
+                  "README.md"
+              ]
+}

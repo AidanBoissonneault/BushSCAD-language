@@ -1,0 +1,32 @@
+base_unit = mm;
+
+import { foot } from './parts/foot.bscd';
+import { badge } from './badge.bscd';
+import { make_lid } from './parts/lid.bscd';
+
+env build_mode fallback 'preview';
+
+part enclosure {
+  sketch body = roundrect(70, 42, r: 5);
+  obj body = extrude(body, 18);
+  shell: body 2 open: top;
+
+  place(make_lid(), @body.top.center);
+  if build_mode == 'preview' {
+    sketch label = word('M14', size: 7, font: 'sans', align: center);
+    obj label = extrude(label, 1 , @body.top.center);
+  }
+
+  for pt in [
+    @body.bottom.front_left(x: 6, y: 6),
+    @body.bottom.front_right(x: -6, y: 6),
+    @body.bottom.back_left(x: 6, y: -6),
+    @body.bottom.back_right(x: -6, y: -6)
+  ] {
+    place(foot, @pt);
+  }
+
+  place(badge, @body.front.center);
+  fillet(@body.top.edges, 1.2);
+  //color: #2e364b;
+}

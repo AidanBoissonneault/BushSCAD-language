@@ -1,0 +1,13 @@
+// True check: named sketch-edge crossings become deterministic solid selectors.
+base_unit = mm;
+
+part edge_intersections {
+    part.color = #F97316;
+
+    sketch crossed_rectangles =
+        rect(60, 20) as h +
+        rect(20, 60) as v;
+
+    obj crossed_body = extrude(crossed_rectangles, 8);
+    fillet(@crossed_body.(h.top, v.right), 4);
+}

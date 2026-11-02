@@ -1,0 +1,20 @@
+part direct_3d_primitives {
+  obj block = cube([40, 20, 8]);
+  obj cuboid_block = cuboid([18, 12, 6], @block.top(x: -10, y: 0));
+  obj ball = sphere(r: 5, @block.top(x: 10, y: 0));
+  obj oval = ellipsoid(radius: [8, 5, 4], @block.top(x: 0, y: 0));
+  obj faceted = geodesicSphere(4, @block.top(x: 0, y: 8));
+  obj pin = cylinder(12, d: 6, @block.top(x: -16, y: 7));
+  obj oval_pin = cylinderElliptic(10, radius: [4, 2], @block.top(x: -16, y: -7));
+  obj cone_tip = cone(10, r: 4, @block.top(x: 16, y: 7));
+  obj taper = frustum(10, r1: 5, r2: 2, @block.top(x: 16, y: -7));
+  obj rounded_box = roundedCuboid([12, 8, 5], r: 2, @block.right.center);
+  obj rounded_pin = roundedCylinder(8, r: 4, roundingRadius: 1, @block.left.center);
+  obj ring = torus(majorRadius: 8, minorRadius: 1.5, @block.top.center);
+  obj pyramid = polyhedron(
+    points: [[-4, -4, 0], [4, -4, 0], [4, 4, 0], [-4, 4, 0], [0, 0, 8]],
+    faces: [[0, 1, 2, 3], [0, 4, 1], [1, 4, 2], [2, 4, 3], [3, 4, 0]],
+    @block.top(x: 0, y: -8)
+  );
+}
+

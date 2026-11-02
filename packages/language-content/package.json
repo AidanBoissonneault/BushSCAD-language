@@ -1,0 +1,33 @@
+{
+  "name": "@bushscad/language-content",
+  "version": "0.1.0-beta.1",
+  "description": "Canonical BushSCAD language reference, generated publication assets, and documentation examples.",
+  "type": "module",
+  "exports": {
+    "./reference.md": "./dist/reference.md",
+    "./examples/*": "./dist/examples/*",
+    "./public/*": "./dist/public/*"
+  },
+  "scripts": {
+    "prepack": "node --no-warnings --experimental-strip-types scripts/build-content.ts"
+  },
+  "license": "Apache-2.0",
+  "homepage": "https://bushscad.byaidan.com/",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/AidanBoissonneault/BushSCAD-Language.git",
+    "directory": "packages/language-content"
+  },
+  "bugs": {
+    "url": "https://github.com/AidanBoissonneault/BushSCAD-Language/issues"
+  },
+  "publishConfig": {
+    "access": "public",
+    "registry": "https://registry.npmjs.org/"
+  },
+  "files": [
+    "dist/**",
+    "LICENSE",
+    "README.md"
+  ]
+}

@@ -1,0 +1,38 @@
+{
+    "name":  "@bushscad/ir",
+    "version":  "0.1.0-beta.1",
+    "type":  "module",
+    "exports":  {
+                    ".":  "./src/index.ts"
+                },
+    "scripts":  {
+                    "typecheck":  "tsc --noEmit \u0026\u0026 tsc --noEmit -p tsconfig.test.json",
+                    "test":  "vitest run --passWithNoTests"
+                },
+    "devDependencies":  {
+                            "typescript":  "^5.4.0",
+                            "vitest":  "^4.1.5"
+                        },
+    "license":  "Apache-2.0",
+    "description":  "Shared intermediate representation types for the BushSCAD language toolchain.",
+    "homepage":  "https://bushscad.byaidan.com/",
+    "repository":  {
+                       "type":  "git",
+                       "url":  "https://github.com/AidanBoissonneault/BushSCAD-Language.git",
+                       "directory":  "packages/ir"
+                   },
+    "bugs":  {
+                 "url":  "https://github.com/AidanBoissonneault/BushSCAD-Language/issues"
+             },
+    "publishConfig":  {
+                          "access":  "public",
+                          "registry":  "https://registry.npmjs.org/"
+                      },
+    "files":  [
+                  "src/**",
+                  "dist/**",
+                  "assets/**",
+                  "LICENSE",
+                  "README.md"
+              ]
+}

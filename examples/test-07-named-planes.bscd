@@ -1,0 +1,36 @@
+// M1-M7 Test 07: named planes (offset, chained), inline anonymous plane,
+//                tiered geometry — each tier extruded , @its own plane
+base_unit = mm;
+
+part tiered {
+    sketch base = rect(80, 60);
+    obj base = extrude(base, 6);
+
+    // Chained named planes
+    plane lvl1 = offset(20  , @base.top.front_left);
+    plane lvl2 = offset(20 , @lvl1);
+    plane lvl3 = offset(20  , @lvl2);
+
+    sketch mid = rect(60, 42);
+    obj mid = extrude(mid, 10 , @lvl1);
+
+    sketch top = rect(40, 26);
+    obj top = extrude(top, 10 , @lvl2);
+
+    sketch cap = circle(16);
+    obj cap = extrude(cap, 10 , @lvl3);
+
+    // Through hole using inline anonymous plane
+    sketch bore = circle(6);
+    obj bore = cut(bore, through cap , @plane(cap.top.center, offset: 0));
+
+    // Pocket at explicit offset via named plane reference
+    sketch slot = rect(20, 6);
+    obj slot = cut(slot, 4 , @plane(mid.top, offset: 0));
+
+    fillet(@base.top.edges, 1.5);
+    fillet(@mid.top.edges, 1);
+    fillet(@top.top.edges, 1);
+    fillet(@cap.top.edges, 0.5);
+    chamfer(@base.bottom.edges, 0.5);
+}

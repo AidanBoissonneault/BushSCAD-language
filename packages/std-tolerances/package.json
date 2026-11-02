@@ -1,0 +1,30 @@
+{
+    "name":  "@bushscad/std-tolerances",
+    "version":  "0.1.0-beta.1",
+    "type":  "module",
+    "exports":  {
+                    ".":  "./src/index.ts"
+                },
+    "license":  "Apache-2.0",
+    "description":  "Standard tolerance profiles for BushSCAD model evaluation.",
+    "homepage":  "https://bushscad.byaidan.com/",
+    "repository":  {
+                       "type":  "git",
+                       "url":  "https://github.com/AidanBoissonneault/BushSCAD-Language.git",
+                       "directory":  "packages/std-tolerances"
+                   },
+    "bugs":  {
+                 "url":  "https://github.com/AidanBoissonneault/BushSCAD-Language/issues"
+             },
+    "publishConfig":  {
+                          "access":  "public",
+                          "registry":  "https://registry.npmjs.org/"
+                      },
+    "files":  [
+                  "src/**",
+                  "dist/**",
+                  "assets/**",
+                  "LICENSE",
+                  "README.md"
+              ]
+}

@@ -1,0 +1,17 @@
+{
+  "version": 1,
+  "entrypoints": {
+    "main": "src/main.bscd",
+    "badge": "src/badge.bscd"
+  },
+  "defaultEntrypoint": "main",
+  "include": ["src/**/*.bscd"],
+  "assets": ["assets/materials.json"],
+  "env": {
+    "build_mode": "preview"
+  },
+  "export": {
+    "format": "step",
+    "entrypoints": ["main"]
+  }
+}

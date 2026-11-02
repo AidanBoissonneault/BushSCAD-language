@@ -1,0 +1,42 @@
+// True check: refs, anchors, placement, rotations, transforms, patterns, mirrors, and joints.
+base_unit = mm;
+
+ref peg_component {
+    sketch peg_profile = circle(6);
+    obj peg = extrude(peg_profile, 14);
+    @mount = @peg.bottom.center;
+}
+
+part pattern_plate {
+    part.color = #8B5CF6;
+    sketch plate_profile = roundrect(100, 70, r: 5);
+    obj plate = extrude(plate_profile, 7) {
+        @plate_center = @plate.top.center;
+    };
+
+    place(peg_component, @plate.top.front_left(x: 12, y: 12), @mount) as peg_a;
+    pattern(peg_a, linear, 3, 22);
+    pattern(peg_a, radial, 4, plate.top.center);
+    rotate peg_a 20deg around z;
+
+    sketch marker_profile = rect(12, 6);
+    obj marker = extrude(marker_profile, 5);
+    transform(marker, translate(x: 18, y: 0, z: 7));
+    mirror(marker, Y);
+}
+
+part joint_housing {
+    sketch housing_profile = rect(58, 42);
+    obj housing = extrude(housing_profile, 22);
+    shell: housing 3 open: front;
+}
+
+part drawer {
+    sketch slider_profile = roundrect(34, 20, r: 2);
+    obj slider = extrude(slider_profile, 8, @joint_housing.inner.back.center);
+}
+
+slider slide(@drawer.front, @joint_housing.front) {
+    range = 0mm..30mm;
+    default = 10mm;
+}

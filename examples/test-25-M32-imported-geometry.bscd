@@ -1,0 +1,19 @@
+base_unit = mm;
+
+import shape motor = './T21.step';
+
+ref motor_shape extends motor {
+  heal tolerance: 0.01;
+  defeature holes smaller_than: 2;
+  @motor_top = @largest_planar;
+  @motor_left = @motor_shape.left.center;
+};
+
+part housing {
+  sketch base = rect(80, 60);
+  obj body = extrude(base, 20);
+
+  //place(motor_shape, @body.top.center, @motor_top);
+  place(motor_shape, @motor_shape.top.center, @motor_left);
+  //transform(motor_shape, translate(x: 100, y: 0));
+};

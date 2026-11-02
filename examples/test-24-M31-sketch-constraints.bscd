@@ -1,0 +1,68 @@
+// M31 - Custom path sketch examples
+// Uses the cursor-based path(...) sketch system for named line and arc
+// segments that can be referenced after extrusion.
+base_unit = mm;
+
+// Case 1: Rectangular named profile.
+// Expected: 60 x 40 mm rect solid.
+sketch rect_profile = path(
+    bottom = line((0, 0), (60, 0)),
+    right = line(60, 40),
+    top = line(0, 40),
+    left = close()
+);
+
+obj body = extrude(rect_profile, 10);
+
+// Case 2: Parametric profile.
+// Changing w or h recomputes the profile endpoints.
+// Expected: 80 x 50 mm extrusion.
+var w = 80;
+var h = 50;
+
+sketch param_profile = path(
+    s0 = line((0, 0), (w, 0)),
+    s1 = line(w, h),
+    s2 = line(0, h),
+    s3 = close()
+);
+
+obj plate = extrude(param_profile, 5);
+
+// Case 3: L-bracket cross-section.
+// Expected: L-shaped extrusion with named profile faces.
+sketch l_profile = path(
+    base = line((0, 0), (30, 0)),
+    step_v = line(30, 10),
+    step_h = line(10, 10),
+    rib = line(10, 40),
+    top = line(0, 40),
+    back = close()
+);
+
+obj bracket = extrude(l_profile, 50);
+
+// Case 4: Profile with an arc.
+// Expected: rectangular block with curved top face.
+sketch arc_profile = path(
+    bottom = line((0, 0), (40, 0)),
+    right = line(40, 20),
+    top_arc = arc((0, 20), 25, cw),
+    left = close()
+);
+
+obj rounded_block = extrude(arc_profile, 15);
+transform(rounded_block, translate(x: 100, y: 0));
+
+// Case 5: Square profile using a shared variable.
+// Expected: 35 x 35 mm square post.
+var side = 35;
+
+sketch square_profile = path(
+    sq_bottom = line((0, 0), (side, 0)),
+    sq_right = line(side, side),
+    sq_top = line(0, side),
+    sq_left = close()
+);
+
+obj square_post = extrude(square_profile, 20);

@@ -1,0 +1,45 @@
+// M1-M7 Test 05: all loop forms — range, grid (with spacing), radial,
+//                list, enumerate
+base_unit = mm;
+
+var bolt_sizes = [3, 4, 3, 4];
+var mount_pts  = [(8, 8), (112, 8), (8, 92), (112, 92)];
+
+part panel {
+    sketch base = rect(120, 100);
+    obj base = extrude(base, 8);
+
+
+    // range: row of 4 equal holes
+    for i in range(4) {
+        sketch rh = circle(3);
+        obj rh = cut(rh, through base , @base.top(x: 16 + (i * 26), y: 14));
+    }
+
+    // grid with explicit spacing: 3×2 matrix
+    for (i, j) in grid(cols: 3, rows: 2, spacing: 28) {
+        sketch gh = circle(2);
+        obj gh = cut(gh, through base , @base.top.front_left(x: 20 + i, y: 36 + j));
+    }
+
+    // radial: 6 holes evenly spaced around centre
+    for a in radial(6) {
+        sketch radh = circle(2.5);
+        obj radh = cut(radh, through base , @base.top.center(radius: 32, angle: a));
+    }
+
+    // list: 4 corner mount holes , @a coordinate list
+    for pt in mount_pts {
+        sketch mh = circle(4);
+        obj mh = cut(mh, through base , @base.top(x: pt.x, y: pt.y));
+    }
+
+    // enumerate: variable-diameter blind pockets
+    for (i, d) in enumerate(bolt_sizes) {
+        sketch ep = circle(d);
+        obj ep = cut(ep, 3 , @base.top(x: 20 + (i * 26), y: 82));
+    }
+
+    chamfer(@base.top.edges, 0.2);
+    chamfer(@base.bottom.edges, 0.5);
+}

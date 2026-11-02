@@ -1,0 +1,54 @@
+base_unit = mm;
+
+export part arm {
+    sketch body = rect(36, 12, r: 2);
+
+    obj body = extrude(body, 5) {
+        @arm_top = @body.top;
+        @arm_front_edge = @body.top.front_edge;
+        @arm_mount_face = @body.bottom;
+        @arm_left = @body.left;
+    }
+
+    sketch hole = circle(4);
+    obj pivot_hole = cut(hole, through body , @body.top.center(x: 0, y: 0));
+
+    fillet(@arm_front_edge, 1);
+    chamfer(@body.bottom.edges, 0.5);
+
+    @mount = @body.bottom.center;
+    @left_mount = @body.left.center;
+}
+
+part m18_rotate_tag_demo {
+    sketch plate_profile = rect(90, 60, r: 4);
+
+    obj plate = extrude(plate_profile, 6) {
+        @plate_top = @plate.top;
+        @plate_front_edge = @plate.top.front_edge;
+        @plate_back_right = @plate.top.back_right;
+        @plate_center = @plate.top.center;
+    }
+
+    // Four repeated arms using placement-time rotation
+    place(arm, @plate_center, @mount) rotate(0deg);
+    place(arm, @arm_top.center, @mount) rotate(z: 75deg);
+    place(arm, @arm_top.center, @mount) rotate(0deg, 0deg, 90deg);
+    place(arm, @arm_left.center, @left_mount) rotateZ(270deg);
+
+    // Post-placement rotate test
+    rotate arm 12deg around plate_top.center;
+
+    // Downstream anchor usage
+    sketch center_bore = circle(10);
+    obj center_bore = cut(center_bore, through plate , @plate_top.center);
+
+    sketch label = word('M18', size: 7, font: 'sans', align: center);
+    obj engraving = cut(label, 0.7 , @plate_top(x: 45, y: 12));
+
+    fillet(@plate_front_edge, 2);
+    chamfer(@plate.bottom.edges, 1);
+
+    part.material = 'marble pla';
+    part.color = #2563EB;
+}

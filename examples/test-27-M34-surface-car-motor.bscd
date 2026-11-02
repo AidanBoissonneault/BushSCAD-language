@@ -1,0 +1,244 @@
+// M34 advanced integration example: detailed inline car motor.
+// This intentionally combines older solid workflows with surface-first skins:
+// filled face/sketch surfaces, offset surface layers, and thickened covers.
+
+base_unit = mm;
+
+fn cap_screw(d, h) {
+    sketch head_sk = circle(d);
+    obj head = extrude(head_sk, h);
+
+    sketch socket_sk = circle(d * 0.45);
+    obj socket = cut(socket_sk, h * 0.55 , @head.top.center);
+
+    chamfer(@head.top.edges, 0.35);
+    fillet(@head.bottom.edges, 0.2);
+
+    @mount = @head.bottom.center;
+}
+
+fn sensor_boss(d, h) {
+    sketch boss_sk = circle(d);
+    obj boss = extrude(boss_sk, h);
+
+    sketch bore_sk = circle(d * 0.42);
+    obj bore = cut(bore_sk, through boss , @boss.top.center);
+
+    fillet(@boss.top.edges, 0.5);
+    @mount = @boss.bottom.center;
+}
+
+fn coil_pack(w, h, d) {
+    sketch body_sk = roundrect(w, h, r: 2);
+    obj body = extrude(body_sk, d);
+
+    // Surface cap over the coil pack: thin offset skin instead of direct extrude.
+    surface coil_skin = fill(body.top);
+    surface raised_coil_skin = offset_surface(coil_skin, 1.4);
+    obj lid = thicken(raised_coil_skin, 1.2);
+
+    sketch plug_sk = circle(4);
+    obj plug = extrude(plug_sk, 8 , @lid.top.center);
+
+    fillet(@body.top.edges, 0.4);
+
+    @mount = @body.bottom.center;
+}
+
+fn runner_tube(w, h, d) {
+    sketch runner_sk = roundrect(w, h, r: 3);
+    obj runner = extrude(runner_sk, d);
+
+    // A thin surface heat shield riding above each intake runner.
+    surface runner_skin = fill(runner.top);
+    surface shield_skin = offset_surface(runner_skin, 3);
+    obj shield = thicken(shield_skin, 0.9);
+
+    fillet(@runner.top.edges, 0.7);
+
+    @mount = @runner.bottom.center;
+}
+
+part short_block {
+    part.color = #475569;
+
+    sketch block_sk = roundrect(205, 112, r: 8);
+    obj block = extrude(block_sk, 72);
+
+    // Cylinder bores and head bolt holes.
+    for i in range(4) {
+        sketch bore_sk = circle(29);
+        obj bore = cut(bore_sk, through block , @block.top(x: 34 + i * 46, y: 56));
+
+        sketch sleeve_sk = circle(36);
+        obj sleeve_relief = cut(sleeve_sk, 3 , @block.top(x: 34 + i * 46, y: 56));
+    }
+
+    for i in range(5) {
+        sketch bolt_sk = circle(5);
+        obj head_bolt_front = cut(bolt_sk, 18 , @block.top(x: 12 + i * 45, y: 18));
+        obj head_bolt_back = cut(bolt_sk, 18 , @block.top(x: 12 + i * 45, y: 94));
+    }
+
+    // Main cap ribbing on both long sides.
+    for i in range(6) {
+        sketch rib_sk = rect(8, 24);
+        obj rib_front = extrude(rib_sk, 6 , @block.outer.front.center(x: -82 + i * 33, y: 0));
+        obj rib_back = extrude(rib_sk, 6 , @block.outer.back.center(x: -82 + i * 33, y: 0));
+    }
+
+    // Surface-derived crankcase inspection cover on the front face.
+    surface front_patch = fill(block.outer.front);
+    surface front_patch_offset = offset_surface(front_patch, 5);
+    obj stamped_front_cover = thicken(front_patch_offset, 1.4);
+
+    sketch window_sk = roundrect(74, 18, r: 4);
+    obj window = cut(window_sk, through stamped_front_cover , @stamped_front_cover.top.center);
+
+    fillet(@block.top.edges, 2);
+    chamfer(@block.bottom.edges, 0.8);
+}
+
+part cylinder_head {
+    part.color = #64748B;
+
+    sketch head_sk = roundrect(214, 118, r: 7);
+    obj head = extrude(head_sk, 34 , @short_block.top.center);
+
+    // Four combustion chamber reliefs.
+    for i in range(4) {
+        sketch chamber_sk = circle(34);
+        obj chamber = cut(chamber_sk, 5 , @head.bottom(x: 37 + i * 46, y: 59));
+
+        place(sensor_boss(10, 8), @head.top(x: 37 + i * 46, y: 35), @mount);
+    }
+
+    // Intake and exhaust ports as side cuts.
+    for i in range(4) {
+        sketch intake_port_sk = roundrect(18, 10, r: 3);
+        obj intake_port = cut(intake_port_sk, through head , @head.outer.back.center(x: -69 + i * 46, y: 7));
+
+        sketch exhaust_port_sk = roundrect(16, 9, r: 3);
+        obj exhaust_port = cut(exhaust_port_sk, through head , @head.outer.front.center(x: -69 + i * 46, y: 5));
+    }
+
+    // Surface-first cam tray skin over the head, then thicken into a tray.
+    surface cam_tray_surface = fill(head.top);
+    surface cam_tray_raised = offset_surface(cam_tray_surface, 5);
+    obj cam_tray = thicken(cam_tray_raised, 2);
+
+    sketch valley_slot_sk = roundrect(138, 18, r: 6);
+    obj valley_slot = cut(valley_slot_sk, through cam_tray , @cam_tray.top.center);
+
+    fillet(@head.top.edges, 1.2);
+}
+
+part valve_cover {
+    part.color = #111827;
+
+    // Valve cover built , @a filled sketch surface, offset upward, then thickened.
+    sketch cover_footprint = roundrect(190, 82, r: 12);
+    surface cover_skin = fill(cover_footprint);
+    surface raised_cover_skin = offset_surface(cover_skin, 118);
+    obj cover_shell = thicken(raised_cover_skin, 4);
+
+    // Raised center spine and oil cap.
+    sketch spine_sk = roundrect(146, 20, r: 5);
+    obj spine = extrude(spine_sk, 7 , @cover_shell.top.center);
+
+    sketch oil_cap_sk = circle(22);
+    obj oil_cap = extrude(oil_cap_sk, 6 , @spine.top(x: 58, y: 0));
+
+    sketch oil_mark_sk = word('OIL', size: 6, font: 'sans', align: center);
+    obj oil_mark = cut(oil_mark_sk, 0.6 , @oil_cap.top.center);
+
+    // Perimeter fasteners.
+    place(cap_screw(8, 3), @cover_shell.top.front_left(x: 13, y: 10), @mount);
+    place(cap_screw(8, 3), @cover_shell.top.front_right(x: -13, y: 10), @mount);
+    place(cap_screw(8, 3), @cover_shell.top.back_left(x: 13, y: -10), @mount);
+    place(cap_screw(8, 3), @cover_shell.top.back_right(x: -13, y: -10), @mount);
+
+    for i in range(4) {
+        place(coil_pack(24, 18, 8), @cover_shell.top(x: 38 + i * 38, y: 41), @mount);
+    }
+
+    fillet(@spine.top.edges, 0.6);
+}
+
+part intake_manifold {
+    part.color = #0F766E;
+
+    // Plenum body.
+    sketch plenum_sk = roundrect(162, 34, r: 8);
+    obj plenum = extrude(plenum_sk, 36 , @cylinder_head.outer.back.center(x: 0, y: 24));
+
+    // Surface plenum cover with a visible offset skin.
+    surface plenum_skin = fill(plenum.top);
+    surface plenum_cover_skin = offset_surface(plenum_skin, 4);
+    obj plenum_cover = thicken(plenum_cover_skin, 1.6);
+
+    for i in range(4) {
+        place(runner_tube(18, 14, 42), @cylinder_head.outer.back.center(x: -69 + i * 46, y: 20), @mount);
+    }
+
+    sketch throttle_sk = circle(31);
+    obj throttle_body = extrude(throttle_sk, 24 , @plenum.outer.right.center(x: 0, y: 0));
+
+    sketch throttle_bore_sk = circle(22);
+    obj throttle_bore = cut(throttle_bore_sk, through throttle_body , @throttle_body.top.center);
+
+    fillet(@plenum.top.edges, 1);
+    chamfer(@throttle_body.top.edges, 0.5);
+}
+
+part exhaust_side {
+    part.color = #7C2D12;
+
+    // Exhaust log.
+    sketch log_sk = roundrect(170, 22, r: 7);
+    obj log = extrude(log_sk, 28 , @cylinder_head.outer.front.center(x: 0, y: 20));
+
+    for i in range(4) {
+        sketch port_stub_sk = roundrect(18, 12, r: 3);
+        obj stub = extrude(port_stub_sk, 22 , @cylinder_head.outer.front.center(x: -69 + i * 46, y: 12));
+    }
+
+    // Heat shield made as a thin surface cover over the exhaust log.
+    surface exhaust_skin = fill(log.top);
+    surface exhaust_shield_skin = offset_surface(exhaust_skin, 6);
+    obj heat_shield = thicken(exhaust_shield_skin, 1);
+
+    for i in range(5) {
+        place(cap_screw(6, 2), @heat_shield.top(x: 18 + i * 34, y: 11), @mount);
+    }
+
+    fillet(@log.top.edges, 0.8);
+}
+
+part timing_and_pulleys {
+    part.color = #334155;
+
+    // Timing cover patched , @its perimeter curve and thickened.
+    sketch timing_footprint = roundrect(118, 136, r: 20);
+    surface timing_face = fill(timing_footprint);
+    surface timing_cover_skin = offset_surface(timing_face, 7);
+    obj timing_cover = thicken(timing_cover_skin, 2.2);
+
+    sketch crank_pulley_sk = circle(42);
+    obj crank_pulley = extrude(crank_pulley_sk, 14 , @timing_cover.top(x: 0, y: -34));
+
+    sketch cam_pulley_sk = circle(28);
+    obj cam_pulley_a = extrude(cam_pulley_sk, 10 , @timing_cover.top(x: -32, y: 31));
+    obj cam_pulley_b = extrude(cam_pulley_sk, 10 , @timing_cover.top(x: 32, y: 31));
+
+    sketch belt_sk = roundrect(98, 112, r: 18);
+    obj belt_relief = cut(belt_sk, 1.2 , @timing_cover.top.center);
+
+    for i in range(8) {
+        place(cap_screw(5, 2), @timing_cover.top.center(radius: 52, angle: i * 45deg), @mount);
+    }
+
+    chamfer(@crank_pulley.top.edges, 0.6);
+    chamfer(@cam_pulley_a.top.edges, 0.4);
+    chamfer(@cam_pulley_b.top.edges, 0.4);
+}

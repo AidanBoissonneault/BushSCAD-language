@@ -1,0 +1,8 @@
+// CSS-style font-family stacks resolve workspace fonts, then system fonts.
+sketch label = word(
+  'BushSCAD',
+  size: 8,
+  font: "Project Sans, 'Segoe UI', sans-serif",
+  align: center
+);
+obj label = extrude(label, 1.2);

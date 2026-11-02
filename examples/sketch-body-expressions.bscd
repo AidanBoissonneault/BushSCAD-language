@@ -1,0 +1,27 @@
+// Geometry regression for feature-based sketch body expressions.
+sketch regions = path(
+  overlap_a_bottom = line((0, 0), (20, 0)),
+  overlap_a_right = line((20, 20)),
+  overlap_a_top = line((0, 20)),
+  overlap_a_left = close(),
+
+  overlap_b_bottom = line((10, 0), (30, 0)),
+  overlap_b_right = line((30, 20)),
+  overlap_b_top = line((10, 20)),
+  overlap_b_left = close(),
+
+  ring_outer_bottom = line((40, 0), (70, 0)),
+  ring_outer_right = line((70, 20)),
+  ring_outer_top = line((40, 20)),
+  ring_outer_left = close(),
+
+  ring_inner_bottom = line((48, 4), (62, 4)),
+  ring_inner_right = line((62, 16)),
+  ring_inner_top = line((48, 16)),
+  ring_inner_left = close(),
+
+  overlap = overlap_a_bottom & overlap_b_bottom,
+  ring = ring_outer_bottom - ring_inner_bottom
+);
+
+obj selected_regions = extrude([regions.overlap, regions.ring], 4);

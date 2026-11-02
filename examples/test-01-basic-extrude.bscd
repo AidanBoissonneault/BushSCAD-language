@@ -1,0 +1,28 @@
+// M1-M7 Test 01: variables, rect/circle sketch, basic extrude, from-surface extrude,
+//                symmetric extrude, fillet, chamfer
+base_unit = mm;
+workplane = XY;
+
+var w = 60;
+var h = 40;
+var d = 1cm;
+var boss_d = 12;
+var corner_r = w * 0.025;
+
+part plate {
+    sketch base = rect(w, h);
+    obj base = extrude(base, d);
+
+    // Boss extruded , @top face centre
+    sketch boss = circle(boss_d);
+    obj boss = extrude(boss, 6 , @base.top.center);
+
+    // Symmetric flange — grows 2mm each side of the top face
+    sketch flange = rect(w - 10, 6);
+    obj flange = extrude(flange, 4 symmetric , @base.top.center);
+
+    fillet(@base.top.edges, corner_r);
+    fillet(@boss.top.edges, 1);
+    fillet(@flange.bottom.edges, 1);
+    chamfer(@base.bottom.edges, 0.5);
+}

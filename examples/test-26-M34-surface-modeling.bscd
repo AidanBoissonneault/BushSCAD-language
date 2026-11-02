@@ -1,0 +1,65 @@
+// M34 Surface Modeling Foundation integration test.
+// Covers: surface fill, offset_surface, thicken, plus older solid modeling,
+// cuts, fillets, chamfers, loops, functions, placement, parts, and colors.
+
+base_unit = mm;
+
+fn standoff(d, h) {
+    sketch post = circle(d);
+    obj post = extrude(post, h);
+
+    sketch bore = circle(d / 2);
+    obj bore = cut(bore, through post , @post.top.center);
+
+    fillet(@post.top.edges, 0.4);
+
+    @mount = @post.bottom.center;
+}
+
+part surface_panel {
+    part.color = #3B82F6;
+
+    // Existing solid workflow: a base plate with holes and edge finishing.
+    sketch base_profile = roundrect(110, 72, r: 5);
+    obj base = extrude(base_profile, 5);
+
+    for (i, j) in grid(cols: 2, rows: 2, spacing_x: 82, spacing_y: 44) {
+        sketch mount_hole = circle(4);
+        obj mount_hole = cut(
+            mount_hole,
+            through base , @base.top.front_left(x: 14 + i, y: 14 + j)
+        );
+    }
+
+    fillet(@base.top.edges, 1.2);
+    chamfer(@base.bottom.edges, 0.4);
+
+    // New M34 workflow: an open surface preview and a thickened solid cap.
+    sketch skin_profile = roundrect(72, 42, r: 7);
+    surface skin = fill(skin_profile);
+    surface raised_skin = offset_surface(skin, 10);
+    obj cap = thicken(raised_skin, 2.5);
+
+    sketch cap_slot = rect(34, 5);
+    obj cap_slot = cut(cap_slot, through cap , @cap.top.center);
+
+    fillet(@cap.top.edges, 0.8);
+
+    // Existing placement semantics should coexist with the surface-derived solid.
+    place(standoff(8, 10), @base.top(x: 24, y: 18), @mount) as post_a;
+    place(standoff(8, 10), @base.top(x: 86, y: 18), @mount) as post_b;
+    place(standoff(8, 10), @base.top(x: 24, y: 54), @mount) as post_c;
+    place(standoff(8, 10), @base.top(x: 86, y: 54), @mount) as post_d;
+}
+
+part reference_block {
+    part.color = #10B981;
+
+    sketch block_profile = rect(36, 24);
+    obj block = extrude(block_profile, 14 , @surface_panel.top.center);
+
+    sketch label = word('M34', size: 6, font: 'sans', align: center);
+    obj label = cut(label, 0.5 , @block.outer.front.center);
+
+    fillet(@block.top.edges, 0.6);
+}

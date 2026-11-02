@@ -1,0 +1,6 @@
+export fn make_lid() {
+    sketch lid = rect inset(2);
+    return { 
+        obj lid = extrude(lid, 2),
+    }
+}

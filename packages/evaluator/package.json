@@ -1,0 +1,46 @@
+{
+    "name":  "@bushscad/evaluator",
+    "version":  "0.1.0-beta.1",
+    "type":  "module",
+    "exports":  {
+                    ".":  "./src/index.ts"
+                },
+    "scripts":  {
+                    "typecheck":  "tsc --noEmit \u0026\u0026 tsc --noEmit -p tsconfig.test.json",
+                    "test":  "vitest run"
+                },
+    "dependencies":  {
+                         "@bushscad/ir":  "^0.1.0-beta.1",
+                         "@bushscad/parser":  "^0.1.0-beta.1",
+                         "@bushscad/resolver":  "^0.1.0-beta.1",
+                         "@bushscad/sketch-solver":  "^0.1.0-beta.1",
+                         "@bushscad/std-hardware":  "^0.1.0-beta.1",
+                         "@bushscad/std-tolerances":  "^0.1.0-beta.1"
+                     },
+    "devDependencies":  {
+                            "typescript":  "^5.4.0",
+                            "vitest":  "^4.1.5"
+                        },
+    "license":  "Apache-2.0",
+    "description":  "Runtime evaluation layer used by the BushSCAD compiler.",
+    "homepage":  "https://bushscad.byaidan.com/",
+    "repository":  {
+                       "type":  "git",
+                       "url":  "https://github.com/AidanBoissonneault/BushSCAD-Language.git",
+                       "directory":  "packages/evaluator"
+                   },
+    "bugs":  {
+                 "url":  "https://github.com/AidanBoissonneault/BushSCAD-Language/issues"
+             },
+    "publishConfig":  {
+                          "access":  "public",
+                          "registry":  "https://registry.npmjs.org/"
+                      },
+    "files":  [
+                  "src/**",
+                  "dist/**",
+                  "assets/**",
+                  "LICENSE",
+                  "README.md"
+              ]
+}

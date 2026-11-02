@@ -1,0 +1,10 @@
+part array_selection_geometry {
+
+  var sides = [top, bottom];
+
+  obj body = extrude(rect(30, 20), 4);
+  obj pocket = cut(circle(4), 1, @body.sides(10, 10));
+
+  fillet(@body.sides.edges, 0.5);
+  fillet(@pocket[1].sides.edges, 0.25);
+}

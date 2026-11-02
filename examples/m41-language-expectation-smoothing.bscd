@@ -1,0 +1,18 @@
+// M41: inline operands, inferred through target, numeric dimensions, and within spans.
+
+part m41_language_expectation_smoothing {
+    obj base = extrude(rect(80, 50), 8);
+
+    sketch cover = rect(base.top.width - 8, base.top.height - 8);
+    obj cover = extrude(cover, 2 , @base.top.center);
+
+    obj center_hole = cut(circle(8), through, @base.top(40, 25));
+
+    var hole_span = base.top.width;
+    for i in range(3) within hole_span {
+        obj row_hole = cut(circle(3), through, @base.top(x: auto, y: 12));
+    }
+
+    obj rail = sweep(circle(2) along polyline([(0, 20, 0), (0, 0, 24)]));
+    obj skin = thicken(fill(base.top), 1);
+}

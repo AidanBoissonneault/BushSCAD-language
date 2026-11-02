@@ -1,0 +1,13 @@
+// M33 — Sheet Metal Foundation
+// A flanged bracket: a flat base panel with an upward flange on the front edge,
+// a downward flange on the back edge, and a flat-pattern DXF export.
+
+sheet bracket thickness: 2 material: 'aluminum' bend_radius: 1 k_factor: 0.44 {
+    sketch base = rect(80, 40);
+    obj base = sheet_base(base);
+
+    flange base.edge(front) length: 20 angle: 90deg radius: 1;
+    flange base.edge(back) length: 15 angle: 90deg radius: 1 direction: down;
+
+    export flat_pattern dxf './exports/bracket-flat.dxf';
+}

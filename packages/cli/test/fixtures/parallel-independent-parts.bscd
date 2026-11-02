@@ -1,0 +1,7 @@
+part block {
+  obj body = cube([10, 12, 14]);
+}
+
+part ball {
+  obj body = sphere(6);
+}

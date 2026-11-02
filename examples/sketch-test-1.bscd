@@ -1,0 +1,26 @@
+sketch drawn_sketch = path(
+  origin((0, 0)),
+  bottom = line((0, 0), (50, 0)),
+  right = line((50, 20)),
+  top = line((0, 20)),
+  left = close(),
+  circle_1_q1 = arc((30, 10), (25, 15), 5, ccw),
+  circle_1_q2 = arc((20, 10), 5, ccw),
+  circle_1_q3 = arc((25, 5), 5, ccw),
+  circle_1_q4 = arc((30, 10), 5, ccw),
+  construction circle_1_radius = line((25, 10), (30, 10)),
+  body_1 = closed((25, 10)),
+  body_main = closed((40, 17.500)),
+  constraint(bottom, horizontal),
+  constraint(right, vertical),
+  constraint(top, horizontal),
+  constraint(left, vertical),
+  constraint(bottom, equal, top),
+  constraint(right, equal, left),
+  constraint(top, length, 50, at: (16.120, 26.540)) as d0,
+  constraint(right, length, 20, at: (67.620, 14.206)) as d1
+);
+
+obj test = extrude(drawn_sketch.body_main, 10);
+
+//fillet(@test.top.perimeter, 2);

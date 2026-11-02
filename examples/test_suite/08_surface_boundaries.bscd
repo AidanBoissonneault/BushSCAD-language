@@ -1,0 +1,30 @@
+// True check: face, perimeter, and edge-loop surface fills plus offset/thicken.
+base_unit = mm;
+
+part surface_source {
+    sketch plate_profile = roundrect(90, 62, r: 6);
+    obj plate = extrude(plate_profile, 8);
+    sketch opening_profile = circle(24);
+    obj opening = cut(opening_profile, through plate, @plate.top.center);
+
+    // Bare face preserves the face and its inner wire.
+    surface face_skin = fill(plate.top);
+    surface face_skin_offset = offset_surface(face_skin, 12);
+    obj face_skin_solid = thicken(face_skin_offset, 1.2);
+
+    // Perimeter is the outer loop only.
+    surface perimeter_skin = fill(plate.top.perimeter);
+    surface perimeter_skin_offset = offset_surface(perimeter_skin, 17);
+    obj perimeter_skin_solid = thicken(perimeter_skin_offset, 1.2);
+
+    // Edges includes outer and inner boundary loops.
+    surface edges_skin = fill(plate.top.edges);
+    surface edges_skin_offset = offset_surface(edges_skin, 22);
+    obj edges_skin_solid = thicken(edges_skin_offset, 1.2);
+}
+
+part surface_bound_sketch {
+    obj support = cuboid([46, 34, 12]);
+    sketch badge = circle(16, @support.top);
+    obj badge = extrude(badge, 3);
+}

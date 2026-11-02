@@ -1,0 +1,53 @@
+// True check: revolve, loft, wrapped extrusion/cut, named edges, and healing operations.
+base_unit = mm;
+workplane = XY;
+
+part revolved_profile {
+    part.color = #DC2626;
+    sketch profile = path(
+        plant foot = line((6, 0), (18, 0)),
+        wall = line((16, 30)),
+        lip = arc((12, 34), 4, ccw),
+        inner = line(8, 4),
+        heel = arc((6, 0), 4, ccw)
+    );
+    obj vase = revolve(profile, 360deg around y);
+    fillet(@vase.lip.edges, 0.45);
+    chamfer(@vase.foot.edges, 0.3);
+}
+
+part lofted_profile {
+    part.color = #0891B2;
+    sketch base = path(
+        front = line((-14, -8), (14, -8)),
+        right = arc((14, 8), 10, ccw),
+        back = line(-14, 8),
+        left = arc((-14, -8), 10, ccw)
+    );
+    sketch middle = path(
+        front = line((-10, -6), (10, -6)),
+        right = line(10, 6),
+        back = line((-10, 6)),
+        left = close()
+    );
+    sketch top = path(
+        front = line((-6, -4), (6, -4)),
+        right = line((6, 4)),
+        back = line(-6, 4),
+        left = close()
+    );
+    sketch rail = path(
+        rise = line((0, 0), (0, 24)),
+        lean = arc((8, 38), 16, cw)
+    );
+    obj lofted = loft(base, middle, top, height: 38, guide: rail);
+}
+
+part wrapped_features {
+    part.color = #0F766E;
+    obj cylinder_body = cylinder(42, d: 38);
+    sketch label = word('WRAP', size: 5, font: 'sans', align: center);
+    obj label_cut = cut(label, 0.8, @cylinder_body.curved(0deg, wrap));
+    sketch rib = rect(3, 16);
+    obj wrapped_rib = extrude(rib, 1.2, @cylinder_body.curved(75deg, wrap));
+}

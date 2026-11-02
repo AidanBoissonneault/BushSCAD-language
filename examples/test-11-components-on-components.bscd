@@ -1,0 +1,125 @@
+// M1-M7 Test 11: components placed on components, chained anchor use,
+//                cross-part placement, part colors as material stand-ins
+base_unit = mm;
+
+var pad_h = 3;
+var pin_h = 8;
+
+// Small child component used by locator_pin.
+export part cap_dot {
+    sketch dot = circle(3);
+    obj dot = extrude(dot, pad_h / 2);
+
+    @default = @dot.bottom.center;
+    @top = @dot.top.center;
+    @front = @dot.front.center;
+    @back = @dot.back.center;
+    @left_face = @dot.left.center;
+    @right_face = @dot.right.center;
+}
+
+// Child component with several anchors. It places cap_dot onto itself.
+export part locator_pin {
+    sketch pin = circle(4);
+    obj pin = extrude(pin, pin_h);
+
+    place(cap_dot, @pin.top.center);
+
+    @default = @pin.bottom.center;
+    @foot = @pin.bottom.center;
+    @tip = @pin.top.center;
+    @front_face = @pin.front.center;
+    @back_face = @pin.back.center;
+    @left_face = @pin.left.center;
+    @right_face = @pin.right.center;
+
+    fillet(@pin.top.edges, 0.4);
+    chamfer(@pin.bottom.edges, 0.25);
+}
+
+// Mid-level component. It places locator_pin instances on its own faces.
+export part riser_block {
+    sketch block = roundrect(24, 18, r: 2);
+    obj block = extrude(block, 10);
+
+    place(locator_pin, @block.top.center(x: 0, y: 0), @foot);
+    place(locator_pin, @block.front.center(x: -4, y: 2), @back_face);
+    place(locator_pin, @block.back.center(x: 4, y: 2), @front_face);
+
+    @default = @block.bottom.center;
+    @bottom_center = @block.bottom.center;
+    @top_center = @block.top.center;
+    @front_low = @block.front.center;
+    @back_low = @block.back.center;
+    @left_mid = @block.left.center;
+    @right_mid = @block.right.center;
+
+    fillet(@block.top.edges, 0.6);
+    chamfer(@block.bottom.edges, 0.3);
+}
+
+// Higher-level component. It places riser_block and locator_pin children.
+export part bridge_link {
+    sketch beam = rect(70, 10);
+    obj beam = extrude(beam, 6);
+
+    place(riser_block, @beam.top.front_left(x: 8, y: 2), @bottom_center);
+    place(riser_block, @beam.top.back_right(x: -8, y: -2), @bottom_center);
+    place(locator_pin, @beam.top.center, @foot);
+
+    @default = @beam.bottom.center;
+    @underside = @beam.bottom.center;
+    @crown = @beam.top.center;
+    @front_mount = @beam.front.center;
+    @back_mount = @beam.back.center;
+    @left_mount = @beam.left.center;
+    @right_mount = @beam.right.center;
+
+    fillet(@beam.top.edges, 0.5);
+}
+
+part graphite_base {
+    sketch base = rect(130, 80);
+    obj base = extrude(base, 8);
+
+    // First material: two full component chains on base corners.
+    place(bridge_link, @base.top.front_left(x: 18, y: 14), @underside);
+    place(bridge_link, @base.top.back_right(x: -18, y: -14), @underside);
+
+    // Direct child components use alternate anchors against side faces.
+    place(riser_block, @base.front.center(x: -24, y: 4), @back_low);
+    place(riser_block, @base.back.center(x: 24, y: 4), @front_low);
+
+    chamfer(@base.bottom.edges, 0.4);
+    fillet(@base.top.edges, 0.8);
+    part.color = #40464F;
+}
+
+part blue_bridge {
+    // Second material: chain starts on the previous part output.
+    place(bridge_link, @graphite_base.top.center(x: 0, y: 0), @underside);
+
+    // Different named anchors on the same component stress orientation assumptions.
+    place(locator_pin, @graphite_base.outer.left.center(x: 0, y: 8), @right_face);
+    place(locator_pin, @graphite_base.outer.right.center(x: 0, y: 8), @left_face);
+
+    part.color = #2563EB;
+}
+
+part amber_sidecar {
+    // Third material: place a chain onto a side face of a component-created part.
+    place(riser_block, @blue_bridge.outer.front.center(x: -18, y: 0), @back_low);
+    place(riser_block, @blue_bridge.outer.back.center(x: 18, y: 0), @front_low);
+    place(cap_dot, @blue_bridge.top.center);
+
+    part.color = #D97706;
+}
+
+part violet_caps {
+    // Fourth material: cap components anchored to top, side, and bottom targets.
+    place(cap_dot, @amber_sidecar.top.center(x: 0, y: 0));
+    place(cap_dot, @graphite_base.bottom.center(x: -40, y: 0), @top);
+    place(cap_dot, @blue_bridge.outer.right.center(x: 0, y: -6), @left_face);
+
+    part.color = #7C3AED;
+}

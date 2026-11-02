@@ -1,0 +1,34 @@
+// Test 33: surface-bound sketches with `on`.
+// A circular soap holder with loop-generated drain slots clipped to base.top.
+base_unit = mm;
+
+part circular_soap_holder {
+    sketch base_profile = circle(90);
+    obj base = extrude(base_profile, 8);
+
+    // Oversized top skin demonstrates that `@base.top` clips to the circle.
+    sketch top_skin = rect(110, 110, @base.top);
+    obj top_skin = extrude(top_skin, 1);
+
+    // Radial drain slots sit near the perimeter and are clipped by base.top.
+    for a in radial(16) {
+        sketch drain = roundrect(5, 24, r: 2.5, @base.top);
+        obj drain = cut(
+            drain,
+            through base
+            , @base.top.center(radius: 34, angle: a)
+        );
+    }
+
+    // Small raised grip pads add surface detail without reusable sketches.
+    for a in radial(8, start: 22.5deg) {
+        sketch grip = circle(6, @base.top);
+        obj grip = extrude(
+            grip,
+            1.5 , @base.top.center(radius: 18, angle: a)
+        );
+    }
+
+    fillet(@base.top.edges, 1.2);
+    chamfer(@base.bottom.edges, 0.6);
+}

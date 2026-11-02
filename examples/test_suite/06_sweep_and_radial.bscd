@@ -1,0 +1,41 @@
+// True check: paths, sweep/sweep-cut, and radial construction.
+base_unit = mm;
+
+part sweep_models {
+    sketch rod_section = circle(8);
+    path rod_path = polyline([(0, 0, 0), (0, 0, 55)]);
+    obj rod = sweep(rod_section along rod_path);
+
+    sketch handle_section = circle(6);
+    path handle_path = spline([(20,0,0),(42,0,20),(64,0,0)]);
+    obj handle = sweep(handle_section along handle_path, orientation: fixed);
+
+    sketch target_profile = rect(42, 28);
+    obj target = extrude(target_profile, 14);
+    sketch groove_section = circle(3);
+    path groove_path = polyline([(-16,-8,14),(0,0,14),(16,8,14)]);
+    obj groove = cut(sweep(groove_section along groove_path), through target, @target.top.center);
+}
+
+part radial_models {
+    sketch base_profile = rect(48, 30);
+    obj base = extrude(base_profile, 10);
+
+    sketch rib_profile = rect(4, 3);
+    obj rib = radial_extrude(
+        rib_profile,
+        from: base.top.center,
+        angle: 120,
+        length: 18,
+        radius: 10,
+        curve: ease-in-out
+    );
+
+    sketch channel_profile = rect(3, 4);
+    obj channel = radial_cut(
+        channel_profile,
+        from: base.top.center,
+        to: base.front.center,
+        curve: ease-in-out
+    );
+}

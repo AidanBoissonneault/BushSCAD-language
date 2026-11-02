@@ -1,0 +1,37 @@
+// M1-M7 Test 03: all cut forms — blind pocket, through hole, side notch,
+//                bottom bore, offset @, distinct obj name for cut
+base_unit = mm;
+
+var w = 80;
+var h = 60;
+var d = 24;
+
+part block {
+    sketch base = rect(w, h);
+    obj base = extrude(base, d);
+
+    // Blind pocket (4mm deep , @top)
+    sketch pocket = rect(28, 18);
+    obj pocket = cut(pocket, 4 , @base.top.center);
+
+    // Through hole at offset position
+    sketch hole = circle(6);
+    obj hole = cut(hole, through base , @base.top(x: 24, y: 16));
+
+    // Through hole with distinct obj name (sketch and obj names differ intentionally)
+    sketch slot_profile = rect(24, 6);
+    obj channel = cut(slot_profile, through base , @base.top(x: 16, y: -16));
+
+    // Cut , @front face (side notch)
+    sketch notch = rect(12, 8);
+    obj notch = cut(notch, 6 , @base.front.center);
+
+    // Cut , @bottom face (upward bore)
+    sketch bore = circle(4);
+    obj bore = cut(bore, through base , @base.bottom.center);
+
+    fillet(@pocket.top.edges, 1);
+    fillet(@pocket.bottom.edges, 2);
+    chamfer(@base.bottom.edges, 0.5);
+    chamfer(@base.top.edges, 0.5);
+}

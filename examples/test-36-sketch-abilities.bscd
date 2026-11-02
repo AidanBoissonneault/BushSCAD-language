@@ -1,0 +1,116 @@
+// M36 - New sketch abilities
+// Each demo is isolated as a colored part for visual debugging.
+base_unit = mm;
+
+part named_path_profile {
+    part.color = #2563EB;
+
+    // Planted base, inferred line endpoints, keyword-radius arc, and close().
+    sketch profile = path(
+        plant bottom = line((0, 0), (28, 0)),
+        right = line(28, 12),
+        crown = arc((14, 22), radius: 16, ccw),
+        left = line(0, 12),
+        return_edge = close()
+    );
+    ref body = extrude(profile, 8);
+    place(body);
+
+    fillet(@body.bottom.edges, 2);
+    fillet (@body.crown.edges, 2);
+}
+
+part anonymous_path_profile {
+    part.color = #16A34A;
+
+    // Anonymous path items receive generated segment names.
+    sketch profile = path(
+        line((52, 0), (62, 0)),
+        arc((62, 0), (68, 6), 8, cw),
+        line(68, 14),
+        line(52, 14),
+        close()
+    );
+    obj body = extrude(profile, 6);
+}
+
+part ordered_wrap_profile {
+    part.color = #D97706;
+
+    // Ordered wrap preserves the written point order.
+    sketch profile = wrap([
+        (-20, 42),
+        (20, 42),
+        (0, 52),
+        (20, 62),
+        (-20, 62)
+    ], ordered, rounded: 2);
+    obj body = extrude(profile, 5);
+}
+
+part convex_wrap_profile {
+    part.color = #7C3AED;
+
+    // Convex wrap creates the outer hull from the same point pattern.
+    sketch profile = wrap([
+        (36, 42),
+        (76, 42),
+        (56, 52),
+        (76, 62),
+        (36, 62)
+    ], convex, tolerance: 0.2);
+    obj body = extrude(profile, 5);
+}
+
+part concave_wrap_profile {
+    part.color = #DC2626;
+
+    // Concave currently lowers to a closed profile while preserving intent.
+    sketch profile = wrap([
+        (92, 42),
+        (132, 42),
+        (112, 52),
+        (132, 62),
+        (92, 62)
+    ], concave);
+    obj body = extrude(profile, 5);
+}
+
+part smooth_wrap_profile {
+    part.color = #0F766E;
+
+    // Smooth currently lowers to a closed profile while preserving options.
+    sketch profile = wrap([
+        (148, 42),
+        (188, 42),
+        (168, 52),
+        (188, 62),
+        (148, 62)
+    ], smooth, tension: 0.4);
+    obj body = extrude(profile, 5);
+}
+
+part corner_origin_primitives {
+    part.color = #0891B2;
+
+    // Built-in corner-origin primitives can be composed and cut.
+    sketch tab = polygon([(0, 0), (18, 0), (18, 10), (0, 10)], corner) at (112, 10);
+    obj tab = extrude(tab, 4);
+
+    sketch keyhole = circle(8, origin: corner) + rect(4, 12, corner) at (0, 6);
+    obj keyhole_cut = cut(keyhole, 3, @tab.top.center);
+}
+
+part path_corner_profile {
+    part.color = #475569;
+
+    // path(...) does not parse origin: corner yet, so this profile encodes the
+    // same corner-origin shift directly in its coordinates.
+    sketch profile = path(
+        bottom = line((152, -8), (166, -8)),
+        right = line(166, 0),
+        top = line(152, 0),
+        left = close()
+    );
+    obj body = extrude(profile, 4);
+}

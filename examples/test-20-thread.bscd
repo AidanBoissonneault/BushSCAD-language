@@ -1,0 +1,17 @@
+base_unit = mm;
+
+part threaded_bolt {
+    sketch shaft = circle(6);
+    obj shaft = extrude(shaft, 20);
+    thread(shaft, external, 6, 1, length: 15, direction: clockwise, degrees: 3);
+    fillet(@shaft.bottom.edges, 0.5);
+}
+
+part tapped_block {
+    sketch body = rect(20, 20);
+    obj body = extrude(body, 15);
+    sketch hole = circle(2.1);
+    obj hole = cut(hole, through body , @body.top.center);
+    thread(hole, internal, 4.2, 0.7, length: 12, direction: counter_clockwise, angle: 3deg);
+    chamfer(@body.top.edges, 0.5);
+}

@@ -1,0 +1,38 @@
+// M24 — Patterns and Transforms example
+
+// Radial pattern
+// Central hub
+sketch hub_sk = circle(15);
+obj hub = extrude(hub_sk, 20);
+
+// Single fin offset , @hub centre — radial pattern rotates around hub top
+sketch fin_sk = rect(4, 25);
+obj fin = extrude(fin_sk, 10);
+transform(fin, translate(x: 30, y: 0, z: 0));
+pattern(fin, radial, 6, hub.top.center);
+
+// Linear pattern
+// Base plate to the side
+sketch base_sk = rect(60, 40);
+obj base = extrude(base_sk, 8);
+transform(base, translate(x: -80, y: 0, z: 0));
+
+// Boss extruded on base plate — pattern it across the plate
+sketch boss_sk = circle(5);
+obj boss = extrude(boss_sk, 6);
+transform(boss, translate(x: -95, y: -15, z: 8));
+pattern(target: boss, mode: linear, x: 3, y: 2, spacing: (15, 15));
+
+//Transform
+// Stud moved to sit on top of hub
+sketch stud_sk = circle(4);
+obj stud = extrude(stud_sk, 12);
+transform(stud, translate(x: 0, y: 0, z: 20));
+
+// Mirror 
+// Bracket arm starting at x = 5, mirrored across YZ plane (x=0)
+// Produces a symmetric pair flanking the hub
+sketch arm_sk = rect(30, 8);
+obj arm = extrude(arm_sk, 8);
+transform(arm, translate(x: 5, y: -40, z: 0));
+mirror(arm, Y);

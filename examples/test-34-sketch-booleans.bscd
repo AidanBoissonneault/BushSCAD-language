@@ -1,0 +1,39 @@
+// Test 34: sketch boolean add/subtract and sketch-local `at (x, y)` placement.
+base_unit = mm;
+
+part sketch_booleans {
+    sketch washer_outer = circle(36);
+    sketch washer_inner = circle(22);
+
+    // Subtracting centered circles creates a washer/ring profile.
+    sketch ring = washer_outer - washer_inner;
+    obj ring = extrude(ring, 5);
+
+    // The smaller circle is shifted in sketch-local 2D space before subtraction.
+    sketch pocket_outer = circle(ring.width - 6);
+    sketch pocket_cut = circle(washer_inner.length / 3);
+    sketch offset_pocket = pocket_outer - pocket_cut at (8, 0);
+    obj offset_pocket = extrude(
+        offset_pocket,
+        4 , @ring.top(x: 48, y: 0)
+    );
+
+    // Grouped expressions let multiple additions and removals form one sketch.
+    sketch keyhole_tab = (circle(24) + rect(12, 28) at (0, 14)) - circle(8);
+    obj keyhole_tab = extrude(
+        keyhole_tab,
+        4 , @ring.top(x: -48, y: 0)
+    );
+
+    // Text can also act as a filled subtractive sketch operand.
+    sketch label_plate = rect(44, 18) - word('ON', size: 10);
+    obj label_plate = extrude(
+        label_plate,
+        3 , @ring.top(x: 0, y: 42)
+    );
+
+    fillet(@ring.top.edges, 0.8);
+    fillet(@offset_pocket.top.edges, 0.6);
+    fillet(@keyhole_tab.top.edges, 0.6);
+    chamfer(@label_plate.bottom.edges, 0.4);
+}

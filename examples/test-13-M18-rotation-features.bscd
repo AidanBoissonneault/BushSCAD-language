@@ -1,0 +1,61 @@
+// M18 Test 13: rotation feature coverage
+// Covers placement-time rotate(...), rotate(x/y/z: ...), rotate(x, y, z),
+// rotateX/Y/Z(...), standalone rotates around world axes, standalone rotates
+// around face/anchor axes, and component-name rotate targeting latest placement.
+base_unit = mm;
+
+var quarter_turn = 45deg;
+var trim_turn = 15deg;
+
+export part rotor_tab {
+    sketch tab_profile = roundrect(24, 8, r: 1.5);
+
+    obj tab = extrude(tab_profile, 4) {
+        @tab_top = @tab.top;
+        @tab_bottom = @tab.bottom;
+        @tab_left = @tab.left;
+    }
+
+    @default = @tab.bottom.center;
+    @side_mount = @tab.left;
+}
+
+part m18_rotation_feature_test {
+    sketch base_profile = roundrect(90, 54, r: 4);
+
+    obj base = extrude(base_profile, 6) {
+        @base_top = @base.top;
+        @base_center = @base.top.center;
+        @base_front_edge = @base.top.front_edge;
+    }
+
+    sketch hub_profile = circle(20);
+    obj hub = extrude(hub_profile, 8 , @base_center) {
+        @hub_top = @hub.top;
+        @hub_right = @hub.right;
+    }
+
+    // Placement-time rotate with default-plane, keyword axes, positional axes,
+    // rotateX/Y/Z helpers, and side-anchor rotation.
+    place(rotor_tab, @base_center(radius: 30, angle: 0deg)) rotate(10deg);
+    place(rotor_tab, @base_center(radius: 30, angle: 60deg)) rotate(z: quarter_turn);
+    place(rotor_tab, @base_center(radius: 30, angle: 120deg)) rotate(0deg, quarter_turn, trim_turn);
+    place(rotor_tab, @base_center(radius: 30, angle: 180deg)) rotateX(trim_turn);
+    place(rotor_tab, @base_center(radius: 30, angle: 240deg)) rotateY(trim_turn);
+    place(rotor_tab, @base_center(radius: 30, angle: 300deg)) rotateZ(quarter_turn + trim_turn);
+    place(rotor_tab, @hub_right.center, @side_mount) rotate(270deg);
+
+    // Standalone rotate around each world axis.
+    rotate base 5deg around x;
+    rotate base 10deg around y;
+    rotate hub 15deg around z;
+
+    // Standalone rotate around an anchor-derived face axis.
+    rotate hub 22.5deg around base_top.center;
+
+    // Component-name rotate targets the latest placed rotor_tab instance.
+    rotate rotor_tab 12deg around hub_top.center;
+
+    fillet(@base_front_edge, 1);
+    part.material = 'silk PLA';
+}

@@ -1,0 +1,25 @@
+// True check: sheet metal, flanges, flat pattern, drawings, and dimensions.
+base_unit = mm;
+
+sheet bracket thickness: 2 material: 'aluminum' bend_radius: 1 k_factor: 0.44 {
+    sketch base_profile = rect(80, 40);
+    obj base = sheet_base(base_profile);
+    flange base.edge(front) length: 20 angle: 90deg radius: 1;
+    flange base.edge(back) length: 15 angle: 90deg radius: 1 direction: down;
+    export flat_pattern dxf './outputs/bracket-flat.dxf';
+}
+
+part drawing_model {
+    sketch profile = rect(60, 40);
+    obj base = extrude(profile, 10);
+    sketch hole_profile = circle(8);
+    obj hole = cut(hole_profile, through base, @base.top.center);
+}
+
+drawing inspection_sheet {
+    view drawing_model.top scale: 1;
+    dimension drawing_model.width;
+    dimension drawing_model.hole.center to drawing_model.base.left;
+    export dxf './outputs/inspection.dxf';
+    export svg './outputs/inspection.svg';
+}

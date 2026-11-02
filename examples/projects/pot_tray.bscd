@@ -1,0 +1,34 @@
+base_unit = mm;
+workplane = XY;
+
+part pot_tray {
+    env base_size fallback 125;
+    env base_bloom fallback 10;
+    env wallwidth fallback 5;
+    env height fallback 30;
+
+    sketch base_sketch = circle(base_size);
+    sketch upper_sketch = circle(base_size + base_bloom);
+
+    obj tray = loft(base_sketch, upper_sketch, height: 30);
+
+    sketch base_inner = circle(base_sketch.width - wallwidth*2);
+    sketch upper_inner = circle(upper_sketch.width - wallwidth*2);
+
+    ref tray_cut_ref = loft(base_inner, upper_inner, height: 25);
+
+    obj tray_cut = cut(tray_cut_ref, @tray.top.center);
+
+    /*
+    for i in range(10) within tray_cut.top.width {
+        sketch ridge = rect(5, base_inner.width*3, @tray_cut.bottom);
+        obj ridge = extrude(ridge, 10 , @tray_cut.bottom(x: auto, y: 0));
+
+        fillet(@ridge.top.left_edge, 2);
+        fillet(@ridge.top.right_edge, 2);
+
+        //fillet(@ridge.bottom.left_edge, 2);
+        //fillet(@ridge.bottom.right_edge, 2);
+    }*/
+    fillet(@tray_cut.bottom.edges, 2);
+}

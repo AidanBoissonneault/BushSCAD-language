@@ -1,0 +1,71 @@
+{
+  "$schema": "https://raw.githubusercontent.com/fallow-rs/fallow/main/schema.json",
+  "ignorePatterns": [
+    "**/*.generated.ts",
+    "**/*.d.ts",
+    "**/*.suite.mts"
+  ],
+  "rules": {
+    "unused-files": "error",
+    "unused-exports": "warn",
+    "unused-types": "off",
+    "unused-dependencies": "error",
+    "unused-dev-dependencies": "warn",
+    "unused-optional-dependencies": "warn",
+    "unused-enum-members": "warn",
+    "unused-class-members": "off",
+    "unresolved-imports": "error",
+    "unlisted-dependencies": "error",
+    "duplicate-exports": "warn",
+    "circular-dependencies": "error",
+    "boundary-violation": "error",
+    "type-only-dependencies": "error",
+    "test-only-dependencies": "warn",
+    "coverage-gaps": "off",
+    "stale-suppressions": "warn"
+  },
+  "entry": [
+    "packages/*/src/index.ts",
+    "packages/*/test/**/*.ts",
+    "packages/cli/scripts/*.mjs",
+    "scripts/**/*.ts",
+    "packages/compiler/src/platform/node/node.ts",
+    "packages/model-analysis/src/cli/cli.ts",
+    "packages/language-server/src/platform/lsp/server-main.ts",
+    "packages/occt-bridge/src/worker/worker.ts"
+  ],
+  "workspaces": {
+    "patterns": [
+      "packages/cli",
+      "packages/compiler",
+      "packages/evaluator",
+      "packages/ir",
+      "packages/language-content",
+      "packages/language-server",
+      "packages/model-analysis",
+      "packages/occt-bridge",
+      "packages/parser",
+      "packages/resolver",
+      "packages/sketch-solver",
+      "packages/std-hardware",
+      "packages/std-tolerances",
+      "packages/three-renderer"
+    ]
+  },
+  "publicPackages": [
+    "@bushscad/*"
+  ],
+  "ignoreDependencies": [
+    "three",
+    "opencascade.js",
+    "@bushscad/cli",
+    "@bushscad/compiler",
+    "@bushscad/evaluator",
+    "@bushscad/ir",
+    "@bushscad/language-server",
+    "@bushscad/occt-bridge",
+    "@bushscad/parser",
+    "@bushscad/resolver",
+    "@bushscad/three-renderer",
+  ]
+}

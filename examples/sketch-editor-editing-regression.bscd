@@ -1,0 +1,21 @@
+sketch core_rectangle = path(
+  origin((0, 0)),
+  plant bottom = line((0, 0), (38, 1)),
+  right = line((41, 24)),
+  top = line((2, 26)),
+  left = close(),
+  circle_1_q1 = arc((22.500, 10), (20, 12.500), 2.500, ccw),
+  circle_1_q2 = arc((17.500, 10), 2.500, ccw),
+  circle_1_q3 = arc((20, 7.500), 2.500, ccw),
+  circle_1_q4 = arc((22.500, 10), 2.500, ccw),
+  construction circle_1_radius = line((20, 10), (22.500, 10)),
+  body_3 = closed((36.821, 24.571)),
+  constraint(bottom.start, fixed),
+  constraint(bottom, horizontal),
+  constraint(right, vertical),
+  constraint(top, horizontal),
+  constraint(left, vertical),
+  constraint(circle_1_q1, diameter, 5, at: (34, 24)) as d0
+);
+
+obj core_box = extrude(core_rectangle, 6);

@@ -1,0 +1,13 @@
+// Compact primitive sizes can remain visible, editable driving dimensions.
+var plate_width = 77.808;
+
+sketch plate = rect(_, 44.384) at (41.904, 32.192);
+@plate.bottom = plate_width;
+@(plate.left, origin.y_axis) = 3;
+@(plate.bottom, origin.x_axis) = 10 at 58;
+
+sketch mounting_hole = circle(_) at (41.904, 32.192);
+@mounting_hole.diameter = 12;
+
+obj plate_body = extrude(plate, 3);
+obj mounting_cut = cut(mounting_hole, through, @plate_body.top);

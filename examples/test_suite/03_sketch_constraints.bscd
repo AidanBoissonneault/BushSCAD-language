@@ -1,0 +1,39 @@
+// True check: constrained paths, compact dimensions, construction, and exact edits.
+base_unit = mm;
+var plate_width = 52;
+
+part constrained_sketches {
+    part.color = #7C3AED;
+
+    sketch constrained = path(
+        origin((0, 0)),
+        plant bottom = line((-26, -16), (26, -16)),
+        right = line(26, 16),
+        top = line(-26, 16),
+        left = close(),
+        construction center = line((-26, 0), (26, 0)),
+        constraint(bottom, horizontal),
+        constraint(right, vertical),
+        constraint(top, parallel, bottom),
+        constraint(left, perpendicular, bottom),
+        constraint(center.start, midpoint, left),
+        constraint(center.end, midpoint, right),
+        constraint(bottom, length, plate_width, at: (0, -24)) as width_dim,
+        dimension top.length at (0, 24) as measured_top
+    );
+    obj constrained_body = extrude(constrained, 5);
+
+    sketch compact = rect(_, 24) at (70, 0);
+    @compact.bottom = plate_width at 32 as compact_width;
+    obj compact_body = extrude(compact, 5);
+
+    sketch padded = offset(rect(30, 18), 2) at (-70, 0);
+    obj padded_body = extrude(padded, 5);
+
+    sketch rounded = fillet(rect(30, 18), 3) at (-70, 34);
+    obj rounded_body = extrude(rounded, 5);
+
+    sketch spline_line = spline([(-15, 34), (15, 34)]);
+    sketch guide_plate = rect(36, 12) at (0, 34);
+    obj guide_plate = extrude(guide_plate, 5);
+}

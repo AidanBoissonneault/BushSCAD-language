@@ -1,0 +1,51 @@
+{
+    "name":  "@bushscad/language-server",
+    "version":  "0.1.0-beta.1",
+    "type":  "module",
+    "exports":  {
+                    ".":  "./src/index.ts",
+                    "./lsp-protocol":  "./src/platform/lsp/custom-protocol.ts",
+                    "./semantic-tokens":  "./src/providers/semanticTokens.ts",
+                    "./sketch-preview":  "./src/sketch-preview/sketchPreview.ts",
+                    "./server-main":  "./src/platform/lsp/server-main.ts"
+                },
+    "scripts":  {
+                    "typecheck":  "tsc --noEmit \u0026\u0026 tsc --noEmit -p tsconfig.test.json",
+                    "test":  "vitest run --passWithNoTests"
+                },
+    "devDependencies":  {
+                            "typescript":  "^5.4.0",
+                            "vitest":  "^4.1.5"
+                        },
+    "dependencies":  {
+                         "@bushscad/compiler":  "^0.1.0-beta.1",
+                         "@bushscad/evaluator":  "^0.1.0-beta.1",
+                         "@bushscad/ir":  "^0.1.0-beta.1",
+                         "@bushscad/parser":  "^0.1.0-beta.1",
+                         "@bushscad/resolver":  "^0.1.0-beta.1",
+                         "vscode-languageserver":  "^10.1.1",
+                         "vscode-languageserver-textdocument":  "^1.0.14"
+                     },
+    "license":  "Apache-2.0",
+    "description":  "Language-server implementation and protocol support for BushSCAD editors. This package is distributed as TypeScript source for editor integrations and bundlers.",
+    "homepage":  "https://bushscad.byaidan.com/",
+    "repository":  {
+                       "type":  "git",
+                       "url":  "https://github.com/AidanBoissonneault/BushSCAD-Language.git",
+                       "directory":  "packages/language-server"
+                   },
+    "bugs":  {
+                 "url":  "https://github.com/AidanBoissonneault/BushSCAD-Language/issues"
+             },
+    "publishConfig":  {
+                          "access":  "public",
+                          "registry":  "https://registry.npmjs.org/"
+                      },
+    "files":  [
+                  "src/**",
+                  "dist/**",
+                  "assets/**",
+                  "LICENSE",
+                  "README.md"
+              ]
+}

@@ -1,0 +1,12 @@
+base_unit = mm;
+
+fn boss(d, height: 5) {
+    sketch profile = circle(d);
+    obj profile = extrude(profile, height);
+}
+
+part function_example {
+    sketch base = rect(70, 42);
+    obj base = extrude(base, 6);
+    place(boss(16, height: 8), @base.top.center) as center_boss;
+}

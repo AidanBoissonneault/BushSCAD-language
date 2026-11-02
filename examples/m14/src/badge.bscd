@@ -1,0 +1,9 @@
+export part badge {
+  sketch base = roundrect(24, 10, r: 2);
+  obj base = extrude(base, 1.5);
+
+  sketch text = word('IDX', size: 4, font: 'mono', align: center);
+  obj text = extrude(text, 0.6 , @base.top.center);
+
+  part.color = #16A34A;
+}

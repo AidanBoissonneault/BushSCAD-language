@@ -1,0 +1,18 @@
+// A named union spans every atomic region covered by either feature loop.
+sketch union_profile = path(
+  left_bottom = line((0, 0), (20, 0)),
+  left_right = line((20, 20)),
+  left_top = line((0, 20)),
+  left_close = close(),
+
+  right_bottom = line((10, 0), (30, 0)),
+  right_right = line((30, 20)),
+  right_top = line((10, 20)),
+  right_close = close(),
+
+  joined = left_bottom + right_bottom,
+  overlap = left_bottom & right_bottom
+);
+
+// The overlap is already contained by joined, so the list has the same shape.
+obj joined = extrude([union_profile.joined, union_profile.overlap], 4);

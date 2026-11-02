@@ -1,0 +1,20 @@
+// True check: STEP shape import, imported font, ref extension, healing, and placement.
+base_unit = mm;
+
+import shape motor = '../T21.step';
+font pixel = import '../../node_modules/three/examples/fonts/ttf/kenpixel.ttf';
+
+ref motor_component extends motor {
+    heal tolerance: 0.01;
+    defeature holes smaller_than: 1;
+    @top_mount = @largest_planar;
+}
+
+part imported_assets {
+    sketch base_profile = rect(90, 64);
+    obj base = extrude(base_profile, 8);
+    place(motor_component, @base.top.center, @top_mount) as placed_motor;
+
+    sketch label = word('IMPORT', size: 8, font: pixel, align: center);
+    obj label = extrude(label, 1.2, @base.top(x: 0, y: 24));
+}

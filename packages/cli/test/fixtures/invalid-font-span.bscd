@@ -1,0 +1,4 @@
+font broken = import './invalid-font.ttf';
+
+sketch label = word('broken', size: 8, font: broken);
+obj label = extrude(label, 1);

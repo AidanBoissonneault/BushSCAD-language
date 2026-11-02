@@ -1,0 +1,24 @@
+part parallel_components {
+  part.material = 'matte pla';
+
+  obj left = roundedCuboid([18, 18, 12], r: 2);
+  transform(left, translate(x: -30, y: -18, z: 0));
+
+  obj right = roundedCylinder(12, r: 9, roundingRadius: 1.5);
+  transform(right, translate(x: 30, y: -18, z: 0));
+
+  sketch prism_profile = roundrect(18, 14, r: 2);
+  obj rear = extrude(prism_profile, 12);
+  transform(rear, translate(x: -30, y: 18, z: 0));
+
+  sketch sweep_profile = circle(6);
+  path sweep_path = polyline([(0, 0, 0), (0, 0, 12)]);
+  obj swept = sweep(sweep_profile along sweep_path);
+  transform(swept, translate(x: 30, y: 18, z: 0));
+
+  sketch punch_profile = circle(4);
+  obj punch = extrude(punch_profile, 16);
+  obj left_hole = cut(punch, @left.top.center);
+
+  fillet(@left.top.edges, 0.8);
+}
