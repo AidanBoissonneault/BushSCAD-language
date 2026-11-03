@@ -5,16 +5,19 @@
  * @last-edited October 6, 2026
  */
 
+import { resolve } from 'node:path';
 import { describe, expect, it } from 'vitest';
 import {
   parseCompilerRequest,
   parseServiceRequest,
 } from '../../src/dto/request-parser.js';
 
+const projectRoot = resolve('project');
+const projectFile = resolve(projectRoot, 'main.bscd');
 const preview = {
   kind: 'preview',
-  filePath: 'C:/project/main.bscd',
-  rootPath: 'C:/project',
+  filePath: projectFile,
+  rootPath: projectRoot,
 };
 
 describe('canonical compiler request parser', () => {
@@ -22,7 +25,9 @@ describe('canonical compiler request parser', () => {
     expect(
       parseCompilerRequest({
         ...preview,
-        overlays: { 'C:/project/imported.bscd': 'part imported {}' },
+        overlays: {
+          [resolve(projectRoot, 'imported.bscd')]: 'part imported {}',
+        },
         env: { width: '12mm' },
         engine: 'parallel',
       }),
@@ -41,7 +46,10 @@ describe('canonical compiler request parser', () => {
     expect(() =>
       parseCompilerRequest({
         ...preview,
-        overlays: { 'C:/other/injected.bscd': 'part injected {}' },
+        overlays: {
+          [resolve(projectRoot, '../other/injected.bscd')]:
+            'part injected {}',
+        },
       }),
     ).toThrow('outside');
     expect(() => parseCompilerRequest({ ...preview, format: 'step' })).toThrow(
@@ -58,7 +66,7 @@ describe('canonical compiler request parser', () => {
     expect(
       parseCompilerRequest({
         kind: 'exportDrawings',
-        filePath: 'C:/project/main.bscd',
+        filePath: projectFile,
         drawingOutputMode: 'return-content',
       }),
     ).toMatchObject({ drawingOutputMode: 'return-content' });
