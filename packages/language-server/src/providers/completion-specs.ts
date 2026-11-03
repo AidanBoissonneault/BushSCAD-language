@@ -116,7 +116,7 @@ export function completionSpecs(
 }
 
 /** Keeps completion selection and ordering independent from documentation rendering. */
-function contextualCompletionSpecs(
+export function contextualCompletionSpecs(
   source: string,
   before: string,
   context: CompletionContext,

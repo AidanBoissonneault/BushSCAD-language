@@ -171,28 +171,38 @@ function validateNamedFaceSegment(
   state: State,
   span: ASTSourceSpan,
 ): void {
-  if (refUsesSelectorVariable(ref, scope)) return;
-  if (resolvedSketchComponentMember(ref, state)) return;
-  const unresolvedComponent = unresolvedSketchComponentPath(ref, state);
-  if (unresolvedComponent) {
-    addError(
-      state,
-      `Unknown member '${unresolvedComponent.member}' on sketch component '${unresolvedComponent.component}' of object '${unresolvedComponent.owner}'`,
-      ref.chain.at(-1)?.span ?? span,
-    );
-    return;
-  }
+  if (validateSketchComponentSegment(ref, scope, state, span)) return;
   const namedFace = refHasWildcard(ref) ? null : namedFaceFromRef(ref);
   if (!namedFace || !rootKnown || FACE_WORDS.has(rootName)) return;
 
   const segments = state.objectProfileSegments.get(rootName);
-  if (!segments || !segments.has(namedFace)) {
-    addError(
-      state,
-      `Unknown named face '${namedFace}' on object '${rootName}'`,
-      span,
-    );
-  }
+  if (segments?.has(namedFace)) return;
+  addError(
+    state,
+    `Unknown named face '${namedFace}' on object '${rootName}'`,
+    span,
+  );
+}
+
+/**
+ * Handles selector variables and sketch-component members before face names.
+ */
+function validateSketchComponentSegment(
+  ref: FaceRef,
+  scope: Scope,
+  state: State,
+  span: ASTSourceSpan,
+): boolean {
+  if (refUsesSelectorVariable(ref, scope)) return true;
+  if (resolvedSketchComponentMember(ref, state)) return true;
+  const unresolved = unresolvedSketchComponentPath(ref, state);
+  if (!unresolved) return false;
+  addError(
+    state,
+    `Unknown member '${unresolved.member}' on sketch component '${unresolved.component}' of object '${unresolved.owner}'`,
+    ref.chain.at(-1)?.span ?? span,
+  );
+  return true;
 }
 
 /**

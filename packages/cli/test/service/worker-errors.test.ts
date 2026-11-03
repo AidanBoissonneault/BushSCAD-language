@@ -8,6 +8,7 @@
 import { describe, expect, it } from 'vitest';
 import {
   compileErrorFromWorker,
+  sourceSpanFrom,
   sourceMappedWorkerError,
   workerErrorMessage,
 } from '../../src/service/parallel/worker-errors.js';
@@ -36,6 +37,17 @@ describe('parallel worker errors', () => {
         span: { file: 'main.bscd', line: 7, col: 3 },
       }),
     ).toBe('font unavailable');
+  });
+
+  it('accepts only structurally valid source spans from worker payloads', () => {
+    const span = { file: 'main.bscd', line: 7, col: 3 };
+
+    expect(sourceSpanFrom({ span })).toEqual(span);
+    expect(sourceSpanFrom(null)).toBeUndefined();
+    expect(sourceSpanFrom({ span: null })).toBeUndefined();
+    expect(
+      sourceSpanFrom({ span: { file: 'main.bscd', line: '7', col: 3 } }),
+    ).toBeUndefined();
   });
 
   it('uses line one only when a worker provides no source span', () => {

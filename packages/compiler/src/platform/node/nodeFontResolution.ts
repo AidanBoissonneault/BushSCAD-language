@@ -317,18 +317,41 @@ function readNameTable(bytes: Uint8Array, tableOffset: number): string[] {
   const preferred: string[] = [];
   const legacy: string[] = [];
   for (let index = 0; index < count; index++) {
-    const record = tableOffset + 6 + index * 12;
-    if (record + 12 > bytes.byteLength) break;
-    const platform = view.getUint16(record);
-    const nameId = view.getUint16(record + 6);
-    if (nameId !== 1 && nameId !== 16) continue;
-    const length = view.getUint16(record + 8);
-    const offset = strings + view.getUint16(record + 10);
-    if (offset + length > bytes.byteLength) continue;
-    const name = decodeName(bytes.subarray(offset, offset + length), platform);
-    if (name) (nameId === 16 ? preferred : legacy).push(name);
+    const result = readNameRecord(bytes, view, tableOffset, strings, index);
+    if (result.kind === 'end') break;
+    if (result.kind === 'skip') continue;
+    (result.nameId === 16 ? preferred : legacy).push(result.name);
   }
   return [...new Set(preferred.length > 0 ? preferred : legacy)];
+}
+
+/**
+ * Reads and decodes one supported OpenType name record.
+ */
+function readNameRecord(
+  bytes: Uint8Array,
+  view: DataView,
+  tableOffset: number,
+  strings: number,
+  index: number,
+):
+  | { kind: 'end' }
+  | { kind: 'skip' }
+  | { kind: 'name'; nameId: 1 | 16; name: string } {
+  const record = tableOffset + 6 + index * 12;
+  if (record + 12 > bytes.byteLength) return { kind: 'end' };
+  const nameId = view.getUint16(record + 6);
+  if (nameId !== 1 && nameId !== 16) return { kind: 'skip' };
+  const length = view.getUint16(record + 8);
+  const offset = strings + view.getUint16(record + 10);
+  if (offset + length > bytes.byteLength) return { kind: 'skip' };
+  const name = decodeName(
+    bytes.subarray(offset, offset + length),
+    view.getUint16(record),
+  );
+  return name
+    ? { kind: 'name', nameId: nameId as 1 | 16, name }
+    : { kind: 'skip' };
 }
 
 /**

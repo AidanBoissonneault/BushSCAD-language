@@ -129,7 +129,7 @@ function postWorkerResult(bridge: OcctBridge, msg: OcctWorkerInMsg): void {
 /**
  * Handles post build result in the worker flow.
  */
-function postBuildResult(
+export function postBuildResult(
   bridge: OcctBridge,
   msg: Extract<OcctWorkerInMsg, { kind: 'build' }>,
 ): void {

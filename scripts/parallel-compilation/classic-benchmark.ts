@@ -6,6 +6,7 @@
  */
 
 import { resolve } from 'node:path';
+import { pathToFileURL } from 'node:url';
 import { compileFileToIr, previewFile } from '@bushscad/compiler/node';
 import type { MeshData, OcctTraceEvent } from '@bushscad/ir';
 import { writeJsonReport } from './report-output.js';
@@ -24,25 +25,40 @@ type Measurement = {
 };
 
 /** Captures classic check plus cold and warm preview costs without changing production routing. */
-async function run(): Promise<void> {
-  const filePath = resolve(readArg('--file'));
+type ClassicBenchmarkDependencies = {
+  compileFileToIr: typeof compileFileToIr;
+  previewFile: typeof previewFile;
+  writeJsonReport: typeof writeJsonReport;
+};
+
+/** Runs the cold and warm benchmark with injectable compiler/report services. */
+export async function runClassicBenchmark(
+  args: string[] = process.argv.slice(2),
+  dependencies: ClassicBenchmarkDependencies = {
+    compileFileToIr,
+    previewFile,
+    writeJsonReport,
+  },
+): Promise<void> {
+  const filePath = resolve(readArg(args, '--file'));
   const outPath = resolve(
     readArg(
+      args,
       '--out',
       '.bushscad-analysis/parallel-compilation/p0-classic-benchmark.json',
     ),
   );
 
-  const check = measureSync(() => compileFileToIr({ filePath }));
+  const check = measureSync(() => dependencies.compileFileToIr({ filePath }));
   if (!check.value.ok) throw new Error(check.value.errors[0]?.message);
 
   const cold = await measureAsync(() =>
-    previewFile({ filePath, occtTrace: true }),
+    dependencies.previewFile({ filePath, occtTrace: true }),
   );
   if (!cold.value.ok) throw new Error(cold.value.errors[0]?.message);
 
   const warm = await measureAsync(() =>
-    previewFile({ filePath, occtTrace: true }),
+    dependencies.previewFile({ filePath, occtTrace: true }),
   );
   if (!warm.value.ok) throw new Error(warm.value.errors[0]?.message);
 
@@ -68,7 +84,7 @@ async function run(): Promise<void> {
       warm.value.occtTraceEvents,
     ),
   };
-  await writeJsonReport(outPath, report);
+  await dependencies.writeJsonReport(outPath, report);
 }
 
 /**
@@ -152,16 +168,22 @@ function finishMeasurement(
 /**
  * Reads arg from the supplied source.
  */
-function readArg(name: string, fallback?: string): string {
-  const index = process.argv.indexOf(name);
-  const value = index >= 0 ? process.argv[index + 1] : fallback;
+function readArg(args: string[], name: string, fallback?: string): string {
+  const index = args.indexOf(name);
+  const value = index >= 0 ? args[index + 1] : fallback;
   if (!value) throw new Error(`Missing required ${name} argument.`);
   return value;
 }
 
-void run().catch((error) => {
-  process.stderr.write(
-    `${error instanceof Error ? (error.stack ?? error.message) : String(error)}\n`,
-  );
-  process.exitCode = 1;
-});
+const scriptPath = process.argv[1];
+if (
+  scriptPath &&
+  pathToFileURL(resolve(scriptPath)).href === import.meta.url
+) {
+  void runClassicBenchmark().catch((error) => {
+    process.stderr.write(
+      `${error instanceof Error ? (error.stack ?? error.message) : String(error)}\n`,
+    );
+    process.exitCode = 1;
+  });
+}

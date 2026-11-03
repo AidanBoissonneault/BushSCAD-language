@@ -7,6 +7,7 @@
 
 import { fork, type ChildProcess } from 'node:child_process';
 import { resolve } from 'node:path';
+import { pathToFileURL } from 'node:url';
 import { Worker } from 'node:worker_threads';
 import type {
   ProbeCommand,
@@ -20,7 +21,7 @@ import { writeJsonReport } from './report-output.js';
  * Worker lifecycle operations used by the probe runner: send a command, receive messages, and
  * terminate the worker.
  */
-type WorkerHandle = {
+export type ProbeWorkerHandle = {
   send: (command: ProbeCommand) => void;
   onMessage: (listener: (message: ProbeMessage) => void) => void;
   terminate: () => Promise<void>;
@@ -48,11 +49,26 @@ type ProbeRequestKind =
   | 'memory';
 
 /** Measures persistent OCCT worker initialization, reuse, idle memory, and transfer. */
-async function run(): Promise<void> {
-  const args = parseArgs(process.argv.slice(2));
+type ProbeRunnerDependencies = {
+  createWorker: typeof createWorker;
+  writeJsonReport: typeof writeJsonReport;
+  sleep: (milliseconds: number) => Promise<void>;
+};
+
+/** Runs persistent-worker measurements with injectable process and report services. */
+export async function runProbe(
+  argv: string[] = process.argv.slice(2),
+  dependencies: ProbeRunnerDependencies = {
+    createWorker,
+    writeJsonReport,
+    sleep: (milliseconds) =>
+      new Promise((resolvePromise) => setTimeout(resolvePromise, milliseconds)),
+  },
+): Promise<void> {
+  const args = parseArgs(argv);
   const launchedAt = performance.now();
   const workers = Array.from({ length: args.workerCount }, (_, index) =>
-    createWorker(args.mode, index + 1, args.workerPath),
+    dependencies.createWorker(args.mode, index + 1, args.workerPath),
   );
   const ready = await Promise.all(workers.map(waitUntilReady));
   const wallInitializationMs = performance.now() - launchedAt;
@@ -67,9 +83,7 @@ async function run(): Promise<void> {
     const beforeIdle = await Promise.all(
       clients.map((client) => client.request('memory')),
     );
-    await new Promise((resolvePromise) =>
-      setTimeout(resolvePromise, args.idleMs),
-    );
+    await dependencies.sleep(args.idleMs);
     const afterIdle = await Promise.all(
       clients.map((client) => client.request('memory')),
     );
@@ -113,7 +127,7 @@ async function run(): Promise<void> {
         brepBytes: Buffer.byteLength(brepExportResult.dataBase64, 'base64'),
       },
     };
-    await writeJsonReport(args.outPath, report, reportSummary(report));
+    await dependencies.writeJsonReport(args.outPath, report, reportSummary(report));
   } finally {
     await Promise.all(clients.map((client) => client.shutdown()));
   }
@@ -122,7 +136,7 @@ async function run(): Promise<void> {
 /**
  * Creates client with the supplied values.
  */
-function createClient(handle: WorkerHandle): {
+function createClient(handle: ProbeWorkerHandle): {
   request: (
     kind: ProbeRequestKind,
     data?: string,
@@ -212,7 +226,7 @@ function reportSummary(report: ProbeReport): unknown {
  * Waits for until ready to reach the requested state.
  */
 function waitUntilReady(
-  handle: WorkerHandle,
+  handle: ProbeWorkerHandle,
 ): Promise<Extract<ProbeMessage, { kind: 'ready' }>> {
   return new Promise((resolvePromise, rejectPromise) => {
     const timer = setTimeout(
@@ -238,7 +252,7 @@ function createWorker(
   mode: ProbeMode,
   workerId: number,
   workerPath: string,
-): WorkerHandle {
+): ProbeWorkerHandle {
   if (mode === 'thread')
     return threadHandle(new Worker(workerPath, { workerData: { workerId } }));
   return processHandle(
@@ -253,7 +267,7 @@ function createWorker(
 /**
  * Handles thread handle in the scripts parallel compilation flow.
  */
-function threadHandle(worker: Worker): WorkerHandle {
+function threadHandle(worker: Worker): ProbeWorkerHandle {
   return {
     send: (command) => worker.postMessage(command),
     onMessage: (listener) => worker.on('message', listener),
@@ -264,7 +278,7 @@ function threadHandle(worker: Worker): WorkerHandle {
 /**
  * Handles process handle in the scripts parallel compilation flow.
  */
-function processHandle(child: ChildProcess): WorkerHandle {
+function processHandle(child: ChildProcess): ProbeWorkerHandle {
   return {
     send: (command) => child.send?.(command),
     onMessage: (listener) =>
@@ -319,9 +333,15 @@ function parseArgs(args: string[]): {
   };
 }
 
-void run().catch((error) => {
-  process.stderr.write(
-    `${error instanceof Error ? (error.stack ?? error.message) : String(error)}\n`,
-  );
-  process.exitCode = 1;
-});
+const scriptPath = process.argv[1];
+if (
+  scriptPath &&
+  pathToFileURL(resolve(scriptPath)).href === import.meta.url
+) {
+  void runProbe().catch((error) => {
+    process.stderr.write(
+      `${error instanceof Error ? (error.stack ?? error.message) : String(error)}\n`,
+    );
+    process.exitCode = 1;
+  });
+}

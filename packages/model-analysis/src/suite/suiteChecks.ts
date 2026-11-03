@@ -13,6 +13,11 @@ import type {
 } from './suiteTypes.js';
 import { modifierEffectCheck } from './modifierEffectCheck.js';
 
+type ModelTraceEvent = Extract<
+  ModelAnalysisResult,
+  { ok: true }
+>['occtTraceEvents'][number];
+
 /** Evaluates one compiled model against its declared physical-test contract. */
 export function evaluateSuiteCase(
   entry: SuiteCaseManifest,
@@ -137,13 +142,7 @@ function changedOperationCheck(
 ): SuiteCheck {
   const changed = new Set(
     analysis.occtTraceEvents
-      .filter(
-        (event) =>
-          event.kind === 'op-success' &&
-          ((event.addedBodies?.length ?? 0) > 0 ||
-            (event.modifiedBodies?.length ?? 0) > 0 ||
-            (event.removedBodies?.length ?? 0) > 0),
-      )
+      .filter(traceEventChangedBodyIdentity)
       .map((event) => event.opKind)
       .filter((kind): kind is string => Boolean(kind)),
   );
@@ -155,6 +154,20 @@ function changedOperationCheck(
     missing.length === 0
       ? `${changed.size} operation kind(s) changed body identity`
       : `no body change for ${missing.join(', ')}`,
+  );
+}
+
+/**
+ * Identifies successful OCCT operations that changed one or more bodies.
+ */
+export function traceEventChangedBodyIdentity(
+  event: ModelTraceEvent,
+): boolean {
+  return (
+    event.kind === 'op-success' &&
+    ((event.addedBodies?.length ?? 0) > 0 ||
+      (event.modifiedBodies?.length ?? 0) > 0 ||
+      (event.removedBodies?.length ?? 0) > 0)
   );
 }
 
@@ -254,19 +267,7 @@ function meshDifferenceCheck(
   const differences = expected.requiredMeshMetricDifferences ?? [];
   const failed: string[] = [];
   for (const requirement of differences) {
-    const left = analysis.meshes.find(
-      (mesh) => mesh.bodyName === requirement.leftBody,
-    );
-    const right = analysis.meshes.find(
-      (mesh) => mesh.bodyName === requirement.rightBody,
-    );
-    const leftValue = left ? meshMetric(left, requirement.metric) : null;
-    const rightValue = right ? meshMetric(right, requirement.metric) : null;
-    const delta =
-      leftValue === null || rightValue === null
-        ? null
-        : Math.abs(leftValue - rightValue);
-    if (delta === null || delta < (requirement.minimumDifference ?? 1e-9)) {
+    if (!hasRequiredMeshDifference(analysis, requirement)) {
       failed.push(
         `${requirement.leftBody}.${requirement.metric} vs ${requirement.rightBody}.${requirement.metric}`,
       );
@@ -279,6 +280,29 @@ function meshDifferenceCheck(
       ? `${differences.length} metric difference(s) confirmed`
       : `missing ${failed.join(', ')}`,
   );
+}
+
+/**
+ * Checks that both named meshes exist and differ by the required metric amount.
+ */
+function hasRequiredMeshDifference(
+  analysis: Extract<ModelAnalysisResult, { ok: true }>,
+  requirement: NonNullable<
+    SuiteExpectation['requiredMeshMetricDifferences']
+  >[number],
+): boolean {
+  const left = analysis.meshes.find(
+    (mesh) => mesh.bodyName === requirement.leftBody,
+  );
+  const right = analysis.meshes.find(
+    (mesh) => mesh.bodyName === requirement.rightBody,
+  );
+  if (!left || !right) return false;
+  const difference = Math.abs(
+    meshMetric(left, requirement.metric) -
+      meshMetric(right, requirement.metric),
+  );
+  return difference >= (requirement.minimumDifference ?? 1e-9);
 }
 
 /**

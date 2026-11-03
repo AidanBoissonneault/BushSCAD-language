@@ -55,11 +55,28 @@ export function classifyConcreteFaceRefSelector(
     return 'edge-intersection';
   }
   const parts = normalizeReferenceParts(rawReferenceParts(ref));
+  return (
+    classifyNamedSelector(parts) ??
+    classifyCompositeSelector(parts, scope, state)
+  );
+}
+
+/** Resolves concrete aliases that identify edges, corners, or face centers. */
+function classifyNamedSelector(parts: readonly string[]): SelectorKind | null {
   if (parts.includes('corner') || parts.some(isReferenceCornerAlias)) {
     return 'named-corner';
   }
   if (parts.includes('edge') || parts.some(hasEdgeAlias)) return 'named-edge';
   if (parts.at(-1) === 'center') return 'face-point';
+  return null;
+}
+
+/** Resolves selectors whose result depends on path depth and terminal name. */
+function classifyCompositeSelector(
+  parts: readonly string[],
+  scope: Scope,
+  state?: State,
+): SelectorKind {
   if (parts.length === 1)
     return classifySingleRoot(parts[0] ?? '', scope, state);
   if (parts.length === 2 && parts[1] === 'perimeter') {

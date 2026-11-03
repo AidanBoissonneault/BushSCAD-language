@@ -11,6 +11,7 @@ import {
   projectShapeToClassifiedEdges,
   projectShapeToFaces,
 } from '../../src/drawing/drawing-projection.js';
+import { sampleWireToPoints } from '../../src/drawing/drawing-edge-sampling.js';
 import { writeDxf } from '../../src/export/dxf-writer.js';
 import { writeSvg } from '../../src/export/svg-writer.js';
 import {
@@ -183,6 +184,20 @@ function makeOc() {
 }
 
 describe('drawing projection', () => {
+  it('joins sampled wire edges in traversal order when edge directions differ', () => {
+    const points = sampleWireToPoints(
+      makeOc(),
+      wire([edge([0, 0, 10], [10, 0, 10]), edge([20, 0, 10], [10, 0, 10])]),
+      'top',
+    );
+
+    expect(points).toEqual([
+      [0, 0],
+      [10, 0],
+      [20, 0],
+    ]);
+  });
+
   it('exports a top view with cut-hole detail and both dimensions', () => {
     const oc = makeOc();
     const shape = makePlateShape();

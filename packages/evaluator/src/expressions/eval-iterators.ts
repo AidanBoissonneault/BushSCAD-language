@@ -98,23 +98,46 @@ function getRangeIterations(
   binding: ForBinding,
   ctx: EvalCtx,
 ): IterItem[] {
+  const range = evaluateRange(iter, ctx);
+  if (!range) return [];
+  return rangeItems(range, firstBindingName(binding), iter, ctx);
+}
+
+/**
+ * Evaluates range bounds and rejects invalid expressions or non-positive steps.
+ */
+function evaluateRange(
+  iter: RangeIterator,
+  ctx: EvalCtx,
+): { start: number; end: number; step: number } | null {
   const errorsBeforeValues = ctx.errors.length;
   const start = iter.start !== undefined ? evalNum(iter.start, ctx) : 0;
   const end = evalNum(iter.end, ctx);
   const step = iter.step !== undefined ? evalNum(iter.step, ctx) : 1;
-  if (ctx.errors.length !== errorsBeforeValues) return [];
+  if (ctx.errors.length !== errorsBeforeValues) return null;
   if (step <= 0) {
     addError(
       ctx,
       'range() step must be a finite positive number',
       iter.step?.span ?? iter.end.span,
     );
-    return [];
+    return null;
   }
-  const name = firstBindingName(binding);
+  return { start, end, step };
+}
+
+/**
+ * Produces range binding maps and rejects steps that cannot advance.
+ */
+function rangeItems(
+  range: { start: number; end: number; step: number },
+  name: string,
+  iter: RangeIterator,
+  ctx: EvalCtx,
+): IterItem[] {
   const items: IterItem[] = [];
-  for (let i = start; i < end; ) {
-    const next = i + step;
+  for (let i = range.start; i < range.end;) {
+    const next = i + range.step;
     if (next <= i) {
       addError(
         ctx,

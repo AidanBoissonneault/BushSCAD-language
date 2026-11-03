@@ -6,12 +6,14 @@
  */
 
 import { createHash } from 'node:crypto';
-import { mkdir, readFile, stat, writeFile } from 'node:fs/promises';
+import { mkdir, readFile, writeFile } from 'node:fs/promises';
 import { fileURLToPath } from 'node:url';
 import { dirname, join, resolve } from 'node:path';
 
 import MarkdownIt from 'markdown-it';
 import { chromium } from 'playwright';
+import { checkPublication } from './publication-check.ts';
+import type { PublicationCheckInput } from './publication-check.ts';
 
 const scriptDirectory = dirname(fileURLToPath(import.meta.url));
 const repositoryRoot = resolve(scriptDirectory, '../..');
@@ -31,13 +33,7 @@ const manifestPath = join(publicDirectory, 'language-reference-manifest.json');
 /**
  * Manifest data used to publish the canonical language reference and its generated indexes.
  */
-type Publication = {
-  source: string;
-  version: string;
-  sourceSha256: string;
-  robots: string;
-  llms: string;
-};
+type Publication = PublicationCheckInput;
 
 /** Builds all deterministic publication content from the canonical reference. */
 function createPublication(source: string): Publication {
@@ -179,40 +175,18 @@ async function publish(publication: Publication): Promise<void> {
   );
 }
 
-/** Rejects stale generated assets before a website release build. */
-async function checkPublication(publication: Publication): Promise<void> {
-  const [markdown, packageReference, robots, llms, manifestSource, pdfInfo] =
-    await Promise.all([
-      readFile(markdownPath, 'utf8'),
-      readFile(packageReferencePath, 'utf8'),
-      readFile(robotsPath, 'utf8'),
-      readFile(llmsPath, 'utf8'),
-      readFile(manifestPath, 'utf8'),
-      stat(pdfPath),
-    ]);
-  const manifest = JSON.parse(manifestSource) as {
-    version?: string;
-    sourceSha256?: string;
-  };
-  const current =
-    markdown === publication.source &&
-    packageReference === publication.source &&
-    robots === publication.robots &&
-    llms === publication.llms &&
-    manifest.version === publication.version &&
-    manifest.sourceSha256 === publication.sourceSha256 &&
-    pdfInfo.size > 0;
-  if (!current) {
-    throw new Error(
-      'Published language-reference assets are stale. Run npm run docs:publish.',
-    );
-  }
-}
-
 // Normalize Git checkout line endings so the publication checksum is portable.
 const source = (await readFile(referencePath, 'utf8')).replace(/\r\n?/g, '\n');
 const publication = createPublication(source);
-if (process.argv.includes('--check')) await checkPublication(publication);
+if (process.argv.includes('--check'))
+  await checkPublication(publication, {
+    markdownPath,
+    packageReferencePath,
+    robotsPath,
+    llmsPath,
+    manifestPath,
+    pdfPath,
+  });
 else await publish(publication);
 
 console.log(

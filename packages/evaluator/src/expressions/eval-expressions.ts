@@ -162,6 +162,58 @@ function fixedTermsSum(e: Expr, ctx: EvalCtx): number {
 }
 
 /**
+ * Evaluates the interpolated expression parts and joins them into one string.
+ * This keeps template coercion out of the main expression dispatcher.
+ */
+function evalTemplateExpr(
+  expr: Extract<Expr, { kind: 'template' }>,
+  ctx: EvalCtx,
+): string {
+  return expr.parts
+    .map((part) =>
+      part.kind === 'text'
+        ? part.value
+        : String(evalExpr(part.expression, ctx)),
+    )
+    .join('');
+}
+
+/**
+ * Evaluates a binary expression and records invalid numeric operands.
+ */
+function evalBinaryExpr(
+  expr: Extract<Expr, { kind: 'binary' }>,
+  ctx: EvalCtx,
+): EvalValue {
+  const left = evalExpr(expr.left, ctx);
+  const right = evalExpr(expr.right, ctx);
+  if (
+    isNumericBinaryOperator(expr.op) &&
+    (typeof left !== 'number' || typeof right !== 'number')
+  ) {
+    addError(ctx, `Operator '${expr.op}' requires numeric operands`, expr.span);
+    return 0;
+  }
+  return evalBinaryValue(expr.op, left, right, 0);
+}
+
+/**
+ * Evaluates a unary expression and reports invalid numeric negation.
+ */
+function evalUnaryExpr(
+  expr: Extract<Expr, { kind: 'unary' }>,
+  ctx: EvalCtx,
+): EvalValue {
+  const value = evalExpr(expr.operand, ctx);
+  if (expr.op === '!') return !value;
+  if (typeof value !== 'number') {
+    addError(ctx, `Unary '-' requires a numeric operand`, expr.span);
+    return 0;
+  }
+  return -value;
+}
+
+/**
  * Evaluates expr with the current evaluation context.
  */
 export function evalExpr(expr: Expr, ctx: EvalCtx): EvalValue {
@@ -171,13 +223,7 @@ export function evalExpr(expr: Expr, ctx: EvalCtx): EvalValue {
     case 'string':
       return expr.value;
     case 'template':
-      return expr.parts
-        .map((part) =>
-          part.kind === 'text'
-            ? part.value
-            : String(evalExpr(part.expression, ctx)),
-        )
-        .join('');
+      return evalTemplateExpr(expr, ctx);
     case 'bool':
       return expr.value;
     case 'list':
@@ -186,31 +232,10 @@ export function evalExpr(expr: Expr, ctx: EvalCtx): EvalValue {
       return [evalNum(expr.x, ctx), evalNum(expr.y, ctx)] as const;
     case 'identifier':
       return evalIdentifier(expr, ctx);
-    case 'binary': {
-      const left = evalExpr(expr.left, ctx);
-      const right = evalExpr(expr.right, ctx);
-      if (
-        isNumericBinaryOperator(expr.op) &&
-        (typeof left !== 'number' || typeof right !== 'number')
-      ) {
-        addError(
-          ctx,
-          `Operator '${expr.op}' requires numeric operands`,
-          expr.span,
-        );
-        return 0;
-      }
-      return evalBinaryValue(expr.op, left, right, 0);
-    }
-    case 'unary': {
-      const v = evalExpr(expr.operand, ctx);
-      if (expr.op === '!') return !v;
-      if (typeof v !== 'number') {
-        addError(ctx, `Unary '-' requires a numeric operand`, expr.span);
-        return 0;
-      }
-      return -v;
-    }
+    case 'binary':
+      return evalBinaryExpr(expr, ctx);
+    case 'unary':
+      return evalUnaryExpr(expr, ctx);
     case 'ternary':
       return evalExpr(expr.condition, ctx)
         ? evalExpr(expr.then, ctx)

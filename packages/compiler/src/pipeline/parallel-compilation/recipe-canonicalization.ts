@@ -26,6 +26,11 @@ export type CanonicalRecipe = Readonly<{
   cacheSafe: boolean;
 }>;
 
+type RecipeDescriptor = {
+  value: Readonly<Record<string, unknown>>;
+  cacheSafe: boolean;
+};
+
 /** Canonicalizes local geometry while excluding authored semantic identity. */
 export function canonicalRecipe(
   op: IROp,
@@ -46,13 +51,23 @@ export function canonicalRecipe(
   };
 }
 
-/**
- * Handles recipe descriptor in the pipeline parallel compilation flow.
- */
+/** Dispatches each operation to its domain-specific recipe description. */
 function recipeDescriptor(
   op: IROp,
   context: RecipeContext,
-): { value: Readonly<Record<string, unknown>>; cacheSafe: boolean } | null {
+): RecipeDescriptor | null {
+  return (
+    primitiveRecipeDescriptor(op, context) ??
+    sweptRecipeDescriptor(op, context) ??
+    surfaceRecipeDescriptor(op, context)
+  );
+}
+
+/** Describes source shapes and imported assets without authored identity. */
+function primitiveRecipeDescriptor(
+  op: IROp,
+  context: RecipeContext,
+): RecipeDescriptor | null {
   switch (op.kind) {
     case 'sketch':
       return entry({
@@ -71,6 +86,27 @@ function recipeDescriptor(
         digest !== undefined,
       );
     }
+    case 'hardware_visual':
+      return entry({
+        kind: op.kind,
+        hardwareKind: op.hardwareKind,
+        diameterMm: op.diameterMm,
+        heightMm: op.heightMm,
+        headDiameterMm: op.headDiameterMm,
+        headHeightMm: op.headHeightMm,
+        placement: op.placement,
+      });
+    default:
+      return null;
+  }
+}
+
+/** Describes profile-based operations using the recipes of their inputs. */
+function sweptRecipeDescriptor(
+  op: IROp,
+  context: RecipeContext,
+): RecipeDescriptor | null {
+  switch (op.kind) {
     case 'extrude':
       return entry({
         kind: op.kind,
@@ -119,16 +155,17 @@ function recipeDescriptor(
         path: dependency(op.pathName, context),
         orientation: op.orientation,
       });
-    case 'hardware_visual':
-      return entry({
-        kind: op.kind,
-        hardwareKind: op.hardwareKind,
-        diameterMm: op.diameterMm,
-        heightMm: op.heightMm,
-        headDiameterMm: op.headDiameterMm,
-        headHeightMm: op.headHeightMm,
-        placement: op.placement,
-      });
+    default:
+      return null;
+  }
+}
+
+/** Describes surface constructors and modifications as cacheable recipes. */
+function surfaceRecipeDescriptor(
+  op: IROp,
+  context: RecipeContext,
+): RecipeDescriptor | null {
+  switch (op.kind) {
     case 'surface':
       return entry({
         kind: op.kind,
@@ -152,19 +189,15 @@ function recipeDescriptor(
   }
 }
 
-/**
- * Handles dependency in the pipeline parallel compilation flow.
- */
+/** Resolves a dependency to its recipe digest or its named entity fallback. */
 function dependency(name: string, context: RecipeContext): string {
   return context.dependencyDigests.get(name) ?? `entity:${name}`;
 }
 
-/**
- * Handles entry in the pipeline parallel compilation flow.
- */
+/** Wraps a canonical value with the cache-safety decision for its source. */
 function entry(
   value: Readonly<Record<string, unknown>>,
   cacheSafe = true,
-): { value: Readonly<Record<string, unknown>>; cacheSafe: boolean } {
+): RecipeDescriptor {
   return { value, cacheSafe };
 }

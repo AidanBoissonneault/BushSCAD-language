@@ -39,6 +39,7 @@ import {
 } from './conversions.js';
 import { pathFromUri } from '../../language/uri.js';
 import type { WorkspaceLanguageServices } from './workspace-services.js';
+import { handleGeometryLinkRequest } from './geometry-link-request.js';
 
 const TOKEN_TYPES = ['keyword', 'function', 'variable', 'property', 'type'];
 
@@ -193,21 +194,7 @@ function registerCustomHandlers(
 
   connection.onRequest(
     BUSHSCAD_LSP_METHODS.geometryLink,
-    async (value, token) => {
-      const request = parseVersionedPositionRequest(value);
-      if (
-        token.isCancellationRequested ||
-        !workspaces.isCurrent(request.uri, request.version)
-      )
-        return null;
-      const link = await workspaces
-        .serviceFor(request.uri)
-        .getGeometryLink(request.uri, request.position);
-      return !token.isCancellationRequested &&
-        workspaces.isCurrent(request.uri, request.version)
-        ? { uri: request.uri, version: request.version, link }
-        : null;
-    },
+    (value, token) => handleGeometryLinkRequest(value, token, workspaces),
   );
 
   connection.onRequest(BUSHSCAD_LSP_METHODS.sketches, (value, token) => {

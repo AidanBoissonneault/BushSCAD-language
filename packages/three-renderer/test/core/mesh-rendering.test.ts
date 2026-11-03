@@ -6,7 +6,11 @@
  */
 
 import { describe, expect, it } from 'vitest';
-import { resolvedMeshColor } from '../../src/core/mesh-rendering.js';
+import type { MeshData } from '@bushscad/ir';
+import {
+  createPreviewMesh,
+  resolvedMeshColor,
+} from '../../src/core/mesh-rendering.js';
 
 const THEME_PALETTE = ['#AABBCC', '#DDEEFF'];
 
@@ -31,3 +35,52 @@ describe('mesh rendering colors', () => {
     ).toBe('#7C3AED');
   });
 });
+
+describe('preview mesh construction', () => {
+  it('applies the requested render style and source mesh identity', () => {
+    const cadMesh = createPreviewMesh(
+      renderMesh(),
+      0,
+      3,
+      THEME_PALETTE,
+      'cad',
+    );
+    expect(cadMesh.userData.interactionMeshIndex).toBe(3);
+    expect(cadMesh.children).toHaveLength(1);
+    expect(cadMesh.castShadow).toBe(false);
+
+    const realismMesh = createPreviewMesh(
+      renderMesh(),
+      0,
+      null,
+      THEME_PALETTE,
+      'realism',
+    );
+    expect(realismMesh.userData.interactionMeshIndex).toBeUndefined();
+    expect(realismMesh.children).toHaveLength(0);
+    expect(realismMesh.castShadow).toBe(true);
+  });
+
+  it('does not add solid-only effects to open surfaces', () => {
+    const surface = createPreviewMesh(
+      { ...renderMesh(), isOpenSurface: true },
+      0,
+      null,
+      THEME_PALETTE,
+      'cad',
+    );
+    expect(surface.children).toHaveLength(0);
+    expect(surface.castShadow).toBe(false);
+  });
+});
+
+/** Creates a minimal mesh for preview construction tests. */
+function renderMesh(): MeshData {
+  return {
+    partName: 'part',
+    color: '#336699',
+    vertices: new Float32Array([0, 0, 0, 1, 0, 0, 0, 1, 0]),
+    normals: new Float32Array([0, 0, 1, 0, 0, 1, 0, 0, 1]),
+    indices: new Uint32Array([0, 1, 2]),
+  };
+}

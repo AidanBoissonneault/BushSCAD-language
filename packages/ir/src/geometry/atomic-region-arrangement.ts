@@ -58,7 +58,7 @@ function addIntersections(
 /**
  * Handles exact conic intersections in the geometry flow.
  */
-function exactConicIntersections(
+export function exactConicIntersections(
   first: IRProfileLoop,
   second: IRProfileLoop,
 ): [number, number][] | null {
@@ -68,20 +68,25 @@ function exactConicIntersections(
   ) {
     return null;
   }
-  const points: [number, number][] = [];
-  for (const a of first.segments) {
-    for (const b of second.segments) {
-      const ellipse =
-        a.kind === 'ellipse' ? a : b.kind === 'ellipse' ? b : null;
-      if (!ellipse) continue;
-      const other = ellipse === a ? b : a;
-      const result = intersectEllipseSegment(ellipse, other);
-      if (result.relation === 'discrete') {
-        points.push(...result.intersections.map((hit) => hit.point));
-      }
-    }
-  }
-  return uniquePoints(points);
+  return uniquePoints(
+    first.segments.flatMap((a) =>
+      second.segments.flatMap((b) => conicPairIntersections(a, b)),
+    ),
+  );
+}
+
+/** Returns exact discrete intersections for one profile-segment pair. */
+function conicPairIntersections(
+  first: IRProfileLoop['segments'][number],
+  second: IRProfileLoop['segments'][number],
+): [number, number][] {
+  const ellipse =
+    first.kind === 'ellipse' ? first : second.kind === 'ellipse' ? second : null;
+  if (!ellipse) return [];
+  const result = intersectEllipseSegment(ellipse, ellipse === first ? second : first);
+  return result.relation === 'discrete'
+    ? result.intersections.map((hit) => hit.point)
+    : [];
 }
 
 /**

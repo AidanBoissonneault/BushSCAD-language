@@ -33,7 +33,7 @@ export async function runLanguageSuite(
 
   const cases: SuiteCaseResult[] = [];
   for (const entry of loaded.manifest.cases) {
-    cases.push(await runCase(entry, loaded.suiteRoot, outDir, options));
+    cases.push(await runSuiteCase(entry, loaded.suiteRoot, outDir, options));
   }
 
   const result = suiteResult({
@@ -53,7 +53,7 @@ export async function runLanguageSuite(
 /**
  * Runs case and returns its result.
  */
-async function runCase(
+export async function runSuiteCase(
   entry: SuiteCaseManifest,
   suiteRoot: string,
   outDir: string,

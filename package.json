@@ -10,7 +10,7 @@
   "scripts": {
     "docs:check": "node --no-warnings --experimental-strip-types scripts/docs/publish-language-reference.ts --check",
     "docs:publish": "node --no-warnings --experimental-strip-types scripts/docs/publish-language-reference.ts",
-    "licenses": "node --experimental-strip-types scripts/licensing/generate-licenses.ts",
+    "licenses": "node --disable-warning=MODULE_TYPELESS_PACKAGE_JSON --experimental-strip-types scripts/licensing/generate-licenses.ts",
     "build:cli": "npm run build --workspace=@bushscad/cli",
     "typecheck": "npm run typecheck --workspaces --if-present && npm run typecheck:scripts",
     "typecheck:scripts": "tsc --noEmit -p scripts/tsconfig.json",

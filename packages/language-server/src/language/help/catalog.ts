@@ -26,30 +26,28 @@ function mergeCatalogs(
 ): Record<string, LanguageHelpEntry> {
   const result: Record<string, LanguageHelpEntry> = {};
   for (const catalog of catalogs) {
-    for (const [word, next] of Object.entries(catalog)) {
-      const prior = result[word];
-      result[word] = prior
-        ? {
-            summary: unique([prior.summary, next.summary]).join('\n\n'),
-            signatures: unique([...prior.signatures, ...next.signatures]),
-            parameters: [
-              ...(prior.parameters ?? []),
-              ...(next.parameters ?? []),
-            ],
-            behavior: unique([
-              ...(prior.behavior ?? []),
-              ...(next.behavior ?? []),
-            ]),
-            examples: unique([...prior.examples, ...next.examples]),
-            related: unique([
-              ...(prior.related ?? []),
-              ...(next.related ?? []),
-            ]),
-          }
-        : next;
-    }
+    for (const [word, next] of Object.entries(catalog))
+      result[word] = mergeCatalogEntry(result[word], next);
   }
   return result;
+}
+
+/**
+ * Combines one pair of help entries without duplicating the shared content.
+ */
+function mergeCatalogEntry(
+  prior: LanguageHelpEntry | undefined,
+  next: LanguageHelpEntry,
+): LanguageHelpEntry {
+  if (!prior) return next;
+  return {
+    summary: unique([prior.summary, next.summary]).join('\n\n'),
+    signatures: unique([...prior.signatures, ...next.signatures]),
+    parameters: [...(prior.parameters ?? []), ...(next.parameters ?? [])],
+    behavior: unique([...(prior.behavior ?? []), ...(next.behavior ?? [])]),
+    examples: unique([...prior.examples, ...next.examples]),
+    related: unique([...(prior.related ?? []), ...(next.related ?? [])]),
+  };
 }
 
 /**

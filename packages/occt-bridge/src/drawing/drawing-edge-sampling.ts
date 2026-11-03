@@ -116,12 +116,7 @@ export function sampleWireToPoints(
       const wireExp = new oc.BRepTools_WireExplorer_2(wire);
       for (; wireExp.More(); wireExp.Next()) {
         const edge = oc.TopoDS.Edge_1(wireExp.Current());
-        const pts3d = sampleEdge(oc, edge);
-        appendConnectedPoints(
-          points,
-          pts3d.map((point) => projectPoint(...point, viewFace)),
-        );
-        edge.delete?.();
+        appendSampledEdge(oc, edge, points, viewFace);
       }
       wireExp.delete?.();
       return points;
@@ -138,18 +133,32 @@ export function sampleWireToPoints(
     );
     for (; edgeExp.More(); edgeExp.Next()) {
       const edge = oc.TopoDS.Edge_1(edgeExp.Current());
-      const pts3d = sampleEdge(oc, edge);
-      appendConnectedPoints(
-        points,
-        pts3d.map((point) => projectPoint(...point, viewFace)),
-      );
-      edge.delete?.();
+      appendSampledEdge(oc, edge, points, viewFace);
     }
     edgeExp.delete();
   } catch {
     // Return partial points gathered before OCCT failed.
   }
   return points;
+}
+
+/**
+ * Samples one edge and joins its projected points to a wire ring.
+ *
+ * Why: OCCT's wire explorer and generic shape explorer must apply identical
+ * orientation and endpoint handling when either traversal path is used.
+ */
+function appendSampledEdge(
+  oc: OC,
+  edge: unknown,
+  target: Point2[],
+  viewFace: ViewFace,
+): void {
+  const points = sampleEdge(oc, edge).map((point) =>
+    projectPoint(...point, viewFace),
+  );
+  appendConnectedPoints(target, points);
+  (edge as { delete?: () => void }).delete?.();
 }
 
 /**

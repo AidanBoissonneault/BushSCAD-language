@@ -13,8 +13,7 @@ import {
   SKETCH_GRID_CENTER,
   SKETCH_GRID_LINES,
 } from './sketch-preview-theme.js';
-import { drawPrimitive } from './sketch-preview-primitives.js';
-import { drawProfile, drawWord } from './sketch-preview-profiles.js';
+import { drawSketchPrimitive } from './sketch-preview-primitive-dispatch.js';
 
 /**
  * Handles preview max dim in the sketch preview flow.
@@ -125,37 +124,7 @@ export class SketchPreviewRenderer {
    * Handles draw in the sketch preview flow.
    */
   private draw(preview: SketchPreviewModel): void {
-    this.drawSketchPrimitive(preview.primitive, preview);
-  }
-
-  /**
-   * Handles draw sketch primitive in the sketch preview flow.
-   */
-  private drawSketchPrimitive(
-    primitive: IRPrimitive,
-    preview: SketchPreviewModel,
-    target = this.content,
-  ): void {
-    if (primitive.kind === 'sketchAt') {
-      const group = new THREE.Group();
-      group.position.set(primitive.x, primitive.y, 0);
-      target.add(group);
-      this.drawSketchPrimitive(primitive.primitive, preview, group);
-      return;
-    }
-    if (primitive.kind === 'sketchBoolean') {
-      this.drawSketchPrimitive(primitive.left, preview, target);
-      this.drawSketchPrimitive(primitive.right, preview, target);
-      return;
-    }
-    if (primitive.kind === 'sketchRef') return;
-    if (primitive.kind === 'profile') {
-      drawProfile(target, primitive, preview, this.viewHalf);
-    } else if (primitive.kind === 'word') {
-      drawWord(target, primitive, this.viewHalf);
-    } else {
-      drawPrimitive(target, primitive, this.viewHalf);
-    }
+    drawSketchPrimitive(this.content, preview.primitive, preview, this.viewHalf);
   }
 
   /**

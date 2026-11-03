@@ -107,34 +107,68 @@ export function collectSymbolsForSource(
   source: string,
   filePath: string,
 ): LanguageSymbol[] {
-  const symbols: LanguageSymbol[] = [];
   const functionDetails = functionDetailsForSource(source, filePath);
   const functionsByOffset = new Map(
     functionDetails.map((details) => [details.nameOffset, details]),
   );
-  for (const pattern of PATTERNS) {
-    for (const match of source.matchAll(pattern.regex)) {
-      const name = match[1];
-      if (!name) continue;
-      const offset = nameOffset(match);
-      const functionInfo =
-        pattern.kind === 'fn' ? functionsByOffset.get(offset) : undefined;
-      const start = positionAt(source, offset);
-      symbols.push({
-        name,
-        kind: pattern.kind,
-        detail: functionInfo?.signature ?? pattern.detail(match),
-        ...(functionInfo ? { documentation: functionInfo.documentation } : {}),
-        ...(!functionInfo || pattern.kind !== 'fn'
-          ? { value: cleanValue(pattern.value?.(match)) }
-          : {}),
-        uri: uriFromPath(filePath),
-        range: {
-          start,
-          end: { line: start.line, col: start.col + name.length },
-        },
-      });
-    }
+  return PATTERNS.flatMap((pattern) =>
+    collectPatternSymbols(source, filePath, pattern, functionsByOffset),
+  );
+}
+
+/** Collects one declaration pattern while retaining source order per kind. */
+function collectPatternSymbols(
+  source: string,
+  filePath: string,
+  pattern: SymbolPattern,
+  functionsByOffset: ReadonlyMap<
+    number,
+    ReturnType<typeof functionDetailsForSource>[number]
+  >,
+): LanguageSymbol[] {
+  const symbols: LanguageSymbol[] = [];
+  for (const match of source.matchAll(pattern.regex)) {
+    const symbol = symbolForPatternMatch(
+      source,
+      filePath,
+      pattern,
+      match,
+      functionsByOffset,
+    );
+    if (symbol) symbols.push(symbol);
   }
   return symbols;
+}
+
+/** Builds a language symbol from one regex match and its optional function info. */
+function symbolForPatternMatch(
+  source: string,
+  filePath: string,
+  pattern: SymbolPattern,
+  match: RegExpExecArray,
+  functionsByOffset: ReadonlyMap<
+    number,
+    ReturnType<typeof functionDetailsForSource>[number]
+  >,
+): LanguageSymbol | null {
+  const name = match[1];
+  if (!name) return null;
+  const offset = nameOffset(match);
+  const functionInfo =
+    pattern.kind === 'fn' ? functionsByOffset.get(offset) : undefined;
+  const start = positionAt(source, offset);
+  return {
+    name,
+    kind: pattern.kind,
+    detail: functionInfo?.signature ?? pattern.detail(match),
+    ...(functionInfo ? { documentation: functionInfo.documentation } : {}),
+    ...(!functionInfo || pattern.kind !== 'fn'
+      ? { value: cleanValue(pattern.value?.(match)) }
+      : {}),
+    uri: uriFromPath(filePath),
+    range: {
+      start,
+      end: { line: start.line, col: start.col + name.length },
+    },
+  };
 }

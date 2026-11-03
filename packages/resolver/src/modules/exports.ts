@@ -9,6 +9,21 @@ import type { ExportDecl, TopLevelStatement } from '@bushscad/ir';
 import type { State, SymKind } from '../core/types.js';
 import type { Scope } from '../core/scope.js';
 
+const SYMBOL_KIND_BY_STATEMENT_KIND: Partial<
+  Record<TopLevelStatement['kind'], SymKind>
+> = {
+  var: 'var',
+  env: 'env',
+  fontImport: 'font',
+  sketch: 'sketch',
+  surface: 'surface',
+  obj: 'obj',
+  refObj: 'obj',
+  fn: 'fn',
+  part: 'part',
+  refPart: 'component',
+};
+
 /**
  * Returns a top-level statement as a named statement when the AST node carries a name.
  */
@@ -25,30 +40,7 @@ function namedStmt(
  * Maps AST declaration kinds to resolver symbol kinds.
  */
 function symKindFor(stmt: TopLevelStatement): SymKind | null {
-  switch (stmt.kind) {
-    case 'var':
-      return 'var';
-    case 'env':
-      return 'env';
-    case 'fontImport':
-      return 'font';
-    case 'sketch':
-      return 'sketch';
-    case 'surface':
-      return 'surface';
-    case 'obj':
-      return 'obj';
-    case 'refObj':
-      return 'obj';
-    case 'fn':
-      return 'fn';
-    case 'part':
-      return 'part';
-    case 'refPart':
-      return 'component';
-    default:
-      return null;
-  }
+  return SYMBOL_KIND_BY_STATEMENT_KIND[stmt.kind] ?? null;
 }
 
 /**

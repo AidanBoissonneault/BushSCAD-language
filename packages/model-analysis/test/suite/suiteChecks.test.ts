@@ -7,7 +7,10 @@
 
 import { describe, expect, it } from 'vitest';
 import type { ModelAnalysisResult } from '../../src/types/types.js';
-import { evaluateSuiteCase } from '../../src/suite/suiteChecks.js';
+import {
+  evaluateSuiteCase,
+  traceEventChangedBodyIdentity,
+} from '../../src/suite/suiteChecks.js';
 import type { SuiteCaseManifest } from '../../src/suite/suiteTypes.js';
 
 const ENTRY: SuiteCaseManifest = {
@@ -70,6 +73,48 @@ function successfulAnalysis(): Extract<ModelAnalysisResult, { ok: true }> {
 const SPAN = { file: 'fixture.bscd', line: 1, col: 1 };
 
 describe('language suite checks', () => {
+  it('detects each successful body identity change shape', () => {
+    expect(
+      traceEventChangedBodyIdentity({
+        kind: 'op-success',
+        timestampMs: 1,
+        opKind: 'fuse',
+        addedBodies: ['joined'],
+      }),
+    ).toBe(true);
+    expect(
+      traceEventChangedBodyIdentity({
+        kind: 'op-success',
+        timestampMs: 2,
+        opKind: 'cut',
+        modifiedBodies: ['body'],
+      }),
+    ).toBe(true);
+    expect(
+      traceEventChangedBodyIdentity({
+        kind: 'op-success',
+        timestampMs: 3,
+        opKind: 'remove',
+        removedBodies: ['tool'],
+      }),
+    ).toBe(true);
+    expect(
+      traceEventChangedBodyIdentity({
+        kind: 'op-success',
+        timestampMs: 4,
+        opKind: 'noop',
+      }),
+    ).toBe(false);
+    expect(
+      traceEventChangedBodyIdentity({
+        kind: 'op-error',
+        timestampMs: 5,
+        opKind: 'fuse',
+        addedBodies: ['ignored'],
+      }),
+    ).toBe(false);
+  });
+
   it('checks declared operations and geometry-changing trace events', () => {
     const analysis = successfulAnalysis();
     analysis.meshes.push({
@@ -126,6 +171,43 @@ describe('language suite checks', () => {
     expect(
       checks.find((check) => check.name === 'Topology health')?.passed,
     ).toBe(false);
+  });
+
+  it('recognizes added and removed bodies as geometry changes', () => {
+    const analysis = successfulAnalysis();
+    analysis.occtTraceEvents.push(
+      {
+        kind: 'op-success',
+        timestampMs: 6,
+        opKind: 'fuse',
+        addedBodies: ['joined'],
+      },
+      {
+        kind: 'op-success',
+        timestampMs: 7,
+        opKind: 'cut',
+        removedBodies: ['tool'],
+      },
+      {
+        kind: 'op-error',
+        timestampMs: 8,
+        opKind: 'shell',
+        addedBodies: ['ignored'],
+      },
+    );
+
+    const checks = evaluateSuiteCase(
+      {
+        ...ENTRY,
+        expectations: { requiredChangedOperations: ['fuse', 'cut'] },
+      },
+      analysis,
+    );
+
+    expect(
+      checks.find((check) => check.name === 'Geometry-changing operations')
+        ?.passed,
+    ).toBe(true);
   });
 
   it('fails a modifier target that reports success without changing a body', () => {

@@ -244,17 +244,7 @@ export class PersistentOcctWorkerPool {
     task: Omit<ParallelBuildTask, 'taskId'>,
     onTrace?: (event: OcctTraceEvent) => void,
   ): Promise<ParallelBuildOutput> {
-    const taskId = this.nextTaskId++;
-    slot.state = 'busy';
-    this.publishStatus();
-    return new Promise((resolve, reject) => {
-      slot.pending = {
-        taskId,
-        sourceIndex: task.sourceIndex,
-        resolve: (output) => resolve(output as ParallelBuildOutput),
-        reject,
-        onTrace,
-      };
+    return this.dispatchTask(slot, task.sourceIndex, onTrace, (taskId) => {
       slot.process.send?.({ kind: 'build', task: { ...task, taskId } });
     });
   }
@@ -267,21 +257,38 @@ export class PersistentOcctWorkerPool {
     task: Omit<ParallelComponentTask, 'taskId'>,
     onTrace?: (event: OcctTraceEvent) => void,
   ): Promise<ParallelComponentOutput> {
+    return this.dispatchTask(slot, task.sourceIndex, onTrace, (taskId) => {
+      slot.process.send?.({
+        kind: 'prepare-component',
+        task: { ...task, taskId },
+      });
+    });
+  }
+
+  /**
+   * Registers shared pending-task state before sending work to a worker.
+   *
+   * Why: build and component requests share task identity, status, and trace
+   * handling, so dispatch must establish that lifecycle in one place.
+   */
+  private dispatchTask<TOutput extends PoolTaskOutput>(
+    slot: WorkerSlot,
+    sourceIndex: number,
+    onTrace: ((event: OcctTraceEvent) => void) | undefined,
+    send: (taskId: number) => void,
+  ): Promise<TOutput> {
     const taskId = this.nextTaskId++;
     slot.state = 'busy';
     this.publishStatus();
     return new Promise((resolve, reject) => {
       slot.pending = {
         taskId,
-        sourceIndex: task.sourceIndex,
-        resolve: (output) => resolve(output as ParallelComponentOutput),
+        sourceIndex,
+        resolve: (output) => resolve(output as TOutput),
         reject,
         onTrace,
       };
-      slot.process.send?.({
-        kind: 'prepare-component',
-        task: { ...task, taskId },
-      });
+      send(taskId);
     });
   }
 

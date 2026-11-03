@@ -55,7 +55,7 @@ function writeBuildJson(
 /**
  * Writes build text to the configured destination.
  */
-function writeBuildText(
+export function writeBuildText(
   options: CliOptions,
   result: Awaited<ReturnType<typeof previewWithDefaultCompiler>> & { ok: true },
   failed: (Awaited<ReturnType<typeof previewWithDefaultCompiler>> & {

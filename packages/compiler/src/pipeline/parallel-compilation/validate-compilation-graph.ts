@@ -81,7 +81,15 @@ function resourceDiagnostics(
   graph: CompilationGraph,
   nodes: ReadonlyMap<string, CompilationGraphNode>,
 ): CompilationGraphDiagnostic[] {
-  const diagnostics: CompilationGraphDiagnostic[] = [];
+  const producers = resourceProducers(graph);
+  return [
+    ...multipleProducerDiagnostics(producers, nodes),
+    ...resourceReadDiagnostics(graph, nodes, producers),
+  ];
+}
+
+/** Indexes every resource writer so validation can inspect readers consistently. */
+function resourceProducers(graph: CompilationGraph): Map<string, string[]> {
   const producers = new Map<string, string[]>();
   for (const node of graph.nodes) {
     for (const resource of node.writes) {
@@ -90,6 +98,15 @@ function resourceDiagnostics(
       producers.set(resource, ids);
     }
   }
+  return producers;
+}
+
+/** Reports resources written by more than one node. */
+function multipleProducerDiagnostics(
+  producers: ReadonlyMap<string, readonly string[]>,
+  nodes: ReadonlyMap<string, CompilationGraphNode>,
+): CompilationGraphDiagnostic[] {
+  const diagnostics: CompilationGraphDiagnostic[] = [];
   for (const [resource, ids] of producers) {
     if (ids.length > 1)
       diagnostics.push({
@@ -102,9 +119,17 @@ function resourceDiagnostics(
         resource,
       });
   }
-  const edgeKeys = new Set(
-    graph.edges.map((edge) => `${edge.from}|${edge.to}|${edge.resource ?? ''}`),
-  );
+  return diagnostics;
+}
+
+/** Reports reads without a producer edge from each resource's writer. */
+function resourceReadDiagnostics(
+  graph: CompilationGraph,
+  nodes: ReadonlyMap<string, CompilationGraphNode>,
+  producers: ReadonlyMap<string, readonly string[]>,
+): CompilationGraphDiagnostic[] {
+  const diagnostics: CompilationGraphDiagnostic[] = [];
+  const edgeKeys = resourceEdgeKeys(graph);
   for (const node of graph.nodes) {
     for (const resource of node.reads) {
       const ids = producers.get(resource) ?? [];
@@ -134,6 +159,13 @@ function resourceDiagnostics(
     }
   }
   return diagnostics;
+}
+
+/** Precomputes the resource dependency keys used by read validation. */
+function resourceEdgeKeys(graph: CompilationGraph): Set<string> {
+  return new Set(
+    graph.edges.map((edge) => `${edge.from}|${edge.to}|${edge.resource ?? ''}`),
+  );
 }
 
 /**
@@ -197,31 +229,9 @@ function cycleDiagnostics(
   graph: CompilationGraph,
   nodes: ReadonlyMap<string, CompilationGraphNode>,
 ): CompilationGraphDiagnostic[] {
-  const remaining = new Map(graph.nodes.map((node) => [node.id, 0]));
-  const dependents = new Map<string, string[]>();
-  for (const edge of graph.edges) {
-    if (!remaining.has(edge.from) || !remaining.has(edge.to)) continue;
-    remaining.set(edge.to, (remaining.get(edge.to) ?? 0) + 1);
-    dependents.set(edge.from, [...(dependents.get(edge.from) ?? []), edge.to]);
-  }
-  const ready = [...remaining]
-    .filter(([, count]) => count === 0)
-    .map(([id]) => id)
-    .sort();
-  let visited = 0;
-  while (ready.length > 0) {
-    const id = ready.shift();
-    if (!id) break;
-    visited++;
-    for (const dependent of (dependents.get(id) ?? []).sort()) {
-      const next = (remaining.get(dependent) ?? 0) - 1;
-      remaining.set(dependent, next);
-      if (next === 0) ready.push(dependent);
-    }
-    ready.sort();
-  }
-  if (visited === graph.nodes.length) return [];
-  const cycleIds = [...remaining]
+  const state = cycleState(graph);
+  if (visitAcyclicNodes(state) === graph.nodes.length) return [];
+  const cycleIds = [...state.incomingEdges]
     .filter(([, count]) => count > 0)
     .map(([id]) => id)
     .sort();
@@ -233,6 +243,44 @@ function cycleDiagnostics(
       nodes.get(cycleIds[0] ?? ''),
     ),
   ];
+}
+
+type CycleState = {
+  incomingEdges: Map<string, number>;
+  dependents: Map<string, string[]>;
+};
+
+/** Builds the incoming-edge counts and outgoing adjacency used by cycle checks. */
+function cycleState(graph: CompilationGraph): CycleState {
+  const incomingEdges = new Map(graph.nodes.map((node) => [node.id, 0]));
+  const dependents = new Map<string, string[]>();
+  for (const edge of graph.edges) {
+    if (!incomingEdges.has(edge.from) || !incomingEdges.has(edge.to)) continue;
+    incomingEdges.set(edge.to, (incomingEdges.get(edge.to) ?? 0) + 1);
+    dependents.set(edge.from, [...(dependents.get(edge.from) ?? []), edge.to]);
+  }
+  return { incomingEdges, dependents };
+}
+
+/** Counts nodes removable by Kahn's algorithm from the acyclic graph portion. */
+function visitAcyclicNodes(state: CycleState): number {
+  const ready = [...state.incomingEdges]
+    .filter(([, count]) => count === 0)
+    .map(([id]) => id)
+    .sort();
+  let visited = 0;
+  while (ready.length > 0) {
+    const id = ready.shift();
+    if (!id) break;
+    visited++;
+    for (const dependent of (state.dependents.get(id) ?? []).sort()) {
+      const next = (state.incomingEdges.get(dependent) ?? 0) - 1;
+      state.incomingEdges.set(dependent, next);
+      if (next === 0) ready.push(dependent);
+    }
+    ready.sort();
+  }
+  return visited;
 }
 
 /**

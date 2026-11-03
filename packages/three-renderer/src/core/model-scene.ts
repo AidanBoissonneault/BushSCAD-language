@@ -7,16 +7,11 @@
 
 import * as THREE from 'three';
 import type { MeshData } from '@bushscad/ir';
+import type { RenderingStyle } from '../materials/materials.js';
 import {
-  createOpenSurfaceMaterial,
-  createPreviewMaterial,
-  type RenderingStyle,
-} from '../materials/materials.js';
-import {
-  createCadEdgeOverlay,
+  createPreviewMesh,
   disposeMeshGroup,
   MESH_PALETTE,
-  resolvedMeshColor,
 } from './mesh-rendering.js';
 import { bodyRenderGroupKey } from '../parts/render-group-keys.js';
 import type { PartLayoutOffset } from './plate-layout.js';
@@ -139,7 +134,13 @@ export class ModelScene {
   private addMesh(mesh: MeshData, index: number): void {
     const partGroup = this.ensurePartGroup(mesh.partName);
     const targetGroup = this.targetGroupForMesh(mesh, partGroup);
-    const previewMesh = this.createPreviewMesh(mesh, index);
+    const previewMesh = createPreviewMesh(
+      mesh,
+      index,
+      this.sourceMeshIndices[index] ?? null,
+      this.defaultMeshPalette,
+      this.renderingStyle,
+    );
     targetGroup.add(previewMesh);
     this.previewMeshes.push(previewMesh);
   }
@@ -177,36 +178,6 @@ export class ModelScene {
     partGroup.add(bodyGroup);
     this.bodyGroups.set(key, bodyGroup);
     return bodyGroup;
-  }
-
-  /**
-   * Creates preview mesh with the supplied values.
-   */
-  private createPreviewMesh(mesh: MeshData, index: number): THREE.Mesh {
-    const geometry = new THREE.BufferGeometry();
-    geometry.setAttribute(
-      'position',
-      new THREE.BufferAttribute(mesh.vertices, 3),
-    );
-    geometry.setAttribute('normal', new THREE.BufferAttribute(mesh.normals, 3));
-    geometry.setIndex(new THREE.BufferAttribute(mesh.indices, 1));
-    const color = resolvedMeshColor(mesh, index, this.defaultMeshPalette);
-    const material = mesh.isOpenSurface
-      ? createOpenSurfaceMaterial(mesh.material, color, this.renderingStyle)
-      : createPreviewMaterial(mesh.material, color, this.renderingStyle);
-    const previewMesh = new THREE.Mesh(geometry, material);
-    const sourceMeshIndex = this.sourceMeshIndices[index];
-    if (sourceMeshIndex !== null && sourceMeshIndex !== undefined) {
-      previewMesh.userData.interactionMeshIndex = sourceMeshIndex;
-    }
-    previewMesh.castShadow =
-      this.renderingStyle === 'realism' && !mesh.isOpenSurface;
-    previewMesh.receiveShadow =
-      this.renderingStyle === 'realism' && !mesh.isOpenSurface;
-    if (this.renderingStyle === 'cad' && !mesh.isOpenSurface) {
-      previewMesh.add(createCadEdgeOverlay(geometry));
-    }
-    return previewMesh;
   }
 
   /**

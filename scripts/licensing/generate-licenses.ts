@@ -5,10 +5,11 @@
  * @last-edited October 6, 2026
  */
 
-import { readFile, readdir, writeFile } from 'node:fs/promises';
+import { readFile, writeFile } from 'node:fs/promises';
 import { createRequire } from 'node:module';
 import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { packageLicenseSection } from './package-license-section.ts';
 
 const repositoryRoot = resolve(
   dirname(fileURLToPath(import.meta.url)),
@@ -25,54 +26,6 @@ const publicPackages = [
   'vscode-languageserver-textdocument',
   'vscode-languageserver-types',
 ];
-
-const typeFestNotice = `Copyright (c) Sindre Sorhus <sindresorhus@gmail.com>
-
-Permission is hereby granted, free of charge, to any person obtaining a copy
-of this software and associated documentation files (the "Software"), to deal
-in the Software without restriction, including without limitation the rights
-to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-copies of the Software, and to permit persons to whom the Software is
-furnished to do so, subject to the following conditions:
-
-The above copyright notice and this permission notice shall be included in
-all copies or substantial portions of the Software.
-
-THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
-THE SOFTWARE.`;
-
-/** Reads every upstream license or notice file that belongs to a shipped npm package. */
-async function packageSection(packageRoot: string): Promise<string> {
-  const manifest = JSON.parse(
-    await readFile(join(packageRoot, 'package.json'), 'utf8'),
-  ) as { name: string; version: string; license?: string };
-  const noticeNames = (await readdir(packageRoot))
-    .filter((name) =>
-      /^(licen[sc]e|copying|notice)([-.]|$)|^third.?party.*notice/i.test(name),
-    )
-    .sort();
-  const notices = await Promise.all(
-    noticeNames.map((name) => readFile(join(packageRoot, name), 'utf8')),
-  );
-  if (notices.length === 0 && manifest.name === 'type-fest') {
-    notices.push(typeFestNotice);
-  }
-  if (notices.length === 0) {
-    throw new Error(
-      `No license text found for shipped package ${manifest.name}`,
-    );
-  }
-  return [
-    `================================================================================\n${manifest.name} ${manifest.version}`,
-    `Declared license: ${manifest.license ?? 'not specified'}`,
-    ...notices.map((notice) => notice.trim()),
-  ].join('\n\n');
-}
 
 /** Resolves an installed package from the project that owns its dependency. */
 async function installedPackageRoot(
@@ -100,7 +53,7 @@ async function generateLicenses(): Promise<void> {
   const publicPackageNames = [...new Set(publicPackages)].sort();
   const packageSections = await Promise.all(
     publicPackageNames.map((packageName) =>
-      installedPackageRoot(packageRequire, packageName).then(packageSection),
+      installedPackageRoot(packageRequire, packageName).then(packageLicenseSection),
     ),
   );
   const notoLicense = await readFile(

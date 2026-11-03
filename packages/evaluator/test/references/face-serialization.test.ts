@@ -9,6 +9,7 @@ import type { FaceRef } from '@bushscad/ir';
 import { describe, expect, it } from 'vitest';
 import type { EvalCtx } from '../../src/core/eval-types.js';
 import {
+  rawFaceRefSegmentParts,
   serializeAnchorTarget,
   serializeFaceRef,
   serializeFaceRefSegments,
@@ -42,6 +43,42 @@ function testCtx(): EvalCtx {
 }
 
 describe('face reference serialization', () => {
+  it('serializes raw segments without applying normalization', () => {
+    const ctx = testCtx();
+
+    expect(
+      rawFaceRefSegmentParts(
+        {
+          kind: 'edgeIntersection',
+          edges: ['left', 'right'],
+          memberSpans: [span, span],
+          delimiterSpan: span,
+          index: 3,
+          span,
+        },
+        0,
+        ctx,
+        true,
+      ),
+    ).toEqual(['(left,right)[3]']);
+    expect(
+      rawFaceRefSegmentParts(
+        { kind: 'name', value: 'box', span },
+        0,
+        ctx,
+        false,
+      ),
+    ).toEqual(['box']);
+    expect(
+      rawFaceRefSegmentParts(
+        { kind: 'call', name: 'edge', arg: 'top', span },
+        1,
+        ctx,
+        true,
+      ),
+    ).toEqual(['edge', 'top']);
+  });
+
   it('serializes raw face ref segment forms', () => {
     const ctx = testCtx();
 
@@ -69,6 +106,34 @@ describe('face reference serialization', () => {
         ctx,
       ),
     ).toBe('box_ir.left.right.2.*.edge.front.near.top');
+  });
+
+  it('serializes edge intersections and calls without named arguments', () => {
+    expect(
+      serializeFaceRefSegments(
+        faceRef([
+          {
+            kind: 'edgeIntersection',
+            edges: ['left', 'right'],
+            memberSpans: [span, span],
+            delimiterSpan: span,
+            span,
+          },
+          {
+            kind: 'edgeIntersection',
+            edges: ['front', 'back'],
+            memberSpans: [span, span],
+            delimiterSpan: span,
+            index: 2,
+            span,
+          },
+          { kind: 'name', value: 'box', span },
+          { kind: 'call', name: 'edge', arg: 'top', span },
+        ]).chain,
+        testCtx(),
+        false,
+      ),
+    ).toBe('(left,right).(front,back)[2].box.edge.top');
   });
 
   it('resolves root tags before normal object names', () => {

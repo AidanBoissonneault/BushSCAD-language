@@ -35,28 +35,43 @@ export function collectInteractionDeclarationSpans(
 ): InteractionDeclarationSource[] {
   const declarations: InteractionDeclarationSource[] = [];
   const seen = new Set<object>();
-  /**
-   * Handles visit in the metadata flow.
-   */
-  const visit = (value: unknown): void => {
-    if (!value || typeof value !== 'object' || seen.has(value)) return;
-    seen.add(value);
-    const node = value as Record<string, unknown>;
-    if (
-      typeof node.kind === 'string' &&
-      DECLARATION_KINDS.has(node.kind) &&
-      isSpan(node.span)
-    ) {
-      declarations.push({
-        span: node.span,
-        ...(isSpan(node.nameSpan) ? { linkSpan: node.nameSpan } : {}),
-        ...(typeof node.name === 'string' ? { name: node.name } : {}),
-      });
-    }
-    for (const child of Object.values(node)) visit(child);
-  };
-  visit(program);
+  visitInteractionValue(program, declarations, seen);
   return declarations;
+}
+
+/**
+ * Recursively collects authored declarations while avoiding AST cycles.
+ *
+ * Why:
+ * Resolved programs may share objects, so a visited set keeps provenance
+ * collection stable and prevents repeated traversal.
+ */
+function visitInteractionValue(
+  value: unknown,
+  declarations: InteractionDeclarationSource[],
+  seen: Set<object>,
+): void {
+  if (!value || typeof value !== 'object' || seen.has(value)) return;
+  seen.add(value);
+  const node = value as Record<string, unknown>;
+  appendInteractionDeclaration(node, declarations);
+  for (const child of Object.values(node)) {
+    visitInteractionValue(child, declarations, seen);
+  }
+}
+
+/** Adds declaration metadata when the current AST object is an authored node. */
+function appendInteractionDeclaration(
+  node: Record<string, unknown>,
+  declarations: InteractionDeclarationSource[],
+): void {
+  if (typeof node.kind !== 'string' || !DECLARATION_KINDS.has(node.kind)) return;
+  if (!isSpan(node.span)) return;
+  declarations.push({
+    span: node.span,
+    ...(isSpan(node.nameSpan) ? { linkSpan: node.nameSpan } : {}),
+    ...(typeof node.name === 'string' ? { name: node.name } : {}),
+  });
 }
 
 /** Returns the narrowest authored declaration and causal name for an IR op. */

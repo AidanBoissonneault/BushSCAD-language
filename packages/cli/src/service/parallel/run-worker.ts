@@ -179,9 +179,10 @@ function completeComponentPreparation(
 }
 
 /** Builds one assigned part and reports its complete mergeable result. */
-function runBuild(
+export function runBuild(
   bridge: Awaited<ReturnType<typeof getBridge>>,
   task: Extract<ParallelWorkerRequest, { kind: 'build' }>['task'],
+  sendMessage: (message: ParallelWorkerMessage) => void = send,
 ): void {
   const startedAt = Date.now();
   const cpuStarted = process.cpuUsage();
@@ -197,14 +198,14 @@ function runBuild(
         nativeBooleanPlan: task.nativeBooleanPlan,
         nativeBooleanConcurrencyLimit: task.nativeBooleanConcurrencyLimit,
         onTraceEvent: (event) =>
-          send({ kind: 'trace', taskId: task.taskId, event }),
+          sendMessage({ kind: 'trace', taskId: task.taskId, event }),
       },
     );
     if (!result.ok) {
-      sendTaskError(task.taskId, result.error);
+      sendTaskError(task.taskId, result.error, sendMessage);
       return;
     }
-    send({
+    sendMessage({
       kind: 'result',
       output: {
         taskId: task.taskId,
@@ -221,7 +222,7 @@ function runBuild(
       },
     });
   } catch (error) {
-    sendTaskError(task.taskId, error);
+    sendTaskError(task.taskId, error, sendMessage);
   }
 }
 
@@ -262,9 +263,13 @@ function runExport(
 }
 
 /** Normalizes worker failures into the single coordinator error shape. */
-function sendTaskError(taskId: number, error: unknown): void {
+function sendTaskError(
+  taskId: number,
+  error: unknown,
+  sendMessage: (message: ParallelWorkerMessage) => void = send,
+): void {
   const span = sourceSpanFrom(error);
-  send({
+  sendMessage({
     kind: 'error',
     taskId,
     message: workerErrorMessage(error),

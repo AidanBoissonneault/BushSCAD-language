@@ -7,6 +7,7 @@
 
 import * as THREE from 'three';
 import type { IRPrimitive, SketchPreviewModel } from '@bushscad/ir';
+import { profileStatusText } from './sketch-preview-profile-status.js';
 import {
   compactSketchNumber,
   sketchArcPolyline,
@@ -48,7 +49,10 @@ export function drawProfile(
   drawProfileBounds(content, viewHalf, b, cx, cy);
 
   // Constraint status label
-  const statusText = profileStatusText(preview, primitive);
+  const statusText = profileStatusText(
+    preview.isClosed,
+    primitive.constraintState,
+  );
   const status = labelSprite(statusText, viewHalf * 0.9, viewHalf * 0.13);
   status.position.set(0, b.maxY - cy + viewHalf * 0.18, 0);
   content.add(status);
@@ -165,26 +169,6 @@ function profileSegmentColor(primitive: ProfilePrimitive): number {
   if (status === 'underconstrained') return CONSTRAINT_UNDER_COLOR;
   if (status === 'no-convergence') return CONSTRAINT_ERROR_COLOR;
   return SKETCH_SHAPE_COLOR;
-}
-
-/**
- * Builds the profile data required by the current operation.
- */
-function profileStatusText(
-  preview: SketchPreviewModel,
-  primitive: ProfilePrimitive,
-): string {
-  const base = preview.isClosed ? 'closed profile' : 'open profile';
-  const state = primitive.constraintState;
-  if (!state) return base;
-  if (state.status === 'fully-constrained') {
-    return `${base} · fully constrained`;
-  }
-  if (state.status === 'underconstrained') {
-    return `${base} · under (${state.dof} DOF free)`;
-  }
-  if (state.status === 'no-convergence') return `${base} · constraint error`;
-  return base;
 }
 
 /**

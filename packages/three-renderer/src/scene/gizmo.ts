@@ -44,6 +44,67 @@ function disposeObject(obj: THREE.Object3D): void {
   });
 }
 
+/** Keeps the gizmo drawing buffer aligned with its CSS-sized canvas. */
+export function resizeGizmoRenderer(
+  renderer: Pick<THREE.WebGLRenderer, 'domElement' | 'setPixelRatio' | 'setSize'>,
+): void {
+  const canvas = renderer.domElement;
+  const width = Math.max(1, canvas.clientWidth || 150);
+  const height = Math.max(1, canvas.clientHeight || 150);
+  const dpr = window.devicePixelRatio || 1;
+  if (
+    canvas.width !== Math.floor(width * dpr) ||
+    canvas.height !== Math.floor(height * dpr)
+  ) {
+    renderer.setPixelRatio(dpr);
+    renderer.setSize(width, height, false);
+  }
+}
+
+/** Updates and disposes the orientation gizmo's hover indicator. */
+export function setGizmoHover(
+  hoverGroup: THREE.Group,
+  dir: THREE.Vector3 | null,
+  currentKey: string,
+): string {
+  const key = directionKey(dir);
+  if (key === currentKey) return currentKey;
+
+  for (const child of [...hoverGroup.children]) {
+    hoverGroup.remove(child);
+    disposeObject(child);
+  }
+  if (!dir) return key;
+
+  const snapped = snapPreset(dir);
+  const activeAxes = [snapped.x, snapped.y, snapped.z].filter(
+    (value) => Math.abs(value) > 0.01,
+  ).length;
+  const material = new THREE.MeshBasicMaterial({
+    color: 0x2f80ed,
+    transparent: true,
+    opacity: activeAxes === 1 ? 0.22 : 0.52,
+    depthTest: false,
+  });
+
+  if (activeAxes === 1) {
+    const marker = new THREE.Mesh(new THREE.PlaneGeometry(0.86, 0.86), material);
+    marker.position.copy(snapped.clone().multiplyScalar(0.512));
+    alignPlaneToNormal(marker, snapped);
+    hoverGroup.add(marker);
+  } else {
+    const marker = new THREE.Mesh(
+      new THREE.SphereGeometry(activeAxes === 2 ? 0.12 : 0.15, 16, 16),
+      material,
+    );
+    marker.position.copy(
+      snapped.clone().multiplyScalar(activeAxes === 2 ? 0.61 : 0.64),
+    );
+    hoverGroup.add(marker);
+  }
+  return key;
+}
+
 /**
  * Owns `GizmoRenderer` state and behavior for the scene layer.
  */
@@ -269,17 +330,7 @@ export class GizmoRenderer {
    * Handles resize in the scene flow.
    */
   private resize(): void {
-    const canvas = this.renderer.domElement;
-    const width = Math.max(1, canvas.clientWidth || 150);
-    const height = Math.max(1, canvas.clientHeight || 150);
-    const dpr = window.devicePixelRatio || 1;
-    if (
-      canvas.width !== Math.floor(width * dpr) ||
-      canvas.height !== Math.floor(height * dpr)
-    ) {
-      this.renderer.setPixelRatio(dpr);
-      this.renderer.setSize(width, height, false);
-    }
+    resizeGizmoRenderer(this.renderer);
   }
 
   /**
@@ -326,13 +377,24 @@ export class GizmoRenderer {
    */
   private handlePointerMove(e: PointerEvent): void {
     if (this.drag) {
-      const dx = e.clientX - this.drag.x;
-      const dy = e.clientY - this.drag.y;
-      if (Math.hypot(dx, dy) > 3) this.drag.moved = true;
-      if (this.drag.moved) this.onOrbit(this.dragDirection(dx, dy));
+      this.handleDragPointerMove(e);
       return;
     }
 
+    this.updatePointerHover(e);
+  }
+
+  /** Updates the active orbit when a pointer moves during a captured drag. */
+  private handleDragPointerMove(e: PointerEvent): void {
+    if (!this.drag) return;
+    const dx = e.clientX - this.drag.x;
+    const dy = e.clientY - this.drag.y;
+    if (Math.hypot(dx, dy) > 3) this.drag.moved = true;
+    if (this.drag.moved) this.onOrbit(this.dragDirection(dx, dy));
+  }
+
+  /** Updates cursor and hover state when the pointer is not dragging. */
+  private updatePointerHover(e: PointerEvent): void {
     const pick = this.pick(e);
     this.renderer.domElement.style.cursor = pick ? 'grab' : 'default';
     this.setHover(pick?.dir ?? null);
@@ -384,41 +446,6 @@ export class GizmoRenderer {
    * Sets hover on the owning state.
    */
   private setHover(dir: THREE.Vector3 | null): void {
-    const key = directionKey(dir);
-    if (key === this.hoverKey) return;
-    this.hoverKey = key;
-
-    for (const child of [...this.hoverGroup.children]) {
-      this.hoverGroup.remove(child);
-      disposeObject(child);
-    }
-    if (!dir) return;
-
-    const snapped = snapPreset(dir);
-    const activeAxes = [snapped.x, snapped.y, snapped.z].filter(
-      (v) => Math.abs(v) > 0.01,
-    ).length;
-    const mat = new THREE.MeshBasicMaterial({
-      color: 0x2f80ed,
-      transparent: true,
-      opacity: activeAxes === 1 ? 0.22 : 0.52,
-      depthTest: false,
-    });
-
-    if (activeAxes === 1) {
-      const marker = new THREE.Mesh(new THREE.PlaneGeometry(0.86, 0.86), mat);
-      marker.position.copy(snapped.clone().multiplyScalar(0.512));
-      alignPlaneToNormal(marker, snapped);
-      this.hoverGroup.add(marker);
-    } else {
-      const marker = new THREE.Mesh(
-        new THREE.SphereGeometry(activeAxes === 2 ? 0.12 : 0.15, 16, 16),
-        mat,
-      );
-      marker.position.copy(
-        snapped.clone().multiplyScalar(activeAxes === 2 ? 0.61 : 0.64),
-      );
-      this.hoverGroup.add(marker);
-    }
+    this.hoverKey = setGizmoHover(this.hoverGroup, dir, this.hoverKey);
   }
 }

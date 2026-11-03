@@ -49,24 +49,38 @@ function rawFaceRefParts(
 }
 
 /**
- * Handles raw face ref segment parts in the references flow.
+ * Serializes one raw face-reference segment into its unnormalized parts.
+ *
+ * Why:
+ * Face references need to retain segment-specific syntax until the caller
+ * applies context-aware name mapping and normalization.
  */
-function rawFaceRefSegmentParts(
+export function rawFaceRefSegmentParts(
   seg: FaceRef['chain'][number],
   index: number,
   ctx: EvalCtx,
   mapFirst: boolean,
 ): string[] {
-  if (seg.kind === 'call') return rawCallSegmentParts(seg);
-  if (seg.kind === 'edgeIntersection') {
-    const suffix = seg.index === undefined ? '' : `[${seg.index}]`;
-    return [`(${seg.edges.join(',')})${suffix}`];
+  switch (seg.kind) {
+    case 'call':
+      return rawCallSegmentParts(seg);
+    case 'edgeIntersection': {
+      const suffix = seg.index === undefined ? '' : `[${seg.index}]`;
+      return [`(${seg.edges.join(',')})${suffix}`];
+    }
+    case 'group':
+      return seg.options;
+    case 'index':
+      return [String(seg.value)];
+    case 'wildcard':
+      return ['*'];
+    case 'name':
+      return [
+        index === 0 && mapFirst
+          ? (ctx.names.get(seg.value) ?? seg.value)
+          : seg.value,
+      ];
   }
-  if (seg.kind === 'group') return seg.options;
-  if (seg.kind === 'index') return [String(seg.value)];
-  if (seg.kind === 'wildcard') return ['*'];
-  if (index === 0 && mapFirst) return [ctx.names.get(seg.value) ?? seg.value];
-  return [seg.value];
 }
 
 /**

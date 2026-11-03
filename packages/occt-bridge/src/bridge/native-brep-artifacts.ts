@@ -6,6 +6,7 @@
  */
 
 import type { OC } from './bridge-types.js';
+import { readNativeBrepShape } from './native-brep-read.js';
 
 let nextArtifactFileId = 1;
 
@@ -31,9 +32,11 @@ export function deserializeNativeBrep(oc: OC, data: Uint8Array): OC {
   const builder = new oc.BRep_Builder();
   const progress = new oc.Message_ProgressRange_1();
   try {
-    if (!oc.BRepTools.Read_2(shape, path, builder, progress) || shape.IsNull())
-      throw new Error('BRepTools.Read_2 failed for prepared component.');
-    return shape;
+    return readNativeBrepShape(
+      shape,
+      () => oc.BRepTools.Read_2(shape, path, builder, progress),
+      'BRepTools.Read_2 failed for prepared component.',
+    );
   } catch (error) {
     shape.delete?.();
     throw error;

@@ -127,19 +127,25 @@ function isQualifiedSourceAnchor(
  * Handles serialize face ref segments raw in the objects flow.
  */
 function serializeFaceRefSegmentsRaw(ref: FaceRef): string {
-  return ref.chain
-    .map((segment) =>
-      segment.kind === 'call'
-        ? `${segment.name}.${segment.arg}`
-        : segment.kind === 'edgeIntersection'
-          ? `(${segment.edges.join(',')})${segment.index === undefined ? '' : `[${segment.index}]`}`
-          : segment.kind === 'group'
-            ? segment.options.join('.')
-            : segment.kind === 'index'
-              ? String(segment.value)
-              : segment.kind === 'wildcard'
-                ? '*'
-                : segment.value,
-    )
-    .join('.');
+  return ref.chain.map(serializeFaceRefSegmentRaw).join('.');
+}
+
+/**
+ * Serializes one face-reference segment for component-local anchor lookup.
+ */
+function serializeFaceRefSegmentRaw(segment: FaceRef['chain'][number]): string {
+  switch (segment.kind) {
+    case 'call':
+      return `${segment.name}.${segment.arg}`;
+    case 'edgeIntersection':
+      return `(${segment.edges.join(',')})${segment.index === undefined ? '' : `[${segment.index}]`}`;
+    case 'group':
+      return segment.options.join('.');
+    case 'index':
+      return String(segment.value);
+    case 'wildcard':
+      return '*';
+    case 'name':
+      return segment.value;
+  }
 }

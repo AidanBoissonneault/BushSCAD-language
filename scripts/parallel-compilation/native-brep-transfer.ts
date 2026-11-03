@@ -1,3 +1,5 @@
+import { readNativeBrepShape } from '../../packages/occt-bridge/src/bridge/native-brep-read.js';
+
 /**
  * @author Aidan Boissonneault
  * @file native-brep-transfer.ts
@@ -85,8 +87,11 @@ export function importNativeBrep(
   const builder = new oc.BRep_Builder();
   const progress = new oc.Message_ProgressRange_1();
   try {
-    if (!oc.BRepTools.Read_2(shape, path, builder, progress) || shape.IsNull())
-      throw new Error('BRepTools.Read_2 failed.');
+    readNativeBrepShape(
+      shape,
+      () => oc.BRepTools.Read_2(shape, path, builder, progress),
+      'BRepTools.Read_2 failed.',
+    );
     return summarizeNativeShape(oc, shape);
   } finally {
     removeIfPresent(oc, path);

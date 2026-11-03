@@ -1,10 +1,6 @@
 {
   "$schema": "https://raw.githubusercontent.com/fallow-rs/fallow/main/schema.json",
-  "ignorePatterns": [
-    "**/*.generated.ts",
-    "**/*.d.ts",
-    "**/*.suite.mts"
-  ],
+  "ignorePatterns": ["**/*.generated.ts", "**/*.d.ts", "**/*.suite.mts"],
   "rules": {
     "unused-files": "error",
     "unused-exports": "warn",
@@ -52,9 +48,7 @@
       "packages/three-renderer"
     ]
   },
-  "publicPackages": [
-    "@bushscad/*"
-  ],
+  "publicPackages": ["@bushscad/*"],
   "ignoreDependencies": [
     "three",
     "opencascade.js",
@@ -66,6 +60,24 @@
     "@bushscad/occt-bridge",
     "@bushscad/parser",
     "@bushscad/resolver",
-    "@bushscad/three-renderer",
-  ]
+    "@bushscad/three-renderer"
+  ],
+  "duplicates": {
+    "ignore": [
+      "**/test/**",
+      "**/tests/**",
+      "**/__tests__/**",
+      "**/*.test.ts",
+      "**/*.spec.ts"
+    ]
+  },
+  "health": {
+    "ignore": [
+      "**/test/**",
+      "**/tests/**",
+      "**/__tests__/**",
+      "**/*.test.ts",
+      "**/*.spec.ts"
+    ]
+  }
 }

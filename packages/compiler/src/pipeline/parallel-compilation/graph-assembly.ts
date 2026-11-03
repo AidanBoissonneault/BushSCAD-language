@@ -97,16 +97,8 @@ export class GraphAssembly {
       kind,
       ...(resource ? { resource } : {}),
     });
-    const target = this.nodes.get(to);
-    if (target && !target.dependencies.includes(from))
-      target.dependencies.push(from);
-    if (resource) {
-      const source = this.nodes.get(from);
-      if (source && !source.writes.includes(resource))
-        source.writes.push(resource);
-      if (target && !target.reads.includes(resource))
-        target.reads.push(resource);
-    }
+    this.recordDependency(from, to);
+    if (resource) this.recordResourceAccess(from, to, resource);
   }
 
   /**
@@ -158,6 +150,30 @@ export class GraphAssembly {
     const node = this.nodes.get(nodeId);
     if (!node) throw new Error(`Unknown compilation graph node '${nodeId}'.`);
     return node;
+  }
+
+  /**
+   * Adds the source node to the target's dependencies when both nodes exist.
+   */
+  private recordDependency(from: string, to: string): void {
+    const target = this.nodes.get(to);
+    if (target && !target.dependencies.includes(from))
+      target.dependencies.push(from);
+  }
+
+  /**
+   * Records the write and read implied by an edge's shared resource.
+   */
+  private recordResourceAccess(
+    from: string,
+    to: string,
+    resource: string,
+  ): void {
+    const source = this.nodes.get(from);
+    const target = this.nodes.get(to);
+    if (source && !source.writes.includes(resource))
+      source.writes.push(resource);
+    if (target && !target.reads.includes(resource)) target.reads.push(resource);
   }
 }
 

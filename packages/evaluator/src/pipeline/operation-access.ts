@@ -94,18 +94,46 @@ export function operationAccess(op: IROp): OperationAccess {
  * Handles semantic output names in the pipeline flow.
  */
 function semanticOutputNames(op: IROp): string[] {
+  return (
+    objectOutputNames(op) ??
+    namedOutputNames(op) ??
+    targetOutputNames(op) ??
+    directOutputNames(op) ??
+    []
+  );
+}
+
+/** Resolves outputs stored in an operation's `objName` field. */
+function objectOutputNames(op: IROp): string[] | null {
   const record = op as unknown as Record<string, unknown>;
   if (
     SEMANTIC_OBJECT_OUTPUTS.has(op.kind) &&
     typeof record.objName === 'string'
   )
     return [record.objName];
+  return null;
+}
+
+/** Resolves outputs stored in an operation's ordinary `name` field. */
+function namedOutputNames(op: IROp): string[] | null {
+  const record = op as unknown as Record<string, unknown>;
   if (SEMANTIC_NAME_OUTPUTS.has(op.kind) && typeof record.name === 'string')
     return [record.name];
-  if (op.kind === 'alignShape') return [op.instanceName];
-  if (op.kind === 'fuse') return [...op.targets];
+  return null;
+}
+
+/** Resolves outputs represented by a selected target reference. */
+function targetOutputNames(op: IROp): string[] | null {
+  const record = op as unknown as Record<string, unknown>;
   if (SEMANTIC_TARGET_OUTPUTS.has(op.kind) && typeof record.target === 'string')
     return [rootName(record.target)];
+  return null;
+}
+
+/** Resolves outputs whose operation forms use a distinct field shape. */
+function directOutputNames(op: IROp): string[] | null {
+  if (op.kind === 'alignShape') return [op.instanceName];
+  if (op.kind === 'fuse') return [...op.targets];
   if (
     op.kind === 'patternLinear' ||
     op.kind === 'patternRadial' ||
@@ -113,7 +141,7 @@ function semanticOutputNames(op: IROp): string[] {
     op.kind === 'transform'
   )
     return [op.objName];
-  return [];
+  return null;
 }
 
 /**
@@ -152,6 +180,16 @@ function semanticInputNames(op: IROp): string[] {
  * Handles additional input names in the pipeline flow.
  */
 function additionalInputNames(op: IROp): string[] {
+  return unique([
+    ...directAdditionalInputNames(op),
+    ...assertionAdditionalInputNames(op),
+    ...mirrorPlaneInputNames(op),
+    ...inlineToolInputNames(op),
+  ]);
+}
+
+/** Resolves operation-specific named inputs outside assertion expressions. */
+function directAdditionalInputNames(op: IROp): string[] {
   switch (op.kind) {
     case 'joint':
       return [rootName(op.sideA), rootName(op.sideB)];
@@ -162,25 +200,32 @@ function additionalInputNames(op: IROp): string[] {
       return op.throughTarget ? [rootName(op.throughTarget)] : [];
     case 'fit':
       return [rootName(op.targetName)];
-    case 'assert':
-      return assertInputNames(op.left, op.right);
     case 'alignShape':
       return [rootName(op.name)];
     case 'surface':
       return [rootName(op.boundary)];
-    case 'mirror':
-      return op.across.kind === 'named'
-        ? [rootName(op.across.name)]
-        : op.across.kind === 'faceRef'
-          ? [rootName(op.across.ref)]
-          : [];
-    case 'solid_cut':
-      return op.tool.kind === 'operation'
-        ? [...operationAccess(op.tool.operation).schedulingInputs]
-        : [];
     default:
       return [];
   }
+}
+
+/** Resolves geometry-query names embedded in an assertion operation. */
+function assertionAdditionalInputNames(op: IROp): string[] {
+  return op.kind === 'assert' ? assertInputNames(op.left, op.right) : [];
+}
+
+/** Resolves named references used to define a mirror plane. */
+function mirrorPlaneInputNames(op: IROp): string[] {
+  if (op.kind !== 'mirror') return [];
+  if (op.across.kind === 'named') return [rootName(op.across.name)];
+  if (op.across.kind === 'faceRef') return [rootName(op.across.ref)];
+  return [];
+}
+
+/** Resolves dependencies of an inline operation used as a solid-cut tool. */
+function inlineToolInputNames(op: IROp): string[] {
+  if (op.kind !== 'solid_cut' || op.tool.kind !== 'operation') return [];
+  return [...operationAccess(op.tool.operation).schedulingInputs];
 }
 
 /**
@@ -188,8 +233,7 @@ function additionalInputNames(op: IROp): string[] {
  */
 function assertInputNames(
   ...expressions: readonly (
-    | Extract<IROp, { kind: 'assert' }>['left']
-    | undefined
+    Extract<IROp, { kind: 'assert' }>['left'] | undefined
   )[]
 ): string[] {
   const names: string[] = [];

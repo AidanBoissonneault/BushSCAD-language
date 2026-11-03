@@ -7,6 +7,11 @@
 
 import * as THREE from 'three';
 import type { MeshData } from '@bushscad/ir';
+import {
+  createOpenSurfaceMaterial,
+  createPreviewMaterial,
+  type RenderingStyle,
+} from '../materials/materials.js';
 
 export const MESH_PALETTE = [
   '#2563EB',
@@ -70,4 +75,41 @@ export function createCadEdgeOverlay(
       depthWrite: false,
     }),
   );
+}
+
+/**
+ * Builds a render mesh with source identity, display material, and style policy.
+ *
+ * Why:
+ * Model scene lifecycle code supplies the current style and source mapping,
+ * while mesh construction stays isolated for direct rendering verification.
+ */
+export function createPreviewMesh(
+  mesh: MeshData,
+  index: number,
+  sourceMeshIndex: number | null,
+  defaultMeshPalette: readonly string[],
+  renderingStyle: RenderingStyle,
+): THREE.Mesh {
+  const geometry = new THREE.BufferGeometry();
+  geometry.setAttribute(
+    'position',
+    new THREE.BufferAttribute(mesh.vertices, 3),
+  );
+  geometry.setAttribute('normal', new THREE.BufferAttribute(mesh.normals, 3));
+  geometry.setIndex(new THREE.BufferAttribute(mesh.indices, 1));
+  const color = resolvedMeshColor(mesh, index, defaultMeshPalette);
+  const material = mesh.isOpenSurface
+    ? createOpenSurfaceMaterial(mesh.material, color, renderingStyle)
+    : createPreviewMaterial(mesh.material, color, renderingStyle);
+  const previewMesh = new THREE.Mesh(geometry, material);
+  if (sourceMeshIndex !== null && sourceMeshIndex !== undefined) {
+    previewMesh.userData.interactionMeshIndex = sourceMeshIndex;
+  }
+  previewMesh.castShadow = renderingStyle === 'realism' && !mesh.isOpenSurface;
+  previewMesh.receiveShadow = renderingStyle === 'realism' && !mesh.isOpenSurface;
+  if (renderingStyle === 'cad' && !mesh.isOpenSurface) {
+    previewMesh.add(createCadEdgeOverlay(geometry));
+  }
+  return previewMesh;
 }

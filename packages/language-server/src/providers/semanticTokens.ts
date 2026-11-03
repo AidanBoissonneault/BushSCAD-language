@@ -49,8 +49,13 @@ export function collectSemanticTokens(source: string): SemanticToken[] {
   return tokens;
 }
 
-/** Marks strings and comments so language words inside prose stay uncoloured. */
-function ignoredTokenOffsets(source: string): boolean[] {
+/**
+ * Marks comments and string text while leaving code substitutions available.
+ *
+ * Why: semantic token matching is word-based, so this mask prevents language
+ * keywords in prose from receiving code colors.
+ */
+export function ignoredTokenOffsets(source: string): boolean[] {
   const ignored = new Array<boolean>(source.length).fill(false);
   let index = 0;
   while (index < source.length) {

@@ -130,6 +130,7 @@ import {
 } from './topology/edge-intersection-selection.js';
 import { selectSketchComponentEdges } from './topology/sketch-component-selection.js';
 import { createGroupBuildState } from './bridge/group-build-state.js';
+import { buildFailureResult } from './bridge/build-failure-result.js';
 import { serializeNativeBrep } from './bridge/native-brep-artifacts.js';
 import {
   preparedComponentName,
@@ -585,21 +586,7 @@ export class OcctBridge {
         ...(trace ? { occtTraceEvents: trace.events } : {}),
       };
     } catch (e) {
-      const message = e instanceof Error ? e.message : rawErrorMessage(e);
-      pushTraceEvent(trace, {
-        kind: 'build-error',
-        elapsedMs: Date.now() - startedAt,
-        message,
-        ...(isOcctError(e) ? { span: (e as OcctError).span } : {}),
-      });
-      if (isOcctError(e)) {
-        return {
-          ok: false,
-          error: e as OcctError,
-          ...(trace ? { occtTraceEvents: trace.events } : {}),
-        };
-      }
-      throw e;
+      return buildFailureResult(e, trace, startedAt);
     }
   }
 
@@ -968,82 +955,13 @@ export class OcctBridge {
         )
       : undefined;
 
-    for (const [opIndex, op] of group.ops.entries()) {
-      if (isModifierOp(op)) {
-        state.pendingModifiers.push(op);
-        continue;
-      }
-
-      this.flushModifiersWithTrace(state, group.name, trace);
-      const prepared = preparedComponents?.find(
-        (artifact) =>
-          artifact.partName === group.name &&
-          artifact.name === preparedComponentName(op) &&
-          artifact.operationKind === op.kind,
-      );
-      if (prepared) {
-        restorePreparedComponent(this.oc, state, op, prepared, {
-          addBody: (name, shape, frame, material, span, sourcePlane) =>
-            this.addBody(
-              state,
-              name,
-              shape,
-              frame,
-              material,
-              span,
-              sourcePlane,
-            ),
-          addExtrudedBody: (operation, shape, axis) =>
-            this.addExtrudedBody(state, operation, shape, axis),
-          addBodyFromSketchAxis: (name, sketch, shape, material, span) =>
-            this.addBodyFromSketchAxis(
-              state,
-              name,
-              sketch,
-              shape,
-              material,
-              span,
-            ),
-          revolveBodyFrame: (operation, axis) =>
-            this.revolveBodyFrame(state, operation, axis),
-          revolveAxisVectors: (operation, axis) =>
-            this.revolveAxisVectors(state, operation, axis),
-        });
-        continue;
-      }
-      const before = snapshotBodies(state);
-      const opStartedAt = Date.now();
-      pushOpStart(trace, group.name, op, before);
-      try {
-        if (!nativeBatches?.apply(opIndex, op)) {
-          this.applyGroupOperation(state, op);
-        }
-      } catch (err) {
-        const message = isOcctError(err)
-          ? (err as OcctError).message
-          : describeUnexpectedOcctException(err, op.kind);
-        pushOpError(
-          trace,
-          group.name,
-          op,
-          before,
-          message,
-          isOcctError(err) ? (err as OcctError).span : op.span,
-          Date.now() - opStartedAt,
-        );
-        if (isOcctError(err)) throw err;
-        throw occtError(describeUnexpectedOcctException(err, op.kind), op.span);
-      }
-      pushOpSuccess(
-        trace,
-        group.name,
-        op,
-        before,
-        snapshotBodies(state),
-        Date.now() - opStartedAt,
-      );
-    }
-    this.flushModifiersWithTrace(state, group.name, trace);
+    this.applyGroupOperations(
+      group,
+      state,
+      trace,
+      nativeBatches,
+      preparedComponents,
+    );
 
     const finalized = this.finalizeGroupBuild(
       group,
@@ -1058,6 +976,132 @@ export class OcctBridge {
       interactionSelectionCounts: state.interactionSelectionCounts,
       interactionSelectionValues: state.interactionSelectionValues,
     };
+  }
+
+  /** Applies operations in source order and flushes deferred modifiers. */
+  private applyGroupOperations(
+    group: PartGroup,
+    state: GroupBuildState,
+    trace: OcctBuildTrace | undefined,
+    nativeBatches: NativeBooleanBatchRuntime | undefined,
+    preparedComponents: readonly PreparedComponentArtifact[] | undefined,
+  ): void {
+    for (const [opIndex, op] of group.ops.entries()) {
+      this.applyGroupOperationEntry(
+        group,
+        state,
+        op,
+        opIndex,
+        trace,
+        nativeBatches,
+        preparedComponents,
+      );
+    }
+    this.flushModifiersWithTrace(state, group.name, trace);
+  }
+
+  /** Applies one non-modifier operation, restoring prepared work when available. */
+  private applyGroupOperationEntry(
+    group: PartGroup,
+    state: GroupBuildState,
+    op: PartGroup['ops'][number],
+    opIndex: number,
+    trace: OcctBuildTrace | undefined,
+    nativeBatches: NativeBooleanBatchRuntime | undefined,
+    preparedComponents: readonly PreparedComponentArtifact[] | undefined,
+  ): void {
+    if (isModifierOp(op)) {
+      state.pendingModifiers.push(op);
+      return;
+    }
+
+    this.flushModifiersWithTrace(state, group.name, trace);
+    const prepared = preparedComponents?.find(
+      (artifact) =>
+        artifact.partName === group.name &&
+        artifact.name === preparedComponentName(op) &&
+        artifact.operationKind === op.kind,
+    );
+    if (prepared) {
+      restorePreparedComponent(this.oc, state, op, prepared, {
+        addBody: (name, shape, frame, material, span, sourcePlane) =>
+          this.addBody(
+            state,
+            name,
+            shape,
+            frame,
+            material,
+            span,
+            sourcePlane,
+          ),
+        addExtrudedBody: (operation, shape, axis) =>
+          this.addExtrudedBody(state, operation, shape, axis),
+        addBodyFromSketchAxis: (name, sketch, shape, material, span) =>
+          this.addBodyFromSketchAxis(
+            state,
+            name,
+            sketch,
+            shape,
+            material,
+            span,
+          ),
+        revolveBodyFrame: (operation, axis) =>
+          this.revolveBodyFrame(state, operation, axis),
+        revolveAxisVectors: (operation, axis) =>
+          this.revolveAxisVectors(state, operation, axis),
+      });
+      return;
+    }
+    this.runGroupOperationWithTrace(
+      group,
+      state,
+      op,
+      opIndex,
+      trace,
+      nativeBatches,
+    );
+  }
+
+  /** Runs one regular operation and records its success or failure trace. */
+  private runGroupOperationWithTrace(
+    group: PartGroup,
+    state: GroupBuildState,
+    op: PartGroup['ops'][number],
+    opIndex: number,
+    trace: OcctBuildTrace | undefined,
+    nativeBatches: NativeBooleanBatchRuntime | undefined,
+  ): void {
+    const before = snapshotBodies(state);
+    const opStartedAt = Date.now();
+    pushOpStart(trace, group.name, op, before);
+    try {
+      if (!nativeBatches?.apply(opIndex, op)) {
+        this.applyGroupOperation(state, op);
+      }
+    } catch (err) {
+      const message = isOcctError(err)
+        ? (err as OcctError).message
+        : describeUnexpectedOcctException(err, op.kind);
+      pushOpError(
+        trace,
+        group.name,
+        op,
+        before,
+        message,
+        isOcctError(err) ? (err as OcctError).span : op.span,
+        Date.now() - opStartedAt,
+      );
+      if (isOcctError(err)) throw err;
+      throw occtError(describeUnexpectedOcctException(err, op.kind), op.span);
+    }
+    pushOpSuccess(
+      trace,
+      group.name,
+      op,
+      before,
+      snapshotBodies(state),
+      Date.now() - opStartedAt,
+    );
   }
 
   /**

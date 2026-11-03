@@ -39,45 +39,108 @@ export function matchSolidCutToolBlendSelections(
   toolShape: OC,
 ): EdgeSelection[] | null {
   const toolEdges = getEdges(oc, toolShape);
-  const mapped: EdgeSelection[] = [];
   const mappedEdges = new Set<unknown>();
   let ownershipTransferred = false;
 
   try {
-    for (const selection of selections) {
-      const selectedBox = tryReadEdgeBox(oc, selection.edge);
-      if (!selectedBox) return null;
-
-      const candidates = toolEdges.filter((candidate) =>
-        toolEdgeMatchesSelection(oc, candidate, selection.edge, selectedBox),
-      );
-      if (candidates.length === 0) return null;
-
-      for (const edge of candidates) {
-        const duplicate = mapped.find((existing) =>
-          sameMappedEdge(oc, existing.edge, edge),
-        );
-        if (duplicate) {
-          if (
-            duplicate.value !== selection.value ||
-            duplicate.target !== selection.target
-          ) {
-            return null;
-          }
-          continue;
-        }
-        mapped.push({ ...selection, edge });
-        mappedEdges.add(edge);
-      }
-    }
+    const mapped = mapSelectionsToToolEdges(
+      oc,
+      selections,
+      toolEdges,
+      mappedEdges,
+    );
+    if (!mapped) return null;
 
     ownershipTransferred = true;
     return mapped;
   } finally {
-    for (const edge of toolEdges) {
-      if (!ownershipTransferred || !mappedEdges.has(edge)) {
-        (edge as { delete?: () => void })?.delete?.();
+    releaseUnmappedToolEdges(toolEdges, mappedEdges, ownershipTransferred);
+  }
+}
+
+/**
+ * Maps all selected edges to matching tool edges, returning null on ambiguity.
+ */
+function mapSelectionsToToolEdges(
+  oc: OC,
+  selections: EdgeSelection[],
+  toolEdges: unknown[],
+  mappedEdges: Set<unknown>,
+): EdgeSelection[] | null {
+  const mapped: EdgeSelection[] = [];
+  for (const selection of selections) {
+    const selectedBox = tryReadEdgeBox(oc, selection.edge);
+    if (!selectedBox) return null;
+    const candidates = matchingToolEdges(
+      oc,
+      toolEdges,
+      selection.edge,
+      selectedBox,
+    );
+    if (
+      candidates.length === 0 ||
+      !appendMappedToolEdges(oc, mapped, mappedEdges, selection, candidates)
+    ) {
+      return null;
+    }
+  }
+  return mapped;
+}
+
+/**
+ * Finds tool edges that match one selected edge's topology or geometry.
+ */
+function matchingToolEdges(
+  oc: OC,
+  toolEdges: unknown[],
+  selectedEdge: unknown,
+  selectedBox: EdgeBox,
+): unknown[] {
+  return toolEdges.filter((candidate) =>
+    toolEdgeMatchesSelection(oc, candidate, selectedEdge, selectedBox),
+  );
+}
+
+/**
+ * Adds distinct matching edges and rejects duplicates with conflicting settings.
+ */
+function appendMappedToolEdges(
+  oc: OC,
+  mapped: EdgeSelection[],
+  mappedEdges: Set<unknown>,
+  selection: EdgeSelection,
+  candidates: unknown[],
+): boolean {
+  for (const edge of candidates) {
+    const duplicate = mapped.find((existing) =>
+      sameMappedEdge(oc, existing.edge, edge),
+    );
+    if (duplicate) {
+      if (
+        duplicate.value !== selection.value ||
+        duplicate.target !== selection.target
+      ) {
+        return false;
       }
+      continue;
+    }
+    mapped.push({ ...selection, edge });
+    mappedEdges.add(edge);
+  }
+  return true;
+}
+
+/**
+ * Releases tool-edge handles that were not transferred to the returned mapping.
+ */
+function releaseUnmappedToolEdges(
+  toolEdges: unknown[],
+  mappedEdges: Set<unknown>,
+  ownershipTransferred: boolean,
+): void {
+  for (const edge of toolEdges) {
+    if (!ownershipTransferred || !mappedEdges.has(edge)) {
+      (edge as { delete?: () => void })?.delete?.();
     }
   }
 }

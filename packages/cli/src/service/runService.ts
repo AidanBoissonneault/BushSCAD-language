@@ -52,8 +52,14 @@ export function runService(): void {
 
   const rl = createInterface({ input: process.stdin });
 
-  rl.on('line', (line) => {
-    void (async () => {
+  rl.on('line', (line) => void handleServiceLine(line, pool));
+}
+
+/** Parses, serves, and serializes one newline-delimited service request. */
+export async function handleServiceLine(
+  line: string,
+  pool: PersistentOcctWorkerPool,
+): Promise<void> {
       let request: ServiceRequest;
 
       try {
@@ -108,8 +114,6 @@ export function runService(): void {
 
         process.stdout.write(`${stringifyCliResult(response)}\n`);
       }
-    })();
-  });
 }
 
 /**

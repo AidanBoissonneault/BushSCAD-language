@@ -75,19 +75,16 @@ export class RendererFrameLoop {
    * Handles resize to canvas in the core flow.
    */
   private resizeToCanvas(): void {
-    const { clientWidth: width, clientHeight: height } = this.canvas;
-    if (
-      width <= 0 ||
-      height <= 0 ||
-      (width === this.width && height === this.height)
-    ) {
-      return;
-    }
-    this.width = width;
-    this.height = height;
-    this.callbacks.resize(width, height);
+    const size = resizeCanvasIfNeeded(
+      this.canvas,
+      { width: this.width, height: this.height },
+      this.callbacks.resize,
+    );
+    this.width = size.width;
+    this.height = size.height;
   }
 }
 import type * as THREE from 'three';
 import type { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
 import type { GizmoRenderer } from '../scene/gizmo.js';
+import { resizeCanvasIfNeeded } from './renderer-canvas-sizing.js';

@@ -47,23 +47,33 @@ export function groupOpsToTimelineSteps(
  */
 function collapseLoopSteps(steps: TimelineStep[]): TimelineStep[] {
   const collapsed: TimelineStep[] = [];
-  for (const step of steps) {
-    const previous = collapsed.at(-1);
-    if (
-      previous?.kind === 'feature' &&
-      step.kind === 'feature' &&
-      previous.spanKey === step.spanKey
-    ) {
-      previous.loopCount += 1;
-      previous.opIndices.push(...step.opIndices);
-      previous.lastOpIndex = step.lastOpIndex;
-      for (const object of step.objs)
-        if (!previous.objs.includes(object)) previous.objs.push(object);
-    } else collapsed.push(step);
-  }
+  for (const step of steps) appendCollapsedStep(collapsed, step);
   for (const step of collapsed)
     if (step.loopCount > 1) step.label = `${step.label} ×${step.loopCount}`;
   return collapsed;
+}
+
+/**
+ * Merges a repeated feature step into its adjacent loop group when possible.
+ */
+function appendCollapsedStep(
+  collapsed: TimelineStep[],
+  step: TimelineStep,
+): void {
+  const previous = collapsed.at(-1);
+  if (
+    previous?.kind !== 'feature' ||
+    step.kind !== 'feature' ||
+    previous.spanKey !== step.spanKey
+  ) {
+    collapsed.push(step);
+    return;
+  }
+  previous.loopCount += 1;
+  previous.opIndices.push(...step.opIndices);
+  previous.lastOpIndex = step.lastOpIndex;
+  for (const object of step.objs)
+    if (!previous.objs.includes(object)) previous.objs.push(object);
 }
 
 /**
