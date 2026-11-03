@@ -73,13 +73,15 @@ export const jointHelp: Record<string, LanguageHelpEntry> = {
     ]),
   ),
   range: {
-    summary: 'Sets the inclusive scalar motion range for a joint preview.',
+    summary:
+      'Sets inclusive motion bounds for a joint preview; this property is distinct from the range(...) loop function.',
     signatures: ['range = minimum..maximum;'],
     behavior: [
-      'Use angle units for revolute and ball joints and length units for slider and planar joints.',
+      'The minimum and maximum are inclusive. Use length units for slider and planar joints, and angle units for revolute and ball joints.',
     ],
     examples: [
-      'slider drawer_slide(@drawer.front, @case.front) { range = 0mm..80mm; }',
+      'slider drawer_slide(@drawer.front, @case.front) {\n  range = 0mm..80mm;\n}',
+      'revolute lid_hinge(@lid.right, @case.right) {\n  range = -90deg..90deg;\n}',
     ],
     related: ['slider', 'revolute', 'default'],
   },

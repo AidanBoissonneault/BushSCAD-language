@@ -2830,7 +2830,7 @@ obj hole = cut(circle(4), through, @base.top.center(radius: 10, angle: 45deg));
 
 ##### Sequence in a loop
 
-**Purpose.** Generates an ascending sequence with an inclusive start and an exclusive end.
+**Purpose.** Supplies ascending values to a `for` loop. Each call form chooses a different start or increment; every form stops before `end`.
 
 **Syntax guide.** [Range loops](/docs/language-basics#basic-range-loop).
 
@@ -2842,23 +2842,53 @@ range(start, end)
 range(start, end, step)
 ```
 
+**Call forms**
+
+- `range(end)`: Starts at 0 and increments by 1. For example, `range(4)` yields 0, 1, 2, 3.
+- `range(start, end)`: Starts at `start`, increments by 1, and stops before `end`. For example, `range(2, 5)` yields 2, 3, 4.
+- `range(start, end, step)`: Starts at `start`, increments by the positive `step`, and stops before `end`. For example, `range(2, 8, 2)` yields 2, 4, 6.
+
 **Arguments**
 
 - `start`: First value; defaults to 0.
 - `end`: Exclusive upper bound.
 - `step`: Positive finite increment; defaults to 1. Use ascending bounds.
 
-**Example**
+**Examples**
+
+Count only (`range(end)`):
 
 ```bushscad
-for i in range(2, 8, 2) {
-  sketch hole = circle(2);
+part sample {
+  for i in range(4) {
+    var diameter = 2 + i;
+  }
+}
+```
+
+Start and end (`range(start, end)`):
+
+```bushscad
+part sample {
+  for i in range(2, 5) {
+    var diameter = i;
+  }
+}
+```
+
+Start, end, and step (`range(start, end, step)`):
+
+```bushscad
+part sample {
+  for i in range(2, 8, 2) {
+    var diameter = i;
+  }
 }
 ```
 
 ##### Joint motion limit
 
-**Purpose.** Sets the minimum and maximum movement values for a joint preview.
+**Purpose.** Sets inclusive lower and upper motion bounds for a joint preview. This `range = ...` property is distinct from the `range(...)` loop function above.
 
 **Syntax guide.** [Joint syntax](/docs/parts-and-assemblies#joint-syntax).
 
@@ -2870,11 +2900,27 @@ joint_type name(moving, fixed) {
 }
 ```
 
-**Example**
+**Bounds**
+
+- `minimum`: Inclusive lower motion value.
+- `maximum`: Inclusive upper motion value.
+- Use lengths for slider and planar joints; use angles for revolute and ball joints.
+
+**Examples**
+
+Slider motion uses length values:
 
 ```bushscad
 slider drawer_slide(@drawer.front, @case.front) {
   range = 0mm..80mm;
+}
+```
+
+Revolute motion uses angle values:
+
+```bushscad
+revolute lid_hinge(@lid.right, @case.right) {
+  range = -90deg..90deg;
 }
 ```
 
@@ -3713,14 +3759,21 @@ two distinct names; every item must have exactly two values when destructuring.
 
 #### Basic Range Loop
 
-```
-// range(n) → 0, 1, 2 ... n-1
-// range(start, end) → start ... end-1
-// range(start, end, step)
+Use `range(end)` for a count starting at zero, `range(start, end)` for a
+custom starting value, and `range(start, end, step)` for a custom increment.
+Each loop stops before `end`.
 
+```
 for i in range(4) {
-    sketch hole = circle(3);
-    obj hole = cut(hole, through base, @base.top(x: 10 + (i * 15), y: 20));
+    var count_value = i; // 0, 1, 2, 3
+}
+
+for i in range(2, 5) {
+    var start_value = i; // 2, 3, 4
+}
+
+for i in range(2, 8, 2) {
+    var stepped_value = i; // 2, 4, 6
 }
 ```
 

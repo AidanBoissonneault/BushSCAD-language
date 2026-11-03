@@ -49,7 +49,7 @@ export const controlHelp: Record<string, LanguageHelpEntry> = {
   },
   range: {
     summary:
-      'Produces an ascending sequence with an inclusive start and exclusive end.',
+      'Produces ascending values for a for loop using a count, start and end, or explicit step.',
     signatures: ['range(end)', 'range(start, end)', 'range(start, end, step)'],
     parameters: [
       { name: 'start', description: 'First value; defaults to 0.' },
@@ -61,10 +61,15 @@ export const controlHelp: Record<string, LanguageHelpEntry> = {
       },
     ],
     behavior: [
-      'range(4) yields 0, 1, 2, 3. The current evaluator advances while value < end; descending iteration is not implemented. Do not pass a zero or negative step.',
+      '`range(end)` starts at 0 and uses a step of 1.',
+      '`range(start, end)` starts at start and uses a step of 1.',
+      '`range(start, end, step)` uses the supplied positive finite step.',
+      'All forms stop before end; descending iteration is not implemented.',
     ],
     examples: [
-      'part sample {\n  for i in range(1, 8, 2) {\n    var x = i * 10;\n  }\n}',
+      'part sample {\n  for i in range(4) {\n    var diameter = 2 + i;\n  }\n}',
+      'part sample {\n  for i in range(2, 5) {\n    var diameter = i;\n  }\n}',
+      'part sample {\n  for i in range(2, 8, 2) {\n    var diameter = i;\n  }\n}',
     ],
     related: ['for', 'where'],
   },
