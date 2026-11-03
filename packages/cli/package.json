@@ -1,49 +1,50 @@
 {
-    "name":  "@bushscad/cli",
-    "version":  "0.1.0-beta.1",
-    "type":  "module",
-    "bin":  {
-                "bushscad":  "./dist/index.js"
-            },
-    "exports":  {
-                    ".":  "./dist/index.js",
-                    "./protocol":  "./src/dto/index.ts"
-                },
-    "scripts":  {
-                    "build":  "node scripts/build.mjs",
-                    "typecheck":  "tsc --noEmit \u0026\u0026 tsc --noEmit -p tsconfig.test.json",
-                    "test":  "vitest run",
-                    "prepack":  "npm run build"
-                },
-    "dependencies":  {
-                         "@bushscad/compiler":  "^0.1.0-beta.1",
-                         "@bushscad/ir":  "^0.1.0-beta.1",
-                         "opencascade.js":  "\u003e=2.0.0-0"
-                     },
-    "devDependencies":  {
-                            "esbuild":  "^0.28.0",
-                            "typescript":  "^5.4.0",
-                            "vitest":  "^4.1.5"
-                        },
-    "license":  "Apache-2.0",
-    "description":  "The command-line compiler and service interface for BushSCAD. The published package includes the bundled runtime and fonts; OpenCascade is installed as a package dependency.",
-    "homepage":  "https://bushscad.byaidan.com/",
-    "repository":  {
-                       "type":  "git",
-                       "url":  "https://github.com/AidanBoissonneault/BushSCAD-Language.git",
-                       "directory":  "packages/cli"
-                   },
-    "bugs":  {
-                 "url":  "https://github.com/AidanBoissonneault/BushSCAD-Language/issues"
-             },
-    "publishConfig":  {
-                          "access":  "public",
-                          "registry":  "https://registry.npmjs.org/"
-                      },
-    "files":  [
-                  "dist/**",
-                  "src/dto/**",
-                  "LICENSE",
-                  "README.md"
-              ]
+    "name": "@bushscad/cli",
+    "version": "0.3.1",
+    "type": "module",
+    "bin": {
+        "bushscad": "./dist/index.js"
+    },
+    "exports": {
+        ".": "./dist/index.js",
+        "./protocol": "./src/dto/index.ts"
+    },
+    "scripts": {
+        "build": "node scripts/build.mjs",
+        "typecheck": "tsc --noEmit && tsc --noEmit -p tsconfig.test.json",
+        "test": "vitest run",
+        "prepack": "npm run build"
+    },
+    "dependencies": {
+        "@bushscad/compiler": "^0.3.0",
+        "@bushscad/ir": "^0.3.0",
+        "opencascade.js": ">=2.0.0-0"
+    },
+    "devDependencies": {
+        "esbuild": "^0.28.0",
+        "typescript": "^5.4.0",
+        "vitest": "^4.1.5"
+    },
+    "license": "Apache-2.0",
+    "description": "The command-line compiler and service interface for BushSCAD. The published package includes the bundled runtime and fonts; OpenCascade is installed as a package dependency.",
+    "homepage": "https://bushscad.byaidan.com/",
+    "repository": {
+        "type": "git",
+        "url": "git+https://github.com/AidanBoissonneault/BushSCAD-Language.git",
+        "directory": "packages/cli"
+    },
+    "bugs": {
+        "url": "https://github.com/AidanBoissonneault/BushSCAD-Language/issues"
+    },
+    "publishConfig": {
+        "access": "public",
+        "registry": "https://registry.npmjs.org/"
+    },
+    "files": [
+        "dist/**",
+        "src/dto/**",
+        "src/service/parallel/worker-protocol.ts",
+        "LICENSE",
+        "README.md"
+    ]
 }

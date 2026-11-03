@@ -1,6 +1,6 @@
 # BushSCAD Language Reference
 
-**Version 0.12 - October 2026**
+**Version 0.3.0 - November 2026**
 
 This reference describes BushSCAD syntax and what each language feature does.
 

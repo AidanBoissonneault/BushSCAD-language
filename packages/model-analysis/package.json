@@ -1,6 +1,6 @@
 {
     "name":  "@bushscad/model-analysis",
-    "version":  "0.1.0-beta.1",
+    "version":  "0.3.0",
     "type":  "module",
     "bin":  {
                 "bushscad-analyze-model":  "./dist/cli.js"
@@ -14,8 +14,8 @@
                     "test":  "vitest run"
                 },
     "dependencies":  {
-                         "@bushscad/compiler":  "^0.1.0-beta.1",
-                         "@bushscad/ir":  "^0.1.0-beta.1"
+                         "@bushscad/compiler":  "^0.3.0",
+                         "@bushscad/ir":  "^0.3.0"
                      },
     "devDependencies":  {
                             "esbuild":  "^0.28.0",
@@ -28,7 +28,7 @@
     "homepage":  "https://bushscad.byaidan.com/",
     "repository":  {
                        "type":  "git",
-                       "url":  "https://github.com/AidanBoissonneault/BushSCAD-Language.git",
+                       "url":  "git+https://github.com/AidanBoissonneault/BushSCAD-Language.git",
                        "directory":  "packages/model-analysis"
                    },
     "bugs":  {

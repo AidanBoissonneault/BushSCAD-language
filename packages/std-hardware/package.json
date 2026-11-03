@@ -1,6 +1,6 @@
 {
     "name":  "@bushscad/std-hardware",
-    "version":  "0.1.0-beta.1",
+    "version":  "0.3.0",
     "type":  "module",
     "exports":  {
                     ".":  "./src/index.ts"
@@ -10,7 +10,7 @@
     "homepage":  "https://bushscad.byaidan.com/",
     "repository":  {
                        "type":  "git",
-                       "url":  "https://github.com/AidanBoissonneault/BushSCAD-Language.git",
+                       "url":  "git+https://github.com/AidanBoissonneault/BushSCAD-Language.git",
                        "directory":  "packages/std-hardware"
                    },
     "bugs":  {

@@ -1,6 +1,6 @@
 {
     "name":  "@bushscad/three-renderer",
-    "version":  "0.1.0-beta.1",
+    "version":  "0.3.0",
     "type":  "module",
     "exports":  {
                     ".":  "./src/index.ts",
@@ -11,7 +11,7 @@
                     "test":  "vitest run --passWithNoTests"
                 },
     "dependencies":  {
-                         "@bushscad/ir":  "^0.1.0-beta.1"
+                         "@bushscad/ir":  "^0.3.0"
                      },
     "peerDependencies":  {
                              "three":  "^0.165.0"
@@ -27,7 +27,7 @@
     "homepage":  "https://bushscad.byaidan.com/",
     "repository":  {
                        "type":  "git",
-                       "url":  "https://github.com/AidanBoissonneault/BushSCAD-Language.git",
+                       "url":  "git+https://github.com/AidanBoissonneault/BushSCAD-Language.git",
                        "directory":  "packages/three-renderer"
                    },
     "bugs":  {

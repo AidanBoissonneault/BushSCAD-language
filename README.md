@@ -11,6 +11,24 @@ private projects and consume the public packages from npm.
 - [Canonical language reference](BushSCAD_Language_Reference_v0.10.md)
 - [Compiler pipeline](PIPELINE.md)
 
+The current language compatibility version and public `@bushscad/*` package
+version is `0.3.0`. The VS Code extension has its own independent version.
+
+## Use the language packages
+
+Install the package for the API an application needs. For example, compiler
+integrations can add `@bushscad/compiler`, while applications that need the
+command-line interface can add `@bushscad/cli`:
+
+```sh
+npm install @bushscad/compiler
+```
+
+Compiler, parser, renderer, and language-server APIs are published as
+TypeScript source for TypeScript-aware bundlers such as esbuild and Vite. The
+CLI package includes a bundled JavaScript entrypoint and can run directly in
+Node.js.
+
 ## Project layout
 
 - `packages/` contains the parser, resolver, evaluator, compiler, CLI, renderer,
@@ -38,5 +56,5 @@ Update the canonical reference first, then refresh its generated public
 package assets with `npm run docs:publish`.
 
 The package manifests define the public `@bushscad/*` npm packages and their
-publishing configuration. Publish those packages only after setting their
-initial versions and confirming control of the `@bushscad` npm scope.
+publishing configuration. Publish packages dependency-first so every internal
+semver dependency is already available at the registry.
