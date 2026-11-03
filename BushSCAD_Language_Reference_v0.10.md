@@ -6,7 +6,7 @@ This reference describes BushSCAD syntax and what each language feature does.
 
 ## Table of Contents
 
-- [Function Reference](#function-reference)
+- [Keyword Reference](#keyword-reference)
 - [Language Basics](#language-basics)
 - [Sketch Profiles](#sketch-profiles)
 - [Solid Primitives](#solid-primitives)
@@ -18,9 +18,621 @@ This reference describes BushSCAD syntax and what each language feature does.
 - [Import and Export](#import-and-export)
 - [Examples](#examples)
 
-## Function Reference
+## Keyword Reference
 
-Functions and language forms are grouped by use. Each entry states its purpose, lists its syntax and arguments, and provides a usage example.
+Language keywords and built-in forms are grouped by where they are used. Each entry defines the term, links to the relevant syntax guide, and gives an example for each distinct use. When one word has more than one meaning, the uses are documented separately.
+
+### Declarations and control flow
+
+#### `base_unit`
+
+**Purpose.** Sets the default length unit used for bare numeric values in the file.
+
+**Syntax guide.** [Units and global settings](/docs/language-basics#units-global-settings).
+
+**Syntax**
+
+```bushscad
+base_unit = mm;
+```
+
+**Usage**
+
+```bushscad
+base_unit = in;
+obj plate = cube([3, 2, 0.25]);
+```
+
+#### `workplane`
+
+**Purpose.** Selects the initial sketch plane when a sketch has no explicit placement.
+
+**Syntax guide.** [Units and global settings](/docs/language-basics#units-global-settings).
+
+**Syntax**
+
+```bushscad
+workplane = XY | XZ | YZ;
+```
+
+**Usage**
+
+```bushscad
+workplane = XZ;
+sketch profile = rect(30, 12);
+obj body = extrude(profile, 5);
+```
+
+#### `var`
+
+**Purpose.** Declares a value in the current lexical scope.
+
+**Syntax guide.** [Variables and scope](/docs/language-basics#variables).
+
+**Syntax**
+
+```bushscad
+var name = expression;
+```
+
+**Usage**
+
+```bushscad
+var width = 48;
+sketch profile = rect(width, 24);
+```
+
+#### `env`
+
+**Purpose.** Declares a build-time value supplied from the environment, with an optional fallback.
+
+**Syntax guide.** [Environment variables](/docs/language-basics#environment-variables).
+
+**Syntax**
+
+```bushscad
+env name fallback value;
+```
+
+**Usage**
+
+```bushscad
+env hole_count = 4;
+for index in range(hole_count) {
+  sketch hole = circle(2);
+}
+```
+
+#### `fallback`
+
+**Purpose.** Supplies the value used by an `env` declaration when no build-time value is set.
+
+**Syntax guide.** [Environment variable declarations](/docs/language-basics#declaration-syntax).
+
+**Syntax**
+
+```bushscad
+env name fallback value;
+```
+
+**Usage**
+
+```bushscad
+env thickness fallback 3;
+obj panel = cube([40, 30, thickness]);
+```
+
+#### `for`
+
+**Purpose.** Starts a loop that repeats its body for values from an iterable. The `in` keyword separates the loop variable from that iterable.
+
+**Syntax guide.** [Loops and control flow](/docs/language-basics#for-loops-control-flow).
+
+**Syntax**
+
+```bushscad
+for name in iterable { statements }
+```
+
+**Usage**
+
+```bushscad
+for index in range(3) {
+  sketch hole = circle(2);
+}
+```
+
+#### `where`
+
+**Purpose.** Filters loop values before the loop body runs.
+
+**Syntax guide.** [The `where` filter](/docs/language-basics#where-filter).
+
+**Syntax**
+
+```bushscad
+for name in iterable where condition { statements }
+```
+
+**Usage**
+
+```bushscad
+for index in range(6) where index % 2 == 0 {
+  sketch hole = circle(2);
+}
+```
+
+#### `in`
+
+**Purpose.** Introduces the iterable used by a `for` loop.
+
+**Syntax guide.** [Loops and control flow](/docs/language-basics#for-loops-control-flow).
+
+**Syntax**
+
+```bushscad
+for name in iterable { statements }
+```
+
+**Usage**
+
+```bushscad
+for size in [2, 3, 4] {
+  sketch hole = circle(size);
+}
+```
+
+#### `if`
+
+**Purpose.** Runs a block only when its condition is true.
+
+**Syntax guide.** [Conditional branches](/docs/language-basics#conditional-if-else).
+
+**Syntax**
+
+```bushscad
+if condition { statements } else { statements }
+```
+
+**Usage**
+
+```bushscad
+if wall >= 2 {
+  obj panel = extrude(profile, wall);
+} else {
+  assert(false, warning: 'Wall is below the design target');
+}
+```
+
+#### `else`
+
+**Purpose.** Runs the fallback block when the preceding `if` condition is false.
+
+**Syntax guide.** [Conditional branches](/docs/language-basics#conditional-if-else).
+
+**Syntax**
+
+```bushscad
+if condition { statements } else { fallbackStatements }
+```
+
+**Usage**
+
+```bushscad
+if wall >= 2 {
+  obj panel = extrude(profile, wall);
+} else {
+  assert(false, warning: 'Wall is below the design target');
+}
+```
+
+#### `part`
+
+**Purpose.** Groups geometry as an independently selectable and movable assembly part.
+
+**Syntax guide.** [Parts and assemblies](/docs/parts-and-assemblies#ref-parts).
+
+**Syntax**
+
+```bushscad
+part name { statements }
+```
+
+**Usage**
+
+```bushscad
+part base {
+  obj body = cube([40, 30, 5]);
+}
+```
+
+#### `sketch`
+
+**Purpose.** Declares a named two-dimensional profile for later features.
+
+**Syntax guide.** [Sketch declarations](/docs/sketch-profiles#sketch).
+
+**Syntax**
+
+```bushscad
+sketch name = profileExpression;
+```
+
+**Usage**
+
+```bushscad
+sketch outline = rect(40, 20);
+obj body = extrude(outline, 6);
+```
+
+#### `obj`
+
+**Purpose.** Gives a geometry result a name so later features can reference it.
+
+**Syntax guide.** [Named geometry objects](/docs/solid-creation#named-geometry-objects-obj).
+
+**Syntax**
+
+```bushscad
+obj name = geometryExpression;
+```
+
+**Usage**
+
+```bushscad
+obj body = cube([40, 30, 8]);
+obj cap = cube([40, 30, 3], @body.top);
+```
+
+#### `return`
+
+**Purpose.** Ends a function body and emits its named geometry results.
+
+**Syntax guide.** [Function declarations and return values](/docs/language-basics#global-function).
+
+**Syntax**
+
+```bushscad
+return { obj name = geometryExpression, }
+```
+
+**Usage**
+
+```bushscad
+fn plate(width) {
+  sketch profile = rect(width, 20);
+  return { obj body = extrude(profile, 3), }
+}
+```
+
+#### `as`
+
+**Purpose.** Gives a name to an imported item, a placed instance, or a primitive within a composed sketch.
+
+##### Import aliases
+
+**Syntax guide.** [Import aliases](/docs/import-and-export#import-forms).
+
+**Syntax**
+
+```bushscad
+import { original as imported_name } from './module.bscd';
+```
+
+**Example**
+
+```bushscad
+import { bracket as mount } from './hardware.bscd';
+place(mount);
+```
+
+##### Placed-instance aliases
+
+**Syntax guide.** [Placed object aliases](/docs/references-and-placement#place-as-aliasing).
+
+**Syntax**
+
+```bushscad
+place(component) as instance_name;
+```
+
+**Example**
+
+```bushscad
+place(peg, @base.top.center) as mounted_peg;
+```
+
+##### Sketch-component aliases
+
+**Syntax guide.** [Sketch component aliases](/docs/sketch-profiles#sketch-component-aliases).
+
+**Syntax**
+
+```bushscad
+rect(60, 20) as profile_piece;
+```
+
+**Example**
+
+```bushscad
+sketch panel = rect(60, 20) as horizontal + rect(20, 60) as vertical;
+```
+
+#### `import`
+
+**Purpose.** Loads an external model or language module into the current file.
+
+##### Source modules
+
+**Syntax guide.** [Source import forms](/docs/import-and-export#import-forms).
+
+**Syntax**
+
+```bushscad
+import { bracket as mount } from './module.bscd';
+import './module.bscd';
+```
+
+**Example**
+
+```bushscad
+import { bracket } from './hardware.bscd';
+place(bracket);
+```
+
+##### External geometry
+
+**Syntax guide.** [Imported shapes](/docs/import-and-export#import-forms).
+
+**Syntax**
+
+```bushscad
+import shape base = './part.step';
+```
+
+**Example**
+
+```bushscad
+import shape base = './part.step';
+sketch profile = rect(12, 8);
+obj copy = extrude(profile, 2, @base.top);
+```
+
+#### `export`
+
+**Purpose.** Exposes a declaration for import by other BushSCAD source files. File output uses a separate `export` command in drawing and flat-pattern contexts.
+
+##### Source declarations
+
+**Syntax guide.** [Source exports](/docs/import-and-export#import-export).
+
+**Syntax**
+
+```bushscad
+export var name = expression;
+export fn name(parameters) { statements }
+export part name { statements }
+```
+
+**Example**
+
+```bushscad
+export part bracket {
+  obj body = cube([30, 20, 4]);
+}
+```
+
+##### Drawing output
+
+**Syntax guide.** [Drawing export syntax](/docs/import-and-export#drawing-and-dxf-export).
+
+**Syntax**
+
+```bushscad
+drawing name { export dxf 'path'; }
+```
+
+**Example**
+
+```bushscad
+drawing plate_view {
+  view base.top scale: 1;
+  export dxf './exports/plate.dxf';
+}
+```
+
+##### Sheet flat-pattern output
+
+**Syntax guide.** [Flat-pattern export](/docs/solid-editing#sheet-metal-features).
+
+**Syntax**
+
+```bushscad
+export flat_pattern dxf 'path';
+```
+
+**Example**
+
+```bushscad
+sheet bracket thickness: 2 bend_radius: 1 k_factor: 0.44 {
+  sketch blank = rect(80, 40);
+  obj panel = sheet_base(blank);
+  flange panel.edge(front) length: 15 angle: 90deg;
+  export flat_pattern dxf './exports/bracket-flat.dxf';
+}
+```
+
+### Reuse and metadata
+
+#### `ref`
+
+**Purpose.** Declares reusable geometry that stays hidden until another feature uses or places it.
+
+**Syntax guide.** [Reusable reference parts](/docs/parts-and-assemblies#ref-parts).
+
+**Syntax**
+
+```bushscad
+ref name { statements }
+ref name = geometryExpression;
+```
+
+**Usage**
+
+```bushscad
+ref mounting_boss {
+  sketch profile = circle(3);
+  obj body = extrude(profile, 4);
+}
+place(mounting_boss, @base.top.center);
+```
+
+#### `use`
+
+**Purpose.** Selects a bundled hardware library or a manufacturing tolerance profile.
+
+##### Hardware library
+
+**Syntax guide.** [Importing the standard hardware library](/docs/solid-editing#importing-the-standard-hardware-library).
+
+```bushscad
+use std.hardware.metric;
+```
+
+**Usage**
+
+```bushscad
+use std.hardware.metric;
+obj hole = hole(M3.clearance, through base);
+```
+
+##### Manufacturing profile
+
+**Syntax guide.** [Importing process profiles](/docs/validation-and-fits#importing-process-profiles).
+
+```bushscad
+use std.printing.fdm;
+```
+
+**Usage**
+
+```bushscad
+use std.printing.fdm;
+fit(clearance, bolt, through, bore);
+```
+
+#### `this`
+
+**Purpose.** Refers to the face or plane currently used to place a sketch or component.
+
+##### Sketch properties
+
+**Syntax guide.** [The `this.` context in sketches](/docs/references-and-placement#the-this-context).
+
+```bushscad
+this.width
+this.height
+this.center
+```
+
+**Usage**
+
+```bushscad
+sketch inset = rect(this.width - 10, this.height - 10);
+```
+
+##### Component placement
+
+**Syntax guide.** [The `this.` context in components](/docs/references-and-placement#this-in-components).
+
+```bushscad
+part name { statements using this.width and this.height }
+```
+
+**Usage**
+
+```bushscad
+part cover {
+  sketch panel = rect(this.width - 4, this.height - 4);
+  obj body = extrude(panel, 2);
+}
+```
+
+#### `fit`
+
+**Purpose.** Declares a manufacturing fit relationship between named parts or features.
+
+**Syntax guide.** [Fit declarations](/docs/validation-and-fits#fit-declarations).
+
+```bushscad
+fit(kind, name, relation, target, tolerance: value);
+```
+
+**Usage**
+
+```bushscad
+fit(clearance, bolt, through, bore);
+assert(fit_ok(bolt, bore), warning: 'Check clearance');
+```
+
+#### `drawing`
+
+**Purpose.** Defines a named technical drawing with an orthographic view and dimensions.
+
+**Syntax guide.** [Drawing and DXF export](/docs/import-and-export#drawing-and-dxf-export).
+
+```bushscad
+drawing name { view reference scale: value; }
+```
+
+**Usage**
+
+```bushscad
+drawing plate_view {
+  view base.top scale: 1;
+  export dxf './exports/plate.dxf';
+}
+```
+
+#### `color`
+
+**Purpose.** Sets the display color of a part or object.
+
+**Syntax guide.** [Parts and assemblies](/docs/parts-and-assemblies#assembly-placing-components).
+
+```bushscad
+part.color = colorValue;
+object.color = colorValue;
+```
+
+**Usage**
+
+```bushscad
+part housing {
+  part.color = #2563EB;
+  obj body = cube([40, 30, 10]);
+}
+```
+
+#### `material`
+
+**Purpose.** Assigns a material name to a part or object for presentation and metadata.
+
+**Syntax guide.** [Parts and assemblies](/docs/parts-and-assemblies#assembly-placing-components).
+
+```bushscad
+part.material = materialName;
+object.material = materialName;
+```
+
+**Usage**
+
+```bushscad
+part housing {
+  part.material = 'PLA';
+  obj body = cube([40, 30, 10]);
+}
+```
 
 ### Sketch profiles
 
@@ -42,6 +654,8 @@ rect(width, height, bottom: identifier, left: identifier) plant bottom
 - `radius / r / cornerRadius`: Optional corner radius; omitting it creates sharp corners.
 - `bottom, right, top, left`: Optional side names supplied as bare identifiers. Effective names must be unique.
 - `origin`: center by default; corner anchors from the top-left of evaluated 2D bounds. A final bare corner is also accepted.
+
+**Syntax guide.** [Sketch profiles](/docs/sketch-profiles#primitives).
 
 **Usage**
 
@@ -72,6 +686,8 @@ circle(diameter, @body.top)
 - `diameter / d`: Full circle diameter, not radius; use 2 * radius when sizing from a radius.
 - `origin`: center by default; corner or a final bare corner anchors at the top-left of the bounds.
 
+**Syntax guide.** [Sketch profiles](/docs/sketch-profiles#primitives).
+
 **Usage**
 
 ```bushscad
@@ -97,6 +713,8 @@ ellipse(width, height) at (x, y)
 **Arguments**
 
 - `width, height`: Positive full dimensions, not semiaxis radii. Arguments are positional.
+
+**Syntax guide.** [Sketch profiles](/docs/sketch-profiles#primitives).
 
 **Usage**
 
@@ -126,6 +744,8 @@ roundrect(width: value, height: value, r: value, origin: corner)
 - `radius / r`: Corner radius. A radius equal to half the smaller dimension produces a stadium-like slot.
 - `origin`: center by default; corner anchors from top-left bounds.
 
+**Syntax guide.** [Sketch profiles](/docs/sketch-profiles#primitives).
+
 **Usage**
 
 ```bushscad
@@ -154,6 +774,8 @@ triangle(base: value, height: value, origin: corner)
 - `height`: Perpendicular distance from the base to the apex.
 - `origin`: center by default; corner or a final bare corner changes the anchor to top-left bounds.
 
+**Syntax guide.** [Sketch profiles](/docs/sketch-profiles#primitives).
+
 **Usage**
 
 ```bushscad
@@ -181,6 +803,8 @@ polygon(points, origin: corner)
 - `points`: An inline list of (x, y) tuples defining the boundary vertices.
 - `origin`: center by default; corner anchors from the top-left of evaluated bounds.
 
+**Syntax guide.** [Sketch profiles](/docs/sketch-profiles#primitives).
+
 **Usage**
 
 ```bushscad
@@ -207,6 +831,8 @@ word(text, size: 8, font: 'sans', align: center)
 - `size`: Text size as a length; defaults to 8.
 - `font`: CSS-style font-family string. VS Code resolves workspace fonts before installed system fonts; sans, serif, and mono use bundled outlines.
 - `align`: center (default), left, or right relative to the sketch anchor.
+
+**Syntax guide.** [Word sketches](/docs/sketch-profiles#word-sketch).
 
 **Usage**
 
@@ -237,6 +863,8 @@ rect inset(top: value, sides: value, bottom: value)
 - `x, y`: Separate horizontal and vertical margins.
 - `top, sides, bottom`: Explicit upper, left/right, and lower margins.
 
+**Syntax guide.** [Inset profiles](/docs/sketch-profiles#inset-shorthand).
+
 **Usage**
 
 ```bushscad
@@ -252,7 +880,11 @@ obj raised = extrude(lid, 2);
 
 #### `offset`
 
-**Purpose.** Expands or shrinks a supported 2D primitive by a signed distance.
+**Purpose.** `offset` changes a profile's size, shifts a construction plane, or moves an anchor-local edge position. These are separate forms with different effects.
+
+##### 2D profile offset
+
+**Syntax guide.** [Offset profiles](/docs/sketch-profiles#primitives).
 
 **Syntax**
 
@@ -265,11 +897,45 @@ offset(sketch, distance)
 - `sketch`: An exact rect, circle, or roundrect primitive (or reference evaluating to one).
 - `distance`: Positive expands; negative shrinks. Full width/height or diameter changes by twice this value.
 
-**Usage**
+**Example**
 
 ```bushscad
 sketch padded = offset(rect(40, 20), 2);
 sketch larger_hole = offset(circle(8), 1);
+```
+
+##### Construction-plane offset
+
+**Syntax guide.** [Named and inline planes](/docs/references-and-placement#planes).
+
+**Syntax**
+
+```bushscad
+plane above = offset(distance, @reference);
+@plane(reference, offset: distance)
+```
+
+**Example**
+
+```bushscad
+obj base = cube([40, 30, 5]);
+plane above = offset(10, @base.top);
+```
+
+##### Anchor-local offset
+
+**Syntax guide.** [Offset from a face anchor](/docs/references-and-placement#offset-from-a-face-anchor).
+
+**Syntax**
+
+```bushscad
+@target.edge(offset: distance)
+```
+
+**Example**
+
+```bushscad
+obj slot = cut(slot_profile, 3, @base.top.front_edge(offset: 8));
 ```
 
 **Related:** [`inset`](#inset), [`rect`](#rect), [`circle`](#circle), [`roundrect`](#roundrect), [`plane`](#plane).
@@ -282,19 +948,21 @@ sketch larger_hole = offset(circle(8), 1);
 
 **Purpose.** Builds a 2D sketch from connected segments, compact primitives, and constraints. A separate path declaration can define a 3D sweep guide.
 
+##### 2D sketch path
+
+**Syntax guide.** [Path sketches](/docs/sketch-profiles#path-sketch).
+
 **Syntax**
 
 ```bushscad
 sketch name = path(entries...)
-path name = polyline([(x, y, z), ...]);
-path name = spline([(x, y, z), ...]);
 ```
 
 **Arguments**
 
 - `entries`: 2D line/arc/close segments, compact rect/circle/ellipse members, construction geometry, origin metadata, body expressions, constraints, and reference dimensions.
 
-**Usage**
+**Example**
 
 ```bushscad
 sketch plate = path(
@@ -307,6 +975,25 @@ obj body = extrude(plate, 4);
 **Related:** [`line`](#line), [`arc`](#arc), [`close`](#close), [`loop`](#loop), [`constraint`](#constraint), [`polyline`](#polyline), [`spline`](#spline).
 
 **More:** [sketch profiles](/docs/sketch-profiles#path-sketch).
+
+##### 3D sweep-guide path
+
+**Syntax guide.** [Path declarations for sweeps](/docs/solid-creation#path-declarations).
+
+**Syntax**
+
+```bushscad
+path name = polyline([(x, y, z), ...]);
+path name = spline([(x, y, z), ...]);
+```
+
+**Example**
+
+```bushscad
+path rail = polyline([(0, 0, 0), (0, 0, 30)]);
+sketch section = circle(3);
+obj rod = sweep(section along rail);
+```
 
 #### `line`
 
@@ -324,6 +1011,8 @@ line([(x, y), ...])
 **Arguments**
 
 - `points`: Two displayed endpoints must both use tuple syntax. A single endpoint may be a tuple or two scalar coordinates.
+
+**Syntax guide.** [Path sketches](/docs/sketch-profiles#path-sketch).
 
 **Usage**
 
@@ -356,6 +1045,8 @@ name = arc((x1, y1), (x2, y2), radius, cw|ccw)
 - `radius`: Circle radius as a length, supplied positionally or with radius:.
 - `cw / ccw`: Required travel direction. The aliases clockwise and counterclockwise are accepted.
 
+**Syntax guide.** [Arc and curve primitives](/docs/sketch-profiles#arc-curve-primitives-in-sketches).
+
 **Usage**
 
 ```bushscad
@@ -384,6 +1075,8 @@ name = close()
 
 This form takes no arguments.
 
+**Syntax guide.** [Path sketches](/docs/sketch-profiles#path-sketch).
+
 **Usage**
 
 ```bushscad
@@ -410,6 +1103,8 @@ body = outer_feature - hole_feature
 **Arguments**
 
 - `feature`: A named line, arc, or closing edge in the same path.
+
+**Syntax guide.** [Path sketches](/docs/sketch-profiles#path-sketch).
 
 **Usage**
 
@@ -443,6 +1138,8 @@ ignore(loop(feature))
 
 - `body_expression`: Feature names, loop(feature), earlier body aliases, or expressions using +, -, and &.
 
+**Syntax guide.** [Path sketches](/docs/sketch-profiles#path-sketch).
+
 **Usage**
 
 ```bushscad
@@ -474,6 +1171,8 @@ body = closed((x, y))
 
 - `x, y`: Coordinates of a point inside the body to select.
 
+**Syntax guide.** [Path sketches](/docs/sketch-profiles#path-sketch).
+
 **Usage**
 
 ```bushscad
@@ -504,6 +1203,8 @@ ignoreClosed((x, y))
 **Arguments**
 
 - `x, y`: A point inside the region to exclude.
+
+**Syntax guide.** [Path sketches](/docs/sketch-profiles#path-sketch).
 
 **Usage**
 
@@ -538,6 +1239,8 @@ construction(sketch_profile)
 - `name`: Optional label for a named path segment.
 - `geometry`: A line, arc, ellipse, or sketch profile to mark as construction geometry. Line and ellipse forms use their usual point or dimension arguments.
 
+**Syntax guide.** [Path sketches](/docs/sketch-profiles#path-sketch).
+
 **Usage**
 
 ```bushscad
@@ -565,6 +1268,8 @@ path name = polyline([(x, y, z), ...]);
 
 - `points`: An inline list of three-coordinate tuples; use at least two points.
 
+**Syntax guide.** [3D path declarations](/docs/solid-creation#path-declarations).
+
 **Usage**
 
 ```bushscad
@@ -579,20 +1284,41 @@ obj rod = sweep(section along rail);
 
 #### `spline`
 
-**Purpose.** Creates a smooth path through points for a sweep; in sketch context it can also define a 2D curve.
+**Purpose.** Creates either a 3D sweep guide or a limited 2D sketch curve. The two forms use different point dimensions.
+
+##### 3D sweep guide
+
+**Syntax guide.** [3D path declarations](/docs/solid-creation#path-declarations).
 
 **Syntax**
 
 ```bushscad
 path name = spline([(x, y, z), ...]);
+```
+
+**Example**
+
+```bushscad
+path handle = spline([(0, 0, 0), (20, 0, 10), (40, 0, 0)]);
+sketch section = circle(3);
+obj rod = sweep(section along handle);
+```
+
+##### 2D sketch curve
+
+**Syntax guide.** [Sketch curves](/docs/sketch-profiles#arc-curve-primitives-in-sketches).
+
+**Syntax**
+
+```bushscad
 sketch name = spline([(x1, y1), (x2, y2)]);
 ```
 
 **Arguments**
 
-- `points`: 3D tuples in a path declaration; 2D tuples in a sketch expression.
+- `points`: A 3D point list for paths; the supported sketch form accepts exactly two 2D points and makes a straight line profile.
 
-**Usage**
+**Example**
 
 ```bushscad
 sketch guide_line = spline([(0, 0), (20, 0)]);
@@ -621,6 +1347,8 @@ constraint(point, distance, reference, value, axis: x|y, at: (label_x, label_y))
 - `reference`: A second segment/point, origin, origin.x_axis, or origin.y_axis where the relation permits it.
 - `value`: Driving numeric expression for a dimensional constraint; supports variables, units, arithmetic, and named sketch measurements.
 - `label`: Optional display position as a final tuple; the older at: (x, y) form is also accepted.
+
+**Syntax guide.** [Sketch constraints](/docs/sketch-profiles#sketch-constraint-system).
 
 **Usage**
 
@@ -662,6 +1390,8 @@ dimension first.face to second.face;
 - `axis`: Optional x or y component for point distances; omit it for aligned Euclidean distance.
 - `at (x, y)`: Required reference-dimension label position in sketch coordinates.
 
+**Syntax guide.** [Sketch dimensions](/docs/sketch-profiles#sketch-constraint-system).
+
 **Usage**
 
 ```bushscad
@@ -695,6 +1425,8 @@ obj name = cube(width: x, depth: y, height: z);
 - `size`: Positive scalar for equal sides, or [X width, Y depth, Z height].
 - `width, depth, height`: Named dimension alternatives when size is omitted; each defaults to 1.
 
+**Syntax guide.** [3D primitives](/docs/solid-primitives#direct-3d-primitives).
+
 **Usage**
 
 ```bushscad
@@ -720,6 +1452,8 @@ obj name = cuboid(width: x, depth: y, height: z);
 
 - `size`: Positive scalar for equal sides, or [X width, Y depth, Z height].
 - `width, depth, height`: Named dimension alternatives when size is omitted; each defaults to 1.
+
+**Syntax guide.** [3D primitives](/docs/solid-primitives#direct-3d-primitives).
 
 **Usage**
 
@@ -748,6 +1482,8 @@ obj name = sphere(d: diameter);
 - `d / diameter`: Positive diameter, converted to radius; takes precedence over r/radius.
 - `segments`: Meridian profile subdivisions, rounded to an integer with a minimum of 3; default 48.
 
+**Syntax guide.** [3D primitives](/docs/solid-primitives#direct-3d-primitives).
+
 **Usage**
 
 ```bushscad
@@ -772,6 +1508,8 @@ obj name = ellipsoid(radius: [rx, ry, rz], segments: count);
 
 - `radius`: Three positive half-extents, not full diameters; default [1, 1, 1].
 - `segments`: Meridian subdivision count; default 48.
+
+**Syntax guide.** [3D primitives](/docs/solid-primitives#direct-3d-primitives).
 
 **Usage**
 
@@ -798,6 +1536,8 @@ obj name = geodesicSphere(r: radius, segments: count);
 - `r / radius`: Positive radius; defaults to 1. Use the named form.
 - `d / diameter`: Positive diameter, converted to radius; takes precedence over r/radius.
 - `segments`: Meridian profile subdivisions, rounded to an integer with a minimum of 3; default 48.
+
+**Syntax guide.** [3D primitives](/docs/solid-primitives#direct-3d-primitives).
 
 **Usage**
 
@@ -826,6 +1566,8 @@ obj name = cylinder(height, r1: bottomRadius, r2: topRadius);
 - `height / h`: Positive axial length; first positional argument, default 1.
 - `r / radius / d / diameter`: Circular section size; radius is the second positional argument, default 1.
 - `r1, r2 / d1, d2`: Optional bottom and top radius/diameter overrides for taper.
+
+**Syntax guide.** [3D primitives](/docs/solid-primitives#direct-3d-primitives).
 
 **Usage**
 
@@ -856,6 +1598,8 @@ obj name = cylinderElliptic(height: h, startRadius: [rx, ry], endRadius: [rx, ry
 - `startRadius / endRadius`: Override the bottom/top pair; every component must be positive.
 - `segments`: Polygon subdivision count; geometry uses at least 12 sections.
 
+**Syntax guide.** [3D primitives](/docs/solid-primitives#direct-3d-primitives).
+
 **Usage**
 
 ```bushscad
@@ -881,6 +1625,8 @@ obj name = cone(height: h, d: diameter);
 
 - `height / h`: Positive height along local Z; default 1.
 - `r / radius / d / diameter`: Base section size; radius is the second positional argument, default 1.
+
+**Syntax guide.** [3D primitives](/docs/solid-primitives#direct-3d-primitives).
 
 **Usage**
 
@@ -909,6 +1655,8 @@ obj name = frustum(height: h, r1: bottom, r2: top);
 - `r1 / radiusBottom`: Positive bottom radius; default 1. d1/diameterBottom supplies a diameter.
 - `r2 / radiusTop`: Non-negative top radius; default 0.5. Zero produces a cone. d2/diameterTop supplies a diameter.
 
+**Syntax guide.** [3D primitives](/docs/solid-primitives#direct-3d-primitives).
+
 **Usage**
 
 ```bushscad
@@ -936,6 +1684,8 @@ obj name = roundedCuboid(size: [width, depth, height], r: radius, segments: coun
 - `r / radius`: Footprint corner radius; defaults to 0 and clamps to half the smaller footprint dimension.
 - `segments`: Controls polygon samples around footprint corners; default 48.
 
+**Syntax guide.** [3D primitives](/docs/solid-primitives#direct-3d-primitives).
+
 **Usage**
 
 ```bushscad
@@ -960,6 +1710,8 @@ obj name = roundedCylinder(height: h, r: radius, roundingRadius: amount);
 
 - `height / r`: Positive axial height and circular radius, as for cylinder.
 - `roundingRadius`: Non-negative rounding amount, default 0; currently retained in IR but unused by the geometry builder.
+
+**Syntax guide.** [3D primitives](/docs/solid-primitives#direct-3d-primitives).
 
 **Usage**
 
@@ -987,6 +1739,8 @@ obj name = torus(majorRadius: ringRadius, minorRadius: tubeRadius, minorSegments
 - `minorRadius`: Positive tube radius; default 2. Outer diameter is 2 * (majorRadius + minorRadius).
 - `minorSegments`: Tube profile subdivisions; minimum 8, default 16.
 
+**Syntax guide.** [3D primitives](/docs/solid-primitives#direct-3d-primitives).
+
 **Usage**
 
 ```bushscad
@@ -1011,6 +1765,8 @@ obj name = polyhedron(points: [[x, y, z], ...], faces: [[i, j, k], ...]);
 
 - `points`: List of [X, Y, Z] vertex coordinates.
 - `faces`: Each face is an ordered loop of at least three vertex indices; triangles is an alias.
+
+**Syntax guide.** [3D primitives](/docs/solid-primitives#direct-3d-primitives).
 
 **Usage**
 
@@ -1043,6 +1799,8 @@ obj name = extrude(profile, depth: value, @placement);
 - `symmetric`: Splits the total depth equally across both sides of the starting plane.
 - `@placement`: Optional face/point placement and offsets; defaults to the sketch starting plane.
 
+**Syntax guide.** [Extrude syntax](/docs/solid-creation#extrude).
+
 **Usage**
 
 ```bushscad
@@ -1071,6 +1829,8 @@ obj name = revolve(profile, angle around axis, radius: offset);
 - `angle`: Sweep angle in degrees; 360deg makes a complete turn.
 - `axis`: x, y, z, or a spatial reference that resolves to one axis.
 - `radius`: Offsets the profile from the axis before revolving, useful for rings. Expressions may use variables but not this.
+
+**Syntax guide.** [Revolve syntax](/docs/solid-creation#revolve).
 
 **Usage**
 
@@ -1104,6 +1864,8 @@ obj name = radial_extrude(profile, from: start, to: end, along: path);
 - `start, direction, radius`: Initial angle (default 0), ccw/cw direction (default ccw), and profile radial offset (default 0).
 - `twist, taper, sections`: Section twist and taper angles; optional section count, default auto.
 
+**Syntax guide.** [Radial extrudes](/docs/solid-creation#radial-extrudes-and-cuts).
+
 **Usage**
 
 ```bushscad
@@ -1131,6 +1893,8 @@ obj name = loft(first, second, ..., height: distance, guide: openSketch in XZ);
 - `profiles`: Ordered named or inline closed sections; at least two are needed to form the transition.
 - `height`: Required separation along the loft direction.
 - `guide`: Optional open sketch profile guiding the transition; in XY/XZ/YZ can set its guide workplane.
+
+**Syntax guide.** [Loft syntax](/docs/solid-creation#loft).
 
 **Usage**
 
@@ -1160,6 +1924,8 @@ obj name = sweep(profile along path, orientation: default|fixed|binormal);
 - `profile`: Closed sketch section.
 - `path`: 3D path declared with polyline or spline, or an inline path input. The arc(from: ...) form is not implemented.
 - `orientation`: Frame mode: default, fixed, or binormal. Use the named orientation: argument.
+
+**Syntax guide.** [Sweep and path syntax](/docs/solid-creation#sweep-and-path-modeling).
 
 **Usage**
 
@@ -1191,6 +1957,8 @@ wrap(points, intent?, rounded: radius, tension: value, tolerance: distance)
 - `tension`: Controls automatic smooth-mode blend radius; higher values create broader blends.
 - `tolerance`: Removes duplicate or near-duplicate neighboring points before building the outline.
 
+**Syntax guide.** [Cylindrical sketch wrapping](/docs/sketch-profiles#wrap-to-surface-for-cylindrical-sketches).
+
 **Usage**
 
 ```bushscad
@@ -1218,6 +1986,8 @@ surface name = fill(@object.face.perimeter);
 **Arguments**
 
 - `boundary`: A closed sketch, single face, outer perimeter, or classified closed edge loops.
+
+**Syntax guide.** [Surface operations](/docs/solid-editing#surface-operations).
 
 **Usage**
 
@@ -1247,6 +2017,8 @@ surface name = offset_surface(fill(boundary), distance);
 - `source`: Named surface or an inline fill/offset_surface operation.
 - `distance`: Signed length; positive follows the source normal, negative goes the opposite way.
 
+**Syntax guide.** [Surface operations](/docs/solid-editing#surface-operations).
+
 **Usage**
 
 ```bushscad
@@ -1274,6 +2046,8 @@ obj name = thicken(fill(boundary), thickness);
 
 - `surface`: Named surface or inline fill/offset_surface operation.
 - `thickness`: Signed extrusion length along the surface normal.
+
+**Syntax guide.** [Surface operations](/docs/solid-editing#surface-operations).
 
 **Usage**
 
@@ -1307,6 +2081,8 @@ obj name = cut(tool, @placement);
 - `depth / through`: Blind depth in length units, or complete penetration of the named/inferred target.
 - `@placement`: Determines cut position and direction. For solid tools it is required and identifies the target through its owning face.
 
+**Syntax guide.** [Cut syntax](/docs/solid-editing#cut).
+
 **Usage**
 
 ```bushscad
@@ -1332,6 +2108,8 @@ fuse(first, second, ...);
 **Arguments**
 
 - `first, second, ...`: Two or more named solid objects to combine.
+
+**Syntax guide.** [Fuse syntax](/docs/solid-editing#explicit-fuse).
 
 **Usage**
 
@@ -1366,6 +2144,8 @@ obj name = radial_cut(profile, from: start, to: end, along: path);
 - `start, direction, radius`: Initial angle (default 0), ccw/cw direction (default ccw), and profile radial offset (default 0).
 - `twist, taper, sections`: Section twist and taper angles; optional section count, default auto.
 
+**Syntax guide.** [Radial cuts](/docs/solid-creation#radial-extrudes-and-cuts).
+
 **Usage**
 
 ```bushscad
@@ -1394,6 +2174,8 @@ sketch name = fillet(profile, radius);
 - `@target`: An object, face, edge, perimeter, or repeatable selector; bare @body infers @body.edges.
 - `radius`: Rounding radius in length units; it must fit the adjacent geometry.
 
+**Syntax guide.** [Edge details](/docs/solid-editing#edge-and-face-details).
+
 **Usage**
 
 ```bushscad
@@ -1419,6 +2201,8 @@ chamfer(@target, offset);
 
 - `@target`: Object, face, edge, perimeter, or selector collection; bare @body infers @body.edges.
 - `offset`: Chamfer distance along adjacent faces, in length units.
+
+**Syntax guide.** [Edge details](/docs/solid-editing#edge-and-face-details).
 
 **Usage**
 
@@ -1451,6 +2235,8 @@ shell: object thickness open: [face, face];
 - `thickness`: Wall thickness in length units. Positive thickness offsets inward from the original outside faces.
 - `open`: Optional face name or list to remove, such as top or [top, front].
 
+**Syntax guide.** [Shell syntax](/docs/solid-editing#edge-and-face-details).
+
 **Usage**
 
 ```bushscad
@@ -1478,6 +2264,8 @@ draft: object.face angle;
 
 - `object.face`: Face-only selector, such as base.front or base.sides; points and edges are not valid targets.
 - `angle`: Draft angle in degrees; use deg to make the unit explicit.
+
+**Syntax guide.** [Draft syntax](/docs/solid-editing#edge-and-face-details).
 
 **Usage**
 
@@ -1511,6 +2299,8 @@ thread(target, type, d, pitch, length: extent, direction: regular);
 - `direction`: regular, clockwise, or counter_clockwise; handedness: and hand: are aliases.
 - `angle`: Optional angle in degrees, also accepted as degrees:.
 
+**Syntax guide.** [Thread syntax](/docs/solid-editing#edge-and-face-details).
+
 **Usage**
 
 ```bushscad
@@ -1543,6 +2333,8 @@ obj name = hole(M3.counterbore, depth: distance, @placement);
 - `depth / through`: Blind depth in length units or penetration through the named/inferred target.
 - `@placement`: Face placement identifying the target body; may be supplied by an active placement context.
 
+**Syntax guide.** [Hole syntax](/docs/solid-editing#hole-system-and-hardware-library).
+
 **Usage**
 
 ```bushscad
@@ -1570,6 +2362,8 @@ obj name = heatset_insert(M3, @placement);
 - `size`: Metric preset size such as M3 or M2.5.
 - `depth`: Optional pocket depth in length units; omitted depth uses the preset default.
 - `@placement`: Target face placement; otherwise an active placement context is required.
+
+**Syntax guide.** [Heat-set insert pockets](/docs/solid-editing#hole-system-and-hardware-library).
 
 **Usage**
 
@@ -1601,6 +2395,8 @@ sheet name thickness: value bend_radius: value k_factor: value { ... }
 - `k_factor`: Neutral-axis thickness fraction used in bend allowance; default 0.44.
 - `material`: Optional quoted material-catalog name.
 
+**Syntax guide.** [Sheet-metal features](/docs/solid-editing#sheet-metal-features).
+
 **Usage**
 
 ```bushscad
@@ -1629,6 +2425,8 @@ obj panel = sheet_base(sketchName);
 **Arguments**
 
 - `sketchName`: Named sketch defined inside the sheet block.
+
+**Syntax guide.** [Sheet-metal features](/docs/solid-editing#sheet-metal-features).
 
 **Usage**
 
@@ -1661,6 +2459,8 @@ flange panel.edge(front) length: distance angle: degrees radius: distance direct
 - `radius`: Positive bend radius; defaults to the sheet bend_radius.
 - `direction`: up or down; defaults to up.
 
+**Syntax guide.** [Flange syntax](/docs/solid-editing#sheet-metal-features).
+
 **Usage**
 
 ```bushscad
@@ -1690,6 +2490,8 @@ export flat_pattern dxf './exports/name.dxf';
 
 - `dxf`: The supported flat-pattern export format.
 - `path`: Quoted output path recorded by the sheet export declaration.
+
+**Syntax guide.** [Flat-pattern export](/docs/solid-editing#sheet-metal-features).
 
 **Usage**
 
@@ -1726,6 +2528,8 @@ place(component, @target, @source_anchor) rotate(angle);
 - `target`: Destination face, point, or named plane. Omit it to place at world origin.
 - `source_anchor`: Optional named anchor on the placed component.
 
+**Syntax guide.** [Component placement](/docs/parts-and-assemblies#basic-placement).
+
 **Usage**
 
 ```bushscad
@@ -1740,13 +2544,32 @@ place(peg, @base.top.center);
 
 #### `rotate`
 
-**Purpose.** Rotates an object or a placed component around an axis.
+**Purpose.** `rotate` is a placement modifier, a standalone object operation, and a nested operation used by `transform`.
+
+##### Placement-time rotation
+
+**Syntax guide.** [Placement-time rotate](/docs/references-and-placement#placement-time-rotate).
 
 **Syntax**
 
 ```bushscad
 place(component, @target) rotate(angle);
 place(component) rotate(x: angle, y: angle, z: angle);
+```
+
+**Example**
+
+```bushscad
+place(bracket, @base.top.center) rotate(90deg);
+```
+
+##### Standalone rotation
+
+**Syntax guide.** [Standalone rotate](/docs/references-and-placement#standalone-post-placement-rotate).
+
+**Syntax**
+
+```bushscad
 rotate target angle around axis;
 ```
 
@@ -1755,11 +2578,27 @@ rotate target angle around axis;
 - `angle`: Degrees; the single-angle placement form uses the placement plane normal.
 - `axis`: x, y, z, or a face-derived axis/anchor for standalone rotation.
 
-**Usage**
+**Example**
 
 ```bushscad
 obj block = cube([20, 10, 4]);
 rotate block 30deg around z;
+```
+
+##### Rotation inside a transform
+
+**Syntax guide.** [Transform operations](/docs/references-and-placement#transform).
+
+**Syntax**
+
+```bushscad
+transform(target, rotate(angle: degrees, around: axis));
+```
+
+**Example**
+
+```bushscad
+transform(block, rotate(angle: 45deg, around: z));
 ```
 
 **Related:** [`place`](#place), [`transform`](#transform).
@@ -1769,6 +2608,10 @@ rotate block 30deg around z;
 #### `pattern`
 
 **Purpose.** Creates repeated copies in a linear grid or circular arrangement.
+
+##### Geometry patterns
+
+**Syntax guide.** [Patterns and transforms](/docs/references-and-placement#patterns-and-transforms).
 
 **Syntax**
 
@@ -1786,11 +2629,29 @@ pattern(target, radial, count, around: object.face.center);
 - `spacing`: Linear displacement between instances; use a scalar for X or (dx, dy) for a grid.
 - `around`: Required axis reference for radial mode; instances span a full 360-degree turn.
 
-**Usage**
+**Example**
 
 ```bushscad
 obj peg = cylinder(8, d: 4);
 pattern(peg, linear, x: 3, y: 2, spacing: (12, 12));
+```
+
+##### Hardware-hole patterns
+
+**Syntax guide.** [Pattern with holes](/docs/solid-editing#pattern-with-holes).
+
+**Syntax**
+
+```bushscad
+pattern(holeObject, linear, count, spacing);
+```
+
+**Example**
+
+```bushscad
+use std.hardware.metric;
+obj mount = hole(M3.clearance, through base, @base.top(x: 10, y: 10));
+pattern(mount, linear, 4, 20);
 ```
 
 **Related:** [`radial`](#radial), [`mirror`](#mirror).
@@ -1813,6 +2674,8 @@ mirror(target, plane(center));
 
 - `target`: Existing object to copy.
 - `across`: X/Y/Z world-normal plane, face reference, or plane(center). World X reflects across the YZ plane through the origin.
+
+**Syntax guide.** [Patterns and transforms](/docs/references-and-placement#patterns-and-transforms).
 
 **Usage**
 
@@ -1846,6 +2709,8 @@ transform(target, scale(factor));
 - `rotate`: Angle in degrees and required world/reference axis.
 - `scale`: Dimensionless uniform scale factor applied to the geometry.
 
+**Syntax guide.** [Patterns and transforms](/docs/references-and-placement#patterns-and-transforms).
+
 **Usage**
 
 ```bushscad
@@ -1860,12 +2725,35 @@ transform(block, rotate(angle: 45deg, around: z));
 
 #### `plane`
 
-**Purpose.** Defines a named construction plane offset from a face or existing plane.
+**Purpose.** `plane` declares a reusable construction plane and also builds inline plane references for placements or mirror operations.
+
+##### Named construction plane
+
+**Syntax guide.** [Named plane declaration](/docs/references-and-placement#named-plane-declaration).
 
 **Syntax**
 
 ```bushscad
 plane name = offset(distance, @reference);
+```
+
+**Example**
+
+```bushscad
+part tiers {
+  obj base = cube([40, 30, 5]);
+  plane above = offset(10, @base.top);
+  obj lid = extrude(rect(40, 30), 3, @above);
+}
+```
+
+##### Inline plane reference
+
+**Syntax guide.** [Inline anonymous planes](/docs/references-and-placement#inline-anonymous-planes).
+
+**Syntax**
+
+```bushscad
 @plane(reference, offset: distance)
 ```
 
@@ -1874,14 +2762,28 @@ plane name = offset(distance, @reference);
 - `distance`: Signed length measured from the reference plane.
 - `reference`: A face or an existing named plane.
 
-**Usage**
+**Example**
 
 ```bushscad
-part tiers {
-  obj base = cube([40, 30, 5]);
-  plane above = offset(10, @base.top);
-  obj lid = extrude(rect(40, 30), 3, @above);
-}
+obj base = cube([40, 30, 5]);
+obj lid = extrude(rect(40, 30), 3, @plane(base.top, offset: 10));
+```
+
+##### Plane in a mirror operation
+
+**Syntax guide.** [Mirror planes](/docs/references-and-placement#mirror).
+
+**Syntax**
+
+```bushscad
+mirror(target, plane(center));
+```
+
+**Example**
+
+```bushscad
+obj block = cube([20, 10, 4]);
+mirror(block, plane(center));
 ```
 
 **Related:** [`offset`](#offset), [`pos`](#pos).
@@ -1907,6 +2809,8 @@ part tiers {
 - `x, y`: Signed local length offsets. A rectangular top/bottom face starts at back_left; x points right and y points front.
 - `radius, angle`: Polar offset from the chosen origin; angle is in degrees.
 
+**Syntax guide.** [Positional placement](/docs/references-and-placement#positional-placement).
+
 **Usage**
 
 ```bushscad
@@ -1922,7 +2826,13 @@ obj hole = cut(circle(4), through, @base.top.center(radius: 10, angle: 45deg));
 
 #### `range`
 
-**Purpose.** Generates an ascending sequence with an inclusive start and exclusive end; joints can also declare a motion range.
+**Purpose.** `range` has two distinct uses: the `range(...)` function generates loop values, while the `range = ...` joint property limits motion.
+
+##### Sequence in a loop
+
+**Purpose.** Generates an ascending sequence with an inclusive start and an exclusive end.
+
+**Syntax guide.** [Range loops](/docs/language-basics#basic-range-loop).
 
 **Syntax**
 
@@ -1930,7 +2840,6 @@ obj hole = cut(circle(4), through, @base.top.center(radius: 10, angle: 45deg));
 range(end)
 range(start, end)
 range(start, end, step)
-range = minimum..maximum;
 ```
 
 **Arguments**
@@ -1939,13 +2848,35 @@ range = minimum..maximum;
 - `end`: Exclusive upper bound.
 - `step`: Positive finite increment; defaults to 1. Use ascending bounds.
 
-**Usage**
+**Example**
 
 ```bushscad
-slider drawer_slide(@drawer.front, @case.front) { range = 0mm..80mm; }
+for i in range(2, 8, 2) {
+  sketch hole = circle(2);
+}
 ```
 
-**More:** [language basics](/docs/language-basics#basic-range-loop).
+##### Joint motion limit
+
+**Purpose.** Sets the minimum and maximum movement values for a joint preview.
+
+**Syntax guide.** [Joint syntax](/docs/parts-and-assemblies#joint-syntax).
+
+**Syntax**
+
+```bushscad
+joint_type name(moving, fixed) {
+  range = minimum..maximum;
+}
+```
+
+**Example**
+
+```bushscad
+slider drawer_slide(@drawer.front, @case.front) {
+  range = 0mm..80mm;
+}
+```
 
 #### `grid`
 
@@ -1962,6 +2893,8 @@ grid(cols: n, rows: m, spacingX: dx, spacingY: dy)
 
 - `cols, rows`: Column and row counts, rounded by the evaluator.
 - `spacing`: Shared length spacing; axis-specific spacing overrides it.
+
+**Syntax guide.** [Grid loops](/docs/language-basics#grid-loop).
 
 **Usage**
 
@@ -1995,6 +2928,8 @@ radial(count: n, start: angle, sweep: angle)
 - `start`: First angle in degrees; defaults to 0.
 - `sweep`: Total span in degrees; defaults to 360.
 
+**Syntax guide.** [Radial loops](/docs/language-basics#radial-loop).
+
 **Usage**
 
 ```bushscad
@@ -2022,6 +2957,8 @@ for (index, value) in enumerate(items) { statements }
 **Arguments**
 
 - `items`: List expression to iterate in source order.
+
+**Syntax guide.** [Enumerate loops](/docs/language-basics#enumerate).
 
 **Usage**
 
@@ -2058,6 +2995,8 @@ assert(condition, severity: error, message: 'message');
 - `severity`: Defaults to error; warning reports a problem while allowing the build to succeed.
 - `message`: Optional explanation shown with the source span.
 
+**Syntax guide.** [Design assertions](/docs/validation-and-fits#design-validation-assert).
+
 **Usage**
 
 ```bushscad
@@ -2071,7 +3010,29 @@ assert(wall >= 1.6, warning: 'Wall is below the design target');
 
 #### `distance`
 
-**Purpose.** Measures separation between built shapes or defines a sketch point distance.
+**Purpose.** `distance` measures separation between built shapes or constrains the distance between sketch points.
+
+##### Geometry measurement
+
+**Syntax guide.** [Geometry query functions](/docs/validation-and-fits#geometry-query-functions).
+
+**Syntax**
+
+```bushscad
+distance(first, second)
+```
+
+**Example**
+
+```bushscad
+obj body = cube([20, 10, 8]);
+obj lid = cube([20, 10, 4], @plane(body.top, offset: 1));
+assert(distance(body, lid) >= 0.8);
+```
+
+##### Sketch-point dimension
+
+**Syntax guide.** [Dimensional sketch constraints](/docs/sketch-profiles#dimensional-constraints).
 
 **Syntax**
 
@@ -2079,7 +3040,6 @@ assert(wall >= 1.6, warning: 'Wall is below the design target');
 constraint(point, distance, reference, value)
 constraint(point, distance, other_point, value, axis: x|y)
 dimension point.distance to reference at (x, y)
-distance(first, second)
 ```
 
 **Arguments**
@@ -2087,12 +3047,15 @@ distance(first, second)
 - `reference`: A second point/endpoint, fixed origin, origin.x_axis, or origin.y_axis.
 - `axis`: For two-point distances, x measures abs(dx), y measures abs(dy), and omission measures Euclidean distance.
 
-**Usage**
+**Example**
 
 ```bushscad
-obj body = cube([20, 10, 8]);
-obj lid = cube([20, 10, 4], @plane(body.top, offset: 1));
-assert(distance(body, lid) >= 0.8);
+sketch profile = path(
+  bottom = line((0, 0), (20, 0)),
+  right = line((20, 0), (20, 12)),
+  constraint(bottom.start, distance, right.end, 5, axis: x, at: (22, 8)),
+  close()
+);
 ```
 
 **Related:** [`constraint`](#constraint), [`dimension`](#dimension), [`assert`](#assert), [`fit_ok`](#fitok).
@@ -2112,6 +3075,8 @@ clearance(first, second)
 **Arguments**
 
 - `first, second`: Names of the two built shapes whose minimum separation is measured.
+
+**Syntax guide.** [Geometry query functions](/docs/validation-and-fits#geometry-query-functions).
 
 **Usage**
 
@@ -2139,6 +3104,8 @@ bounding_box(body)
 
 - `body`: Built shape whose axis-aligned bounding-box volume is returned.
 
+**Syntax guide.** [Geometry query functions](/docs/validation-and-fits#geometry-query-functions).
+
 **Usage**
 
 ```bushscad
@@ -2163,6 +3130,8 @@ volume(body)
 **Arguments**
 
 - `body`: Built solid whose volume is returned.
+
+**Syntax guide.** [Geometry query functions](/docs/validation-and-fits#geometry-query-functions).
 
 **Usage**
 
@@ -2189,6 +3158,8 @@ face_area(body)
 
 - `body`: Built shape whose total surface area is measured.
 
+**Syntax guide.** [Geometry query functions](/docs/validation-and-fits#geometry-query-functions).
+
 **Usage**
 
 ```bushscad
@@ -2214,6 +3185,8 @@ wall_thickness(body)
 
 - `body`: Built solid whose minimum wall thickness is estimated.
 
+**Syntax guide.** [Geometry query functions](/docs/validation-and-fits#geometry-query-functions).
+
 **Usage**
 
 ```bushscad
@@ -2238,6 +3211,8 @@ fit_ok(fit_name, target_name)
 **Arguments**
 
 - `fit_name, target_name`: Identifiers matching a previously declared fit.
+
+**Syntax guide.** [Fit assertions](/docs/validation-and-fits#fitok-in-assertions).
 
 **Usage**
 
@@ -2266,6 +3241,8 @@ fn name(parameter, optional: default) { statements }
 
 - `parameters`: Required positional names followed by supported named/default arguments.
 
+**Syntax guide.** [Function declarations](/docs/language-basics#global-function).
+
 **Usage**
 
 ```bushscad
@@ -2279,6 +3256,128 @@ place(plate(40));
 **Related:** [`place`](#place).
 
 **More:** [language basics](/docs/language-basics#global-function).
+
+### Joint types and motion
+
+#### `fixed`
+
+**Purpose.** Connects two parts without relative movement.
+
+**Syntax guide.** [Joint types](/docs/parts-and-assemblies#joint-types).
+
+**Syntax**
+
+```bushscad
+fixed name(movingReference, supportingReference) { }
+```
+
+**Usage**
+
+```bushscad
+fixed frame_joint(@arm.mount, @frame.mount) { }
+```
+
+#### `revolute`
+
+**Purpose.** Allows one part to rotate around a shared axis.
+
+**Syntax guide.** [Joint syntax](/docs/parts-and-assemblies#joint-syntax).
+
+**Syntax**
+
+```bushscad
+revolute name(movingAxis, supportingAxis) { range = minimum..maximum; }
+```
+
+**Usage**
+
+```bushscad
+revolute hinge(@lid.hinge_axis, @housing.hinge_axis) {
+  range = 0deg..120deg;
+  default = 15deg;
+}
+```
+
+#### `slider`
+
+**Purpose.** Allows one part to translate along a shared axis.
+
+**Syntax guide.** [Joint syntax](/docs/parts-and-assemblies#joint-syntax).
+
+**Syntax**
+
+```bushscad
+slider name(movingAxis, supportingAxis) { range = minimum..maximum; }
+```
+
+**Usage**
+
+```bushscad
+slider drawer(@drawer.rail, @case.rail) {
+  range = 0mm..80mm;
+}
+```
+
+#### `planar`
+
+**Purpose.** Allows translation within a shared plane.
+
+**Syntax guide.** [Joint types](/docs/parts-and-assemblies#joint-types).
+
+**Syntax**
+
+```bushscad
+planar name(movingReference, supportingReference) { range = minimum..maximum; }
+```
+
+**Usage**
+
+```bushscad
+planar carriage(@carriage.base, @frame.guide) {
+  range = 0mm..40mm;
+}
+```
+
+#### `ball`
+
+**Purpose.** Allows three-axis rotation without translation.
+
+**Syntax guide.** [Joint types](/docs/parts-and-assemblies#joint-types).
+
+**Syntax**
+
+```bushscad
+ball name(movingPoint, supportingPoint) { range = minimum..maximum; }
+```
+
+**Usage**
+
+```bushscad
+ball ball_joint(@head.center, @body.neck) {
+  range = 0deg..60deg;
+}
+```
+
+#### `default`
+
+**Purpose.** Sets the initial motion value shown for a joint in the viewport.
+
+**Syntax guide.** [Joint syntax](/docs/parts-and-assemblies#joint-syntax).
+
+**Syntax**
+
+```bushscad
+joint_type name(movingReference, supportingReference) { default = value; }
+```
+
+**Usage**
+
+```bushscad
+slider drawer(@drawer.rail, @case.rail) {
+  range = 0mm..80mm;
+  default = 20mm;
+}
+```
 
 ## Language Basics
 

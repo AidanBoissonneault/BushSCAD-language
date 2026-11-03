@@ -15,6 +15,7 @@ import {
 import {
   applyGroundGridOptions,
   createGroundGrid,
+  disposeGroundGrid,
   updateGroundGridForView,
 } from '../../src/scene/ground-grid.js';
 import {
@@ -25,7 +26,6 @@ import {
   infiniteWorldGridGeometry,
   worldGridIntervalForView,
 } from '../../src/scene/infinite-world-grid.js';
-import { formatWorldGridMeasurement } from '../../src/scene/world-grid-measurements.js';
 
 describe('viewport guides', () => {
   const bounds = new THREE.Box3(
@@ -135,12 +135,6 @@ describe('viewport guides', () => {
     expect(segments).toHaveLength(32);
   });
 
-  it('formats world coordinates in millimeters and exact inches', () => {
-    expect(formatWorldGridMeasurement(150, 'mm')).toBe('150 mm');
-    expect(formatWorldGridMeasurement(127, 'in')).toBe('5 in');
-    expect(formatWorldGridMeasurement(-63.5, 'in')).toBe('-2.5 in');
-  });
-
   it('increases grid intervals with camera distance to retain readable spacing', () => {
     const camera = new THREE.PerspectiveCamera(45, 1, 0.1, 10000);
     const target = new THREE.Vector3(0, 0, 0);
@@ -190,7 +184,7 @@ describe('viewport guides', () => {
     }
   });
 
-  it('expands the world grid to follow a camera far from the origin', () => {
+  it('expands the world grid without displaying numeric coordinate labels', () => {
     const grid = createGroundGrid();
     const camera = new THREE.PerspectiveCamera(45, 1, 0.1, 10000);
     const target = new THREE.Vector3(8000, -6000, 0);
@@ -216,6 +210,13 @@ describe('viewport guides', () => {
     expect(Math.max(...xs)).toBeGreaterThan(target.x);
     expect(Math.min(...ys)).toBeLessThan(target.y);
     expect(Math.max(...ys)).toBeGreaterThan(target.y);
+    expect(grid.getObjectByName('world-grid-measurements')).toBeUndefined();
+    const sprites: THREE.Sprite[] = [];
+    grid.traverse((object) => {
+      if (object instanceof THREE.Sprite) sprites.push(object);
+    });
+    expect(sprites).toHaveLength(0);
+    disposeGroundGrid(grid);
   });
 
   it('caps the ruler at the configured maximum height', () => {

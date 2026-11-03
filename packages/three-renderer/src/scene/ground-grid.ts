@@ -1,8 +1,8 @@
 /**
  * @author Aidan Boissonneault
  * @file ground-grid.ts
- * @purpose Coordinates infinite world-grid, printer-bed, and measurement references.
- * @last-edited October 30, 2026
+ * @purpose Coordinates the infinite world grid and printer-bed references.
+ * @last-edited November 2, 2026
  */
 
 import * as THREE from 'three';
@@ -16,12 +16,6 @@ import {
   worldGridViewBounds,
   type WorldGridBounds,
 } from './infinite-world-grid.js';
-import {
-  createWorldGridMeasurements,
-  disposeWorldGridMeasurements,
-  type WorldGridUnit,
-} from './world-grid-measurements.js';
-
 /** Options for an infinite ground grid and its separate printer-bed reference. */
 export type GroundGridOptions = {
   visible: boolean;
@@ -30,7 +24,8 @@ export type GroundGridOptions = {
   depth: number;
   height: number;
   interval: number;
-  unit?: WorldGridUnit;
+  /** Kept for API compatibility; the 3D viewer does not render grid coordinates. */
+  unit?: 'mm' | 'in';
   heightGuideVisible: boolean;
   centerX: number;
   centerY: number;
@@ -44,12 +39,10 @@ type GroundGridState = {
   bedReferences: THREE.Group;
   bedOutline: THREE.LineSegments;
   heightGuide: THREE.LineSegments;
-  measurements: THREE.Group;
   options: GroundGridOptions;
   bounds: WorldGridBounds;
   interval: number;
   bedSignature: string;
-  measurementSignature: string;
 };
 
 const GRID_MINOR_COLOR = new THREE.Color('#d4cfc8');
@@ -67,8 +60,6 @@ export function createGroundGrid(): THREE.Group {
 
   const lines = createInfiniteWorldGrid();
   lines.position.z = -0.04;
-  const measurements = new THREE.Group();
-  measurements.name = 'world-grid-measurements';
   const bedReferences = new THREE.Group();
   bedReferences.name = 'printer-bed-references';
   const bedOutline = new THREE.LineSegments(
@@ -93,7 +84,7 @@ export function createGroundGrid(): THREE.Group {
   );
   heightGuide.name = HEIGHT_GUIDE_NAME;
   bedReferences.add(bedOutline, heightGuide);
-  group.add(lines, measurements, bedReferences);
+  group.add(lines, bedReferences);
 
   const options: GroundGridOptions = {
     visible: true,
@@ -119,12 +110,10 @@ export function createGroundGrid(): THREE.Group {
     bedReferences,
     bedOutline,
     heightGuide,
-    measurements,
     options,
     bounds,
     interval: 0,
     bedSignature: '',
-    measurementSignature: '',
   });
   applyGroundGridOptions(group, options);
   return group;
@@ -194,10 +183,9 @@ export function applyGroundGridOptions(
     );
     rebuildWorldGrid(state, options.interval);
   }
-  state.measurementSignature = '';
 }
 
-/** Expands the grid to the camera frustum and refreshes its coordinate labels. */
+/** Expands the visible grid to follow the camera without drawing coordinate labels. */
 export function updateGroundGridForView(
   grid: THREE.Group,
   camera: THREE.PerspectiveCamera,
@@ -208,7 +196,7 @@ export function updateGroundGridForView(
   if (!state || !state.options.visible) return;
 
   const viewBounds = worldGridViewBounds(camera, target);
-  const { interval, worldUnitsPerPixel } = worldGridIntervalForView(
+  const { interval } = worldGridIntervalForView(
     camera,
     target,
     viewportHeight,
@@ -223,33 +211,12 @@ export function updateGroundGridForView(
     rebuildWorldGrid(state, interval);
   }
 
-  const signature = measurementSignature(
-    viewBounds,
-    target,
-    interval,
-    state.options.unit ?? 'mm',
-    worldUnitsPerPixel,
-  );
-  if (signature === state.measurementSignature) return;
-  disposeWorldGridMeasurements(state.measurements);
-  grid.remove(state.measurements);
-  state.measurements = createWorldGridMeasurements(
-    viewBounds,
-    target,
-    interval * 5,
-    state.options.unit ?? 'mm',
-    worldUnitsPerPixel,
-    Math.max(state.options.opacity, 0.82),
-  );
-  grid.add(state.measurements);
-  state.measurementSignature = signature;
 }
 
-/** Releases grid, build-volume, and label resources held by the viewport. */
+/** Releases grid and build-volume resources held by the viewport. */
 export function disposeGroundGrid(grid: THREE.Group): void {
   const state = groundGridStates.get(grid);
   if (!state) return;
-  disposeWorldGridMeasurements(state.measurements);
   for (const object of [state.lines, state.bedOutline, state.heightGuide]) {
     object.geometry.dispose();
     disposeMaterial(object.material);
@@ -298,32 +265,6 @@ function containsViewWithMargin(
     view.minY >= outer.minY + marginY &&
     view.maxY <= outer.maxY - marginY
   );
-}
-
-/** Replaces labels after the view crosses a measured world-grid interval. */
-function measurementSignature(
-  bounds: WorldGridBounds,
-  target: THREE.Vector3,
-  interval: number,
-  unit: WorldGridUnit,
-  worldUnitsPerPixel: number,
-): string {
-  const majorInterval = interval * 5;
-  const labelInterval = Math.max(
-    majorInterval,
-    Math.ceil(Math.max(bounds.maxX - bounds.minX, bounds.maxY - bounds.minY) / 14 / majorInterval) * majorInterval,
-  );
-  return [
-    unit,
-    labelInterval,
-    Math.round(Math.log(Math.max(worldUnitsPerPixel, 1e-6)) / Math.log(1.25)),
-    Math.round(target.x / majorInterval),
-    Math.round(target.y / majorInterval),
-    Math.ceil(bounds.minX / labelInterval),
-    Math.floor(bounds.maxX / labelInterval),
-    Math.ceil(bounds.minY / labelInterval),
-    Math.floor(bounds.maxY / labelInterval),
-  ].join(':');
 }
 
 /** Applies transparency consistently to every member of an object material. */

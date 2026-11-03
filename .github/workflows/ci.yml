@@ -20,6 +20,8 @@ jobs:
           cache: npm
 
       - run: npm ci --no-audit --no-fund
+      - run: npx playwright install --with-deps chromium
+      - run: npm run docs:publish
       - run: npm run docs:check
       - run: npm run typecheck
       - run: npm test
