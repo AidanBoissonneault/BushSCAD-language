@@ -72,6 +72,7 @@ export class BushSCADRenderer {
     this.camera = surface.camera;
     this.renderer = surface.renderer;
     this.studio = new StudioLighting(this.scene, this.renderer);
+    this.studio.applyRenderingStyle(this.renderingStyle);
 
     this.modelScene = new ModelScene();
     this.scene.add(this.modelScene.group);
