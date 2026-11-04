@@ -6,12 +6,11 @@
  */
 
 import type {
-  ComponentBody,
-  ComponentStatement,
   Program,
   SketchDecl,
   TopLevelStatement,
 } from './declarations.js';
+import type { ComponentBody, ComponentStatement } from './statements/body.js';
 import type { ASTSourceSpan } from './sourceSpan.js';
 
 /** A sketch declaration together with its ownership and immediate lexical scope. */

@@ -7,7 +7,7 @@
 
 import type { ASTSourceSpan } from './sourceSpan.js';
 import type { Expr, RepeatableFaceRef } from './expressions.js';
-import type { SurfaceInput } from './operations.js';
+import type { SurfaceInput } from './operations/inputs.js';
 
 /**
  * Surface fill op, including operation kind, boundary, and span.

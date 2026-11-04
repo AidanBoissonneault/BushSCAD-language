@@ -11,7 +11,8 @@ import type { DrawingDecl } from './drawing.js';
 import type { DetailStatement } from './details.js';
 import type { SurfaceDecl } from './surface.js';
 import type { SketchPlacement, SketchPrimitive } from './sketchPrimitives.js';
-import type { ObjectOperation, PathPrimitive } from './operations.js';
+import type { ObjectOperation } from './operations/object-operation.js';
+import type { PathPrimitive } from './operations/path/primitive.js';
 import type {
   AnchorDecl,
   MirrorStmt,
@@ -23,21 +24,6 @@ import type {
 } from './placement.js';
 import type { ComponentBody } from './control-flow.js';
 import type { FnDecl } from './statements/fn.js';
-export type { FnDecl, FnParam } from './statements/fn.js';
-export type {
-  ComponentBody,
-  ComponentStatement,
-  EnumerateIter,
-  ForStatement,
-  GridIter,
-  IfStatement,
-  ListIter,
-  RadialIter,
-  RangeIter,
-  ReturnStatement,
-  WithinClause,
-  WithinDim,
-} from './control-flow.js';
 
 /** Root AST node produced by the parser. */
 export type Program = {
