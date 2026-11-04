@@ -39,7 +39,6 @@ import type {
   IRSurfaceThicken,
   IRHeal,
   IRDefeature,
-  IRFlange,
   MaterialAppearance,
   MeshData,
   OcctError,
@@ -56,7 +55,6 @@ import type {
 } from '@bushscad/ir';
 import { profileSegmentsAreClosed } from '@bushscad/ir';
 import { buildDrawingResults } from './drawing/build-drawings.js';
-import { collectFlatPatterns } from './operations/sheet-metal.js';
 import { FaceLabelMap, faceFrameFromAx2 } from './topology/face-labels.js';
 import type { FaceFrame } from './topology/face-labels.js';
 import {
@@ -761,7 +759,6 @@ export class OcctBridge {
       ];
       const drawings = [
         ...buildDrawingResults(this.oc, drawingProgram, shapeMap, colorMap),
-        ...collectFlatPatterns(program),
       ];
       const joints = builtParts.flatMap((part) => part.joints);
       return { meshes, validations, drawings, joints, interaction };
@@ -1025,15 +1022,7 @@ export class OcctBridge {
     if (prepared) {
       restorePreparedComponent(this.oc, state, op, prepared, {
         addBody: (name, shape, frame, material, span, sourcePlane) =>
-          this.addBody(
-            state,
-            name,
-            shape,
-            frame,
-            material,
-            span,
-            sourcePlane,
-          ),
+          this.addBody(state, name, shape, frame, material, span, sourcePlane),
         addExtrudedBody: (operation, shape, axis) =>
           this.addExtrudedBody(state, operation, shape, axis),
         addBodyFromSketchAxis: (name, sketch, shape, material, span) =>
@@ -1121,7 +1110,6 @@ export class OcctBridge {
       sketch: (op) => this.buildSketchOperation(state, op),
       extrude: (op) => this.buildExtrudeOperation(state, op),
       solidPrimitive: (op) => this.buildSolidPrimitiveOperation(state, op),
-      flange: (op) => this.buildFlangeOperation(state, op),
       fuse: (op) => this.buildFuseOperation(state, op),
       cut: (op) => this.buildCutOperation(state, op),
       solid_cut: (op) => this.buildSolidCutOperation(state, op),
@@ -1669,47 +1657,6 @@ export class OcctBridge {
    */
   private sourceAttachmentPlane(ax2: OC): SourceAttachmentPlane {
     return attachmentPlane(ax2);
-  }
-
-  /**
-   * Builds flange operation for the current OpenCascade build.
-   */
-  private buildFlangeOperation(state: GroupBuildState, op: IRFlange): void {
-    const oc = this.oc;
-    const base = state.labelMap.getShape(op.objName);
-    if (!base)
-      throw occtError(`Unknown base panel '${op.objName}' for flange`, op.span);
-
-    // Cross-section face (bend arc + flat flange) in the local (u, v) plane.
-    const wire = this.buildProfileWire(op.profile);
-    const face = this.buildFaceFromWire(wire, 'flange', op.span);
-    (wire as { delete(): void }).delete();
-
-    // ax2: origin at the edge start, Z along the edge, X = base-outward.
-    const origin = new oc.gp_Pnt_3(op.origin[0], op.origin[1], op.origin[2]);
-    const zDir = new oc.gp_Dir_4(op.edgeDir[0], op.edgeDir[1], op.edgeDir[2]);
-    const xDir = new oc.gp_Dir_4(
-      op.outwardDir[0],
-      op.outwardDir[1],
-      op.outwardDir[2],
-    );
-    const ax2 = new oc.gp_Ax2_2(origin, zDir, xDir);
-
-    const placed = this.positionFace(face, ax2);
-    (face as { delete(): void }).delete();
-    const flangeShape = this.applyExtrude(
-      placed,
-      ax2,
-      op.edgeLength,
-      false,
-      op.span,
-    );
-    (placed as { delete(): void }).delete();
-    [origin, zDir, xDir, ax2].forEach((o: OC) => o.delete());
-
-    const fused = this.applyBoolFuse(base, flangeShape, op.span);
-    (flangeShape as { delete(): void }).delete();
-    this.replaceBody(state, op.objName, fused);
   }
 
   /**
@@ -6975,7 +6922,6 @@ export class OcctBridge {
       const { shapeMap, colorMap } = this.collectShapeAndColorMaps(builtParts);
       const drawings = [
         ...buildDrawingResults(this.oc, drawingProgram, shapeMap, colorMap),
-        ...collectFlatPatterns(program),
       ];
       return { buffers, drawings };
     } finally {

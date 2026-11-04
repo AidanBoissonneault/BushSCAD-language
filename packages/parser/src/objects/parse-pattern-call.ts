@@ -22,7 +22,8 @@ import { parseObjectTargetName } from '../expressions/parse-names.js';
 type PatternCallArgs = {
   target: string | null;
   mode: 'linear' | 'radial';
-  modeFromPositional: boolean;
+  modeProvided: boolean;
+  supplied: Set<string>;
   countX: Expr | null;
   countY: Expr | null;
   spacingX: Expr | null;
@@ -42,14 +43,12 @@ export function parsePatternCallArgs(
   start: ASTSourceSpan,
 ): PatternLinearStmt | PatternRadialStmt {
   const args = defaultPatternCallArgs();
-  let positional = 0;
   while (!p.check('RPAREN', 'EOF')) {
     if (tryParsePatternNamedArg(p, args)) {
       if (!p.eat('COMMA')) break;
       continue;
     }
-    parsePatternPositionalArg(p, args, positional);
-    positional++;
+    parsePatternPositionalArg(p, args);
     if (!p.eat('COMMA')) break;
   }
   return finalizePatternCall(p, args, start);
@@ -62,7 +61,8 @@ function defaultPatternCallArgs(): PatternCallArgs {
   return {
     target: null,
     mode: 'linear',
-    modeFromPositional: false,
+    modeProvided: false,
+    supplied: new Set(),
     countX: null,
     countY: null,
     spacingX: null,
@@ -77,26 +77,166 @@ function defaultPatternCallArgs(): PatternCallArgs {
  */
 function tryParsePatternNamedArg(p: Parser, args: PatternCallArgs): boolean {
   return tryParseNamedCallArg(p, 'pattern', {
-    target: () => (args.target = parseObjectTargetName(p)),
-    object: () => (args.target = parseObjectTargetName(p)),
-    mode: () => (args.mode = parsePatternMode(p)),
-    kind: () => (args.mode = parsePatternMode(p)),
-    type: () => (args.mode = parsePatternMode(p)),
-    x: () => (args.countX = p.parseExpr()),
-    countX: () => (args.countX = p.parseExpr()),
-    count_x: () => (args.countX = p.parseExpr()),
-    y: () => (args.countY = p.parseExpr()),
-    countY: () => (args.countY = p.parseExpr()),
-    count_y: () => (args.countY = p.parseExpr()),
-    count: () => parsePatternCount(p, args),
-    spacing: () => parsePatternSpacing(p, args),
-    spacingX: () => (args.spacingX = p.parseExpr()),
-    spacing_x: () => (args.spacingX = p.parseExpr()),
-    spacingY: () => (args.spacingY = p.parseExpr()),
-    spacing_y: () => (args.spacingY = p.parseExpr()),
-    around: () => (args.around = parsePatternAround(p)),
-    axis: () => (args.around = parsePatternAround(p)),
+    target: (span) =>
+      assignNamedPatternSlot(
+        p,
+        args,
+        'target',
+        span,
+        () => (args.target = parseObjectTargetName(p)),
+      ),
+    object: (span) =>
+      assignNamedPatternSlot(
+        p,
+        args,
+        'target',
+        span,
+        () => (args.target = parseObjectTargetName(p)),
+      ),
+    mode: (span) =>
+      assignNamedPatternSlot(p, args, 'mode', span, () =>
+        setPatternMode(args, parsePatternMode(p)),
+      ),
+    kind: (span) =>
+      assignNamedPatternSlot(p, args, 'mode', span, () =>
+        setPatternMode(args, parsePatternMode(p)),
+      ),
+    type: (span) =>
+      assignNamedPatternSlot(p, args, 'mode', span, () =>
+        setPatternMode(args, parsePatternMode(p)),
+      ),
+    x: (span) =>
+      assignNamedPatternSlot(
+        p,
+        args,
+        'countX',
+        span,
+        () => (args.countX = p.parseExpr()),
+      ),
+    countX: (span) =>
+      assignNamedPatternSlot(
+        p,
+        args,
+        'countX',
+        span,
+        () => (args.countX = p.parseExpr()),
+      ),
+    count_x: (span) =>
+      assignNamedPatternSlot(
+        p,
+        args,
+        'countX',
+        span,
+        () => (args.countX = p.parseExpr()),
+      ),
+    y: (span) =>
+      assignNamedPatternSlot(
+        p,
+        args,
+        'countY',
+        span,
+        () => (args.countY = p.parseExpr()),
+      ),
+    countY: (span) =>
+      assignNamedPatternSlot(
+        p,
+        args,
+        'countY',
+        span,
+        () => (args.countY = p.parseExpr()),
+      ),
+    count_y: (span) =>
+      assignNamedPatternSlot(
+        p,
+        args,
+        'countY',
+        span,
+        () => (args.countY = p.parseExpr()),
+      ),
+    count: (span) =>
+      assignNamedPatternSlot(
+        p,
+        args,
+        args.mode === 'radial' ? 'count' : 'countX',
+        span,
+        () => parsePatternCount(p, args),
+      ),
+    spacing: (span) =>
+      assignNamedPatternSlot(p, args, 'spacing', span, () =>
+        parsePatternSpacing(p, args),
+      ),
+    spacingX: (span) =>
+      assignNamedPatternSlot(
+        p,
+        args,
+        'spacingX',
+        span,
+        () => (args.spacingX = p.parseExpr()),
+      ),
+    spacing_x: (span) =>
+      assignNamedPatternSlot(
+        p,
+        args,
+        'spacingX',
+        span,
+        () => (args.spacingX = p.parseExpr()),
+      ),
+    spacingY: (span) =>
+      assignNamedPatternSlot(
+        p,
+        args,
+        'spacingY',
+        span,
+        () => (args.spacingY = p.parseExpr()),
+      ),
+    spacing_y: (span) =>
+      assignNamedPatternSlot(
+        p,
+        args,
+        'spacingY',
+        span,
+        () => (args.spacingY = p.parseExpr()),
+      ),
+    around: (span) =>
+      assignNamedPatternSlot(
+        p,
+        args,
+        'around',
+        span,
+        () => (args.around = parsePatternAround(p)),
+      ),
+    axis: (span) =>
+      assignNamedPatternSlot(
+        p,
+        args,
+        'around',
+        span,
+        () => (args.around = parsePatternAround(p)),
+      ),
   });
+}
+
+/** Assigns a named pattern value once and reports duplicate aliases. */
+function assignNamedPatternSlot(
+  p: Parser,
+  args: PatternCallArgs,
+  slot: string,
+  span: ASTSourceSpan,
+  assign: () => void,
+): void {
+  const spacingDuplicate =
+    slot === 'spacing' &&
+    (args.supplied.has('spacingX') || args.supplied.has('spacingY'));
+  const duplicateSpacing =
+    (slot === 'spacingX' || slot === 'spacingY') &&
+    args.supplied.has('spacing');
+  if (args.supplied.has(slot) || spacingDuplicate || duplicateSpacing) {
+    p.addError(`pattern() got duplicate argument '${slot}'`, span);
+    p.parseExpr();
+    return;
+  }
+  args.supplied.add(slot);
+  assign();
 }
 
 /**
@@ -107,25 +247,31 @@ function parsePatternCount(p: Parser, args: PatternCallArgs): void {
   else args.countX = p.parseExpr();
 }
 
+/** Records an explicitly selected linear or radial pattern form. */
+function setPatternMode(
+  args: PatternCallArgs,
+  mode: 'linear' | 'radial',
+): void {
+  args.mode = mode;
+  args.modeProvided = true;
+  args.supplied.add('mode');
+}
+
 /**
  * Parses pattern positional arg from the supplied source into the objects representation.
  */
-function parsePatternPositionalArg(
-  p: Parser,
-  args: PatternCallArgs,
-  index: number,
-): void {
-  if (index === 0) {
+function parsePatternPositionalArg(p: Parser, args: PatternCallArgs): void {
+  if (!args.target && !args.supplied.has('target')) {
     args.target = parseObjectTargetName(p);
+    args.supplied.add('target');
     return;
   }
-  if (index === 1 && isPatternModeToken(p)) {
-    args.mode = parsePatternMode(p);
-    args.modeFromPositional = true;
+  if (!args.modeProvided && isPatternModeToken(p)) {
+    setPatternMode(args, parsePatternMode(p));
     return;
   }
-  if (args.mode === 'radial') parseRadialPatternPositionalArg(p, args, index);
-  else parseLinearPatternPositionalArg(p, args, index);
+  if (args.mode === 'radial') parseRadialPatternPositionalArg(p, args);
+  else parseLinearPatternPositionalArg(p, args);
 }
 
 /**
@@ -134,13 +280,17 @@ function parsePatternPositionalArg(
 function parseLinearPatternPositionalArg(
   p: Parser,
   args: PatternCallArgs,
-  index: number,
 ): void {
-  const slot = args.modeFromPositional ? index - 2 : index - 1;
-  if (slot === 0) args.countX = p.parseExpr();
-  else if (slot === 1) parsePatternSpacing(p, args);
-  else if (slot === 2) args.countY = p.parseExpr();
-  else {
+  if (!args.countX && !args.supplied.has('countX')) {
+    args.countX = p.parseExpr();
+    args.supplied.add('countX');
+  } else if (!args.spacingX && !args.supplied.has('spacing')) {
+    parsePatternSpacing(p, args);
+    args.supplied.add('spacing');
+  } else if (!args.countY && !args.supplied.has('countY')) {
+    args.countY = p.parseExpr();
+    args.supplied.add('countY');
+  } else {
     const extra = p.parseExpr();
     p.addError('pattern(linear) accepts at most 3 value arguments', extra.span);
   }
@@ -152,12 +302,14 @@ function parseLinearPatternPositionalArg(
 function parseRadialPatternPositionalArg(
   p: Parser,
   args: PatternCallArgs,
-  index: number,
 ): void {
-  const slot = args.modeFromPositional ? index - 2 : index - 1;
-  if (slot === 0) args.count = p.parseExpr();
-  else if (slot === 1) args.around = parsePatternAround(p);
-  else {
+  if (!args.count && !args.supplied.has('count')) {
+    args.count = p.parseExpr();
+    args.supplied.add('count');
+  } else if (!args.around && !args.supplied.has('around')) {
+    args.around = parsePatternAround(p);
+    args.supplied.add('around');
+  } else {
     const extra = p.parseExpr();
     p.addError('pattern(radial) accepts at most 2 value arguments', extra.span);
   }
@@ -189,8 +341,11 @@ function parsePatternSpacing(p: Parser, args: PatternCallArgs): void {
   if (expr.kind === 'tuple') {
     args.spacingX = expr.x;
     args.spacingY = expr.y;
+    args.supplied.add('spacingX');
+    args.supplied.add('spacingY');
   } else {
     args.spacingX = expr;
+    args.supplied.add('spacingX');
   }
 }
 

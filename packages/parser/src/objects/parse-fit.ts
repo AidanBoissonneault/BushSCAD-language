@@ -41,7 +41,19 @@ type FitArgs = {
   relation: 'through' | 'into' | null;
   targetName: string | null;
   toleranceLevel: ToleranceLevel;
+  supplied: Set<FitArgSlot>;
 };
+
+type FitArgSlot =
+  'fitKind' | 'fitName' | 'relation' | 'targetName' | 'toleranceLevel';
+
+const FIT_POSITIONAL_SLOTS: readonly FitArgSlot[] = [
+  'fitKind',
+  'fitName',
+  'relation',
+  'targetName',
+  'toleranceLevel',
+];
 
 /**
  * Parses call-style fit declarations into the existing fit AST.
@@ -55,15 +67,14 @@ function parseFitCallArgs(p: Parser): FitArgs {
     relation: null,
     targetName: null,
     toleranceLevel: 'normal',
+    supplied: new Set(),
   };
-  let positional = 0;
   while (!p.check('RPAREN', 'EOF')) {
     if (tryParseFitNamedArg(p, args)) {
       if (!p.eat('COMMA')) break;
       continue;
     }
-    parseFitPositionalArg(p, args, positional);
-    positional++;
+    parseFitPositionalArg(p, args);
     if (!p.eat('COMMA')) break;
   }
   return args;
@@ -74,30 +85,65 @@ function parseFitCallArgs(p: Parser): FitArgs {
  */
 function tryParseFitNamedArg(p: Parser, args: FitArgs): boolean {
   return tryParseNamedCallArg(p, 'fit', {
-    kind: () => (args.fitKind = parseFitKind(p)),
-    type: () => (args.fitKind = parseFitKind(p)),
-    name: () => (args.fitName = p.expect('IDENT').value),
-    fit: () => (args.fitName = p.expect('IDENT').value),
-    relation: () => (args.relation = parseFitRelation(p)),
-    target: () => (args.targetName = p.expect('IDENT').value),
-    object: () => (args.targetName = p.expect('IDENT').value),
-    tolerance: () => (args.toleranceLevel = parseToleranceLevel(p)),
+    kind: (span) => assignFitSlot(p, args, 'fitKind', parseFitKind(p), span),
+    type: (span) => assignFitSlot(p, args, 'fitKind', parseFitKind(p), span),
+    name: (span) =>
+      assignFitSlot(p, args, 'fitName', p.expect('IDENT').value, span),
+    fit: (span) =>
+      assignFitSlot(p, args, 'fitName', p.expect('IDENT').value, span),
+    relation: (span) =>
+      assignFitSlot(p, args, 'relation', parseFitRelation(p), span),
+    target: (span) =>
+      assignFitSlot(p, args, 'targetName', p.expect('IDENT').value, span),
+    object: (span) =>
+      assignFitSlot(p, args, 'targetName', p.expect('IDENT').value, span),
+    tolerance: (span) =>
+      assignFitSlot(p, args, 'toleranceLevel', parseToleranceLevel(p), span),
   });
 }
 
 /**
  * Parses fit positional arg from the supplied source into the objects representation.
  */
-function parseFitPositionalArg(p: Parser, args: FitArgs, index: number): void {
-  if (index === 0) args.fitKind = parseFitKind(p);
-  else if (index === 1) args.fitName = p.expect('IDENT').value;
-  else if (index === 2) args.relation = parseFitRelation(p);
-  else if (index === 3) args.targetName = p.expect('IDENT').value;
-  else if (index === 4) args.toleranceLevel = parseToleranceLevel(p);
-  else {
+function parseFitPositionalArg(p: Parser, args: FitArgs): void {
+  const slot = FIT_POSITIONAL_SLOTS.find(
+    (candidate) => !args.supplied.has(candidate),
+  );
+  if (!slot) {
     p.addError('fit() accepts at most 5 positional arguments', p.peek().span);
     p.advance();
+    return;
   }
+  const span = p.peek().span;
+  assignFitSlot(p, args, slot, parseFitSlotValue(p, slot), span);
+}
+
+/** Parses the value belonging to the next open fit argument slot. */
+function parseFitSlotValue(p: Parser, slot: FitArgSlot): string {
+  if (slot === 'fitKind') return parseFitKind(p);
+  if (slot === 'relation') return parseFitRelation(p);
+  if (slot === 'toleranceLevel') return parseToleranceLevel(p);
+  return p.expect('IDENT').value;
+}
+
+/** Stores one fit value and diagnoses a repeated label or positional slot. */
+function assignFitSlot(
+  p: Parser,
+  args: FitArgs,
+  slot: FitArgSlot,
+  value: string,
+  span: import('@bushscad/ir').ASTSourceSpan,
+): void {
+  if (args.supplied.has(slot)) {
+    p.addError(`fit() got duplicate argument '${slot}'`, span);
+    return;
+  }
+  args.supplied.add(slot);
+  if (slot === 'fitKind') args.fitKind = value as FitKind;
+  else if (slot === 'fitName') args.fitName = value;
+  else if (slot === 'relation') args.relation = value as 'through' | 'into';
+  else if (slot === 'targetName') args.targetName = value;
+  else args.toleranceLevel = value as ToleranceLevel;
 }
 
 /**

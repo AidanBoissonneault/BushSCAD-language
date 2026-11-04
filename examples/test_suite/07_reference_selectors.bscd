@@ -46,7 +46,7 @@ part generated_array_selector {
 part qualified_surfaces {
     sketch profile = rect(44, 30) at (120, 0);
     obj hollow = extrude(profile, 24);
-    shell: hollow 3 open: top;
+    shell(hollow, 3, open: top);
     obj insert = extrude(rect(24, 12), 2, @hollow.inner.bottom.center);
     fillet(@hollow.outer.bottom.perimeter, 0.35);
 }

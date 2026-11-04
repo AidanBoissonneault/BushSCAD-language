@@ -200,7 +200,7 @@ part p {
   obj pocket = cut(h, 0.5, @body.[top, bottom]);
   fillet(@pocket.edges, 1);
   chamfer(@pocket[1].edges, 0.5);
-  shell: pocket 0.2;
+  shell(pocket, 0.2);
 }
 `);
     const pockets = opsOfKind<IRCut>(ops, 'cut').filter((op) =>
@@ -226,7 +226,7 @@ part p {
   obj a = extrude(rect(10, 10), 1);
   obj b = extrude(rect(8, 8), 1);
   var bodies = [@a, @b];
-  shell: bodies 0.2;
+  shell(bodies, 0.2);
 }
 `);
     expect(opsOfKind<IRShell>(ops, 'shell').map((op) => op.objName)).toEqual([
@@ -242,7 +242,7 @@ part p {
   sketch h = circle(1);
   obj body = extrude(base, 1);
   obj pocket = cut(h, 0.5, @body.[top, bottom]);
-  shell: pocket[1] 0.2;
+  shell(pocket[1], 0.2);
 }
 `);
     expect(opsOfKind<IRShell>(ops, 'shell').map((op) => op.objName)).toEqual([

@@ -270,6 +270,20 @@ sketch blob = wrap([
     expect(sketch.primitive.options[0]?.name).toBe('tension');
   });
 
+  it('accepts unlabeled wrap options in their documented order', () => {
+    const ast = parseOk(`
+sketch blob = wrap([(0, 0), (10, 0), (5, 10)], smooth, 2, 0.4, 0.01);
+`);
+    const sketch = firstSketch(ast);
+    expect(sketch.primitive.kind).toBe('wrapSketch');
+    if (sketch.primitive.kind !== 'wrapSketch') return;
+    expect(sketch.primitive.options.map((option) => option.name)).toEqual([
+      'rounded',
+      'tension',
+      'tolerance',
+    ]);
+  });
+
   it('reports planted anonymous path elements and unknown wrap modes', () => {
     const result = parse(
       `

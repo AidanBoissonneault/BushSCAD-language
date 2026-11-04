@@ -15,7 +15,7 @@ export const axialPrimitiveHelp: Record<string, LanguageHelpEntry> = {
     signatures: [
       'obj name = cylinder(height, radius, @placement);',
       'obj name = cylinder(h: height, d: diameter);',
-      'obj name = cylinder(height, r1: bottomRadius, r2: topRadius);',
+      'obj name = cylinder(height, radius, radiusBottom, radiusTop);',
     ],
     parameters: [
       {
@@ -44,8 +44,8 @@ export const axialPrimitiveHelp: Record<string, LanguageHelpEntry> = {
     summary:
       'Creates an elliptical cylinder or elliptical taper from positive pairs of end radii.',
     signatures: [
-      'obj name = cylinderElliptic(height: h, radius: [rx, ry]);',
-      'obj name = cylinderElliptic(height: h, startRadius: [rx, ry], endRadius: [rx, ry]);',
+      'obj name = cylinderElliptic(height, radius);',
+      'obj name = cylinderElliptic(height, radius, startRadius, endRadius, segments);',
     ],
     parameters: [
       { name: 'height', description: 'Positive axial length; default 1.' },

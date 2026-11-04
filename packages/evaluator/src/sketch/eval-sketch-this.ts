@@ -157,7 +157,7 @@ const PATH_SEGMENT_USES_THIS: Record<
     segment.kind === 'arc' &&
     ((segment.start?.some(exprUsesThis) ?? false) ||
       segment.end.some(exprUsesThis) ||
-      exprUsesThis(segment.radius)),
+      (segment.radius ? exprUsesThis(segment.radius) : false)),
   line: (segment) =>
     segment.kind === 'line' &&
     ((segment.start?.some(exprUsesThis) ?? false) ||

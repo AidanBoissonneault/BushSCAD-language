@@ -168,7 +168,7 @@ export const profileOperationHelp: Record<string, LanguageHelpEntry> = {
       {
         name: 'orientation',
         description:
-          'Frame mode: default, fixed, or binormal. Use the named orientation: argument.',
+          'Frame mode: default, fixed, or binormal. Supply it positionally or with orientation:.',
       },
     ],
     behavior: [

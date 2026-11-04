@@ -8,7 +8,7 @@ env serial fallback 'SN-0001';
 part enclosure {
     sketch body = rect(w, h);
     obj body = extrude(body, d);
-    shell: body wall open: top;
+    shell(body, wall, open: top);
 
     sketch lid = rect inset(wall);
     obj lid = extrude(lid, 2, @body.top.center);

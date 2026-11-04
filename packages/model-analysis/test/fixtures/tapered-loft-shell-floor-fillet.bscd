@@ -5,6 +5,6 @@ part tapered_loft_shell {
     sketch body_top = rect(110, 100);
     obj body = loft(body_bottom, body_top, height: 30);
 
-    shell: body 2 open: top;
+    shell(body, 2, open: top);
     fillet(@body.inner.bottom.edges, 1);
 }

@@ -13,7 +13,6 @@ import { primitiveHelp } from './primitive-help.js';
 import { profileOperationHelp } from './profile-operation-help.js';
 import { radialCurveHelp } from './radial-curve-help.js';
 import { radialOperationHelp } from './radial-operation-help.js';
-import { sheetOperationHelp } from './sheet-operation-help.js';
 import { surfaceOperationHelp } from './surface-operation-help.js';
 import { transformOperationHelp } from './transform-operation-help.js';
 import type { LanguageHelpEntry } from './types.js';
@@ -30,6 +29,5 @@ export const solidHelp: Record<string, LanguageHelpEntry> = {
   ...transformOperationHelp,
   ...importedShapeHelp,
   ...hardwareOperationHelp,
-  ...sheetOperationHelp,
   ...threadHelp,
 };

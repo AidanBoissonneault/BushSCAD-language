@@ -21,8 +21,8 @@ import { evaluatedSketchComponentMembers } from '../sketch/eval-sketch-component
 
 /**
  * Emits a sketch operation and stores the primitive/placement metadata used downstream.
- * Object operations, sheet operations, and UI previews all consume the same
- * sketch maps, so sketch emission is centralized before geometry lowering.
+ * Object operations and UI previews all consume the same sketch maps, so
+ * sketch emission is centralized before geometry lowering.
  */
 export function emitSketchOp(
   stmt: Extract<ComponentStatement | TopLevelStatement, { kind: 'sketch' }>,

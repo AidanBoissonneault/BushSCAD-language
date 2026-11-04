@@ -7,7 +7,10 @@
 
 import type { FaceRef, MirrorPlane, MirrorStmt } from '@bushscad/ir';
 import type { Parser } from '../core/parser.js';
-import { tryParseNamedCallArg } from '../expressions/parse-call-arguments.js';
+import {
+  claimCallArgument,
+  tryParseNamedCallArg,
+} from '../expressions/parse-call-arguments.js';
 import { parseObjectTargetName } from '../expressions/parse-names.js';
 
 /**
@@ -16,6 +19,7 @@ import { parseObjectTargetName } from '../expressions/parse-names.js';
 type MirrorArgs = {
   target: string | null;
   across: MirrorPlane | null;
+  supplied: Set<'target' | 'across'>;
 };
 
 /**
@@ -38,23 +42,29 @@ export function parseMirror(p: Parser): MirrorStmt {
  * Parses mirror call args from the supplied source into the objects representation.
  */
 function parseMirrorCallArgs(p: Parser): MirrorArgs {
-  const args: MirrorArgs = { target: null, across: null };
-  let positional = 0;
+  const args: MirrorArgs = {
+    target: null,
+    across: null,
+    supplied: new Set(),
+  };
   while (!p.check('RPAREN', 'EOF')) {
     if (tryParseMirrorNamedArg(p, args)) {
       if (!p.eat('COMMA')) break;
       continue;
     }
-    if (positional === 0) args.target = parseObjectTargetName(p);
-    else if (positional === 1) args.across = parseMirrorPlane(p);
-    else {
+    if (!args.supplied.has('target')) {
+      const span = p.peek().span;
+      assignMirrorArg(p, args, 'target', parseObjectTargetName(p), span);
+    } else if (!args.supplied.has('across')) {
+      const span = p.peek().span;
+      assignMirrorArg(p, args, 'across', parseMirrorPlane(p), span);
+    } else {
       p.addError(
         'mirror() accepts at most 2 positional arguments',
         p.peek().span,
       );
       p.advance();
     }
-    positional++;
     if (!p.eat('COMMA')) break;
   }
   return args;
@@ -65,11 +75,28 @@ function parseMirrorCallArgs(p: Parser): MirrorArgs {
  */
 function tryParseMirrorNamedArg(p: Parser, args: MirrorArgs): boolean {
   return tryParseNamedCallArg(p, 'mirror', {
-    target: () => (args.target = parseObjectTargetName(p)),
-    object: () => (args.target = parseObjectTargetName(p)),
-    across: () => (args.across = parseMirrorPlane(p)),
-    plane: () => (args.across = parseMirrorPlane(p)),
+    target: (span) =>
+      assignMirrorArg(p, args, 'target', parseObjectTargetName(p), span),
+    object: (span) =>
+      assignMirrorArg(p, args, 'target', parseObjectTargetName(p), span),
+    across: (span) =>
+      assignMirrorArg(p, args, 'across', parseMirrorPlane(p), span),
+    plane: (span) =>
+      assignMirrorArg(p, args, 'across', parseMirrorPlane(p), span),
   });
+}
+
+/** Stores one mirror slot once and reports duplicate positional or named values. */
+function assignMirrorArg(
+  p: Parser,
+  args: MirrorArgs,
+  slot: 'target' | 'across',
+  value: string | MirrorPlane,
+  span: MirrorStmt['span'],
+): void {
+  if (!claimCallArgument(p, 'mirror', slot, args.supplied, span)) return;
+  if (slot === 'target') args.target = value as string;
+  else args.across = value as MirrorPlane;
 }
 
 /**

@@ -13,7 +13,7 @@ export const drawingHelp: Record<string, LanguageHelpEntry> = {
     summary:
       'Declares a fabrication drawing with one projected view, optional dimensions, and DXF/SVG output requests.',
     signatures: [
-      'drawing name { view object.face scale: number; dimension object.width; }',
+      'drawing name { view object.face scale?; dimension object.width; }',
     ],
     parameters: [
       {
@@ -33,7 +33,7 @@ export const drawingHelp: Record<string, LanguageHelpEntry> = {
   },
   view: {
     summary: 'Selects the object and projection direction for a drawing.',
-    signatures: ['view object.top scale: 1;'],
+    signatures: ['view object.top scale;', 'view object.top scale: value;'],
     behavior: [
       'A drawing requires exactly one view. Supported directions are top, bottom, front, back, left, and right; the scale value is a numeric literal.',
     ],
@@ -44,7 +44,7 @@ export const drawingHelp: Record<string, LanguageHelpEntry> = {
   },
   scale: {
     summary: 'Sets the numeric output scale for a drawing view.',
-    signatures: ['view object.top scale: 1;'],
+    signatures: ['view object.top scale;', 'view object.top scale: value;'],
     behavior: [
       'Scale is optional, must be a numeric literal, and affects SVG/DXF drawing coordinates without changing model geometry.',
     ],

@@ -38,6 +38,30 @@ describe('parser — details', () => {
     expect(faceChain(f.target)).toBe('b.top.edges');
   });
 
+  it('parses shell calls at file scope and in nested statement scopes', () => {
+    const ast = parseOk(`
+      obj global_body = cube([20, 20, 10]);
+      shell(global_body, thickness: 1);
+      part enclosure {
+        obj local_body = cube([20, 20, 10]);
+        for index in range(1) {
+          if index == 0 { shell(local_body, 1, top); }
+        }
+      }
+    `);
+    expect(ast.statements[1].kind).toBe('shell');
+    const enclosure = component(ast, 'enclosure');
+    const loop = bodyStmt<{
+      kind: 'for';
+      body: { statements: { kind: string }[] };
+    }>(enclosure, 'for');
+    const branch = loop.body.statements[0] as {
+      kind: 'if';
+      then: { statements: { kind: string }[] };
+    };
+    expect(branch.then.statements[0].kind).toBe('shell');
+  });
+
   it('parses fillet single edge', () => {
     const ast = parseOk(
       'part p { sketch b = rect(1,1); obj b = extrude(b, 1); fillet(@b.top.front_edge, 3); }',
@@ -58,7 +82,7 @@ describe('parser — details', () => {
 
   it('parses shell no open', () => {
     const ast = parseOk(
-      'part p { sketch b = rect(1,1); obj b = extrude(b, 1); shell: b 1.5; }',
+      'part p { sketch b = rect(1,1); obj b = extrude(b, 1); shell(b, 1.5); }',
     );
     const c = component(ast, 'p');
     const sh = bodyStmt<ShellDetail>(c, 'shell');
@@ -69,7 +93,7 @@ describe('parser — details', () => {
 
   it('parses shell open single face', () => {
     const ast = parseOk(
-      'part p { sketch b = rect(1,1); obj b = extrude(b, 1); shell: b 1.5 open: top; }',
+      'part p { sketch b = rect(1,1); obj b = extrude(b, 1); shell(b, 1.5, open: top); }',
     );
     const c = component(ast, 'p');
     const sh = bodyStmt<ShellDetail>(c, 'shell');
@@ -78,7 +102,7 @@ describe('parser — details', () => {
 
   it('parses shell open multiple faces', () => {
     const ast = parseOk(
-      'part p { sketch b = rect(1,1); obj b = extrude(b, 1); shell: b 1.5 open: [top, front]; }',
+      'part p { sketch b = rect(1,1); obj b = extrude(b, 1); shell(b, 1.5, open: [top, front]); }',
     );
     const c = component(ast, 'p');
     const sh = bodyStmt<ShellDetail>(c, 'shell');
@@ -87,11 +111,40 @@ describe('parser — details', () => {
 
   it('parses draft', () => {
     const ast = parseOk(
-      'part p { sketch b = rect(1,1); obj b = extrude(b, 1); draft: b.sides 2deg; }',
+      'part p { sketch b = rect(1,1); obj b = extrude(b, 1); draft(@b.sides, 2deg); }',
     );
     const c = component(ast, 'p');
     const d = bodyStmt<{ kind: string; angle: unknown }>(c, 'draft');
     expect(d.kind).toBe('draft');
+  });
+
+  it('accepts fully positional shell open-face and labeled draft arguments', () => {
+    const ast = parseOk(`
+      part p {
+        obj body = cube([20, 20, 10]);
+        shell(target: body, thickness: 1, open: top);
+        draft(target: @body.sides, angle: 2deg);
+      }
+    `);
+    const p = component(ast, 'p');
+    expect(bodyStmt<ShellDetail>(p, 'shell').openFaces).toEqual(['top']);
+    expect(bodyStmt<{ kind: string }>(p, 'draft').kind).toBe('draft');
+  });
+
+  it('binds shell and fillet values around optional labels', () => {
+    const ast = parseOk(`
+      part p {
+        obj body = cube([20, 20, 10]);
+        shell(open: top, body, 1);
+        fillet(radius: 1, @body.top.edges);
+      }
+    `);
+    const p = component(ast, 'p');
+    expect(bodyStmt<ShellDetail>(p, 'shell')).toMatchObject({
+      target: 'body',
+      openFaces: ['top'],
+    });
+    expect(bodyStmt<FilletDetail>(p, 'fillet').target).toBeDefined();
   });
 
   it('parses spatial anchors and rotate statements', () => {

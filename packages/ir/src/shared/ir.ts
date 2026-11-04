@@ -95,8 +95,6 @@ import type {
   IRDeclareShape,
   IRDefeature,
   IRFit,
-  IRFlange,
-  IRFlatPattern,
   IRHardwareVisual,
   IRHeal,
   IRImportShape,
@@ -109,7 +107,7 @@ import type {
  * IRLoft, IRFillet, IRChamfer, IRFuse, IRShell, IRDraft, IRThread, IRRotate, IRPatternLinear,
  * IRPatternRadial, IRMirror, IRTransform, IRPartBoundary, IRPath, IRSweep, IRSweepCut, IRFit,
  * IRAssert, IRHardwareVisual, IRJoint, IRImportShape, IRHeal, IRDefeature, IRRef,
- * IRDeclareShape, IRAlignShape, IRFlange, IRFlatPattern, IRSolidPrimitive, and
+ * IRDeclareShape, IRAlignShape, IRSolidPrimitive, and
  * import('../geometry/surface.js').IRSurfaceOp.
  */
 export type IROp =
@@ -146,8 +144,6 @@ export type IROp =
   | IRRef
   | IRDeclareShape
   | IRAlignShape
-  | IRFlange
-  | IRFlatPattern
   | IRSolidPrimitive
   | import('../geometry/surface.js').IRSurfaceOp;
 

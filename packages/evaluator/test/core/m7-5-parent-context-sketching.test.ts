@@ -150,7 +150,7 @@ export ref inset_child {
 export part shelled_child {
     sketch cup = rect(8, 8);
     obj cup = extrude(cup, 5);
-    shell: cup 0.5 open: top;
+    shell(cup, 0.5, open: top);
     @mount = @cup.bottom.center;
 }
 part p {

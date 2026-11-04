@@ -11,25 +11,226 @@ import { addError } from '../core/eval-context.js';
 import { evalExpr, evalNum } from '../expressions/eval-expressions.js';
 
 /**
- * Arg bag, including positional and named.
+ * Separates normalized positional slots from named aliases.
+ *
+ * Why:
+ * Primitive overloads support labels interleaved with positional values. A
+ * per-primitive slot schema lets labels claim their fields before positional
+ * values fill the next unassigned field, and reports unknown or duplicate
+ * labels instead of silently ignoring them.
  */
 export type ArgBag = {
-  positional: SolidPrimitiveArg[];
+  positional: (SolidPrimitiveArg | undefined)[];
   named: Map<string, SolidPrimitiveArg>;
+  roundedCuboidSizeForm?: boolean;
+};
+
+type PrimitiveArgSchema = string[][];
+type NamedArgumentSlots = {
+  named: Map<string, SolidPrimitiveArg>;
+  occupiedSlots: Set<number>;
+};
+
+const PRIMITIVE_ARG_SCHEMAS: Record<
+  SolidPrimitiveOp['primitive'],
+  PrimitiveArgSchema
+> = {
+  cube: [
+    ['size', 'width', 'x'],
+    ['depth', 'y'],
+    ['height', 'z'],
+    ['radius', 'r'],
+    ['segments', 'fn'],
+  ],
+  cuboid: [
+    ['size', 'width', 'x'],
+    ['depth', 'y'],
+    ['height', 'z'],
+    ['radius', 'r'],
+    ['segments', 'fn'],
+  ],
+  roundedCuboid: [
+    ['size', 'width', 'x'],
+    ['depth', 'y'],
+    ['height', 'z'],
+    ['radius', 'r'],
+    ['segments', 'fn'],
+  ],
+  sphere: [
+    ['radius', 'r', 'diameter', 'd'],
+    ['segments', 'fn'],
+  ],
+  geodesicSphere: [
+    ['radius', 'r', 'diameter', 'd'],
+    ['segments', 'fn'],
+  ],
+  ellipsoid: [
+    ['radius', 'r'],
+    ['segments', 'fn'],
+  ],
+  cylinder: [
+    ['height', 'h'],
+    ['radius', 'r', 'diameter', 'd'],
+    ['radiusBottom', 'bottomRadius', 'r1', 'diameterBottom', 'd1'],
+    ['radiusTop', 'topRadius', 'r2', 'diameterTop', 'd2'],
+    ['segments', 'fn'],
+  ],
+  roundedCylinder: [
+    ['height', 'h'],
+    ['radius', 'r', 'diameter', 'd'],
+    ['radiusBottom', 'bottomRadius', 'r1', 'diameterBottom', 'd1'],
+    ['radiusTop', 'topRadius', 'r2', 'diameterTop', 'd2'],
+    ['segments', 'fn'],
+    ['roundingRadius', 'roundRadius', 'fillet'],
+  ],
+  cylinderElliptic: [
+    ['height', 'h'],
+    ['radius', 'r'],
+    ['startRadius', 'radiusStart', 'r1'],
+    ['endRadius', 'radiusEnd', 'r2'],
+    ['segments', 'fn'],
+  ],
+  cone: [
+    ['height', 'h'],
+    ['radius', 'r', 'diameter', 'd'],
+    ['segments', 'fn'],
+  ],
+  frustum: [
+    ['height', 'h'],
+    ['radiusBottom', 'bottomRadius', 'r1', 'diameterBottom', 'd1'],
+    ['radiusTop', 'topRadius', 'r2', 'diameterTop', 'd2'],
+    ['segments', 'fn'],
+  ],
+  torus: [
+    ['majorRadius', 'outerRadius', 'ro'],
+    ['minorRadius', 'innerRadius', 'ri'],
+    ['segments', 'majorSegments', 'fn'],
+    ['minorSegments', 'tubeSegments'],
+  ],
+  polyhedron: [['points'], ['faces', 'triangles']],
 };
 
 /**
- * Handles arg bag in the geometry flow.
+ * Binds mixed primitive arguments to the slots declared for that primitive.
+ *
+ * Positional values fill the next free schema slot after named values have
+ * claimed theirs, allowing callers to label only the fields that need clarity.
  */
-export function argBag(args: SolidPrimitiveArg[]): ArgBag {
+export function argBag(op: SolidPrimitiveOp, ctx: EvalCtx): ArgBag {
+  const { schema, roundedCuboidSizeForm } = primitiveArgSchema(op, ctx);
+  const aliasesToSlot = createAliasSlots(schema);
+  const namedArgs = bindNamedArgs(op, aliasesToSlot, ctx);
+  const positional = bindPositionalArgs(
+    op,
+    schema,
+    namedArgs.occupiedSlots,
+    ctx,
+  );
   return {
-    positional: args.filter((arg) => arg.name === null),
-    named: new Map(
-      args
-        .filter((arg) => arg.name !== null)
-        .map((arg) => [arg.name as string, arg]),
-    ),
+    positional,
+    named: namedArgs.named,
+    roundedCuboidSizeForm,
   };
+}
+
+/** Selects the declared parameter order, including the rounded cuboid overload. */
+function primitiveArgSchema(
+  op: SolidPrimitiveOp,
+  ctx: EvalCtx,
+): { schema: PrimitiveArgSchema; roundedCuboidSizeForm: boolean } {
+  const roundedCuboidSizeForm =
+    op.primitive === 'roundedCuboid' && usesRoundedCuboidSizeForm(op, ctx);
+  return {
+    schema: roundedCuboidSizeForm
+      ? [['size'], ['radius', 'r'], ['segments', 'fn']]
+      : PRIMITIVE_ARG_SCHEMAS[op.primitive],
+    roundedCuboidSizeForm,
+  };
+}
+
+/** Maps accepted argument labels to the canonical slot they select. */
+function createAliasSlots(schema: PrimitiveArgSchema): Map<string, number> {
+  return new Map(
+    schema.flatMap((aliases, slot) =>
+      aliases.map((alias) => [alias, slot] as const),
+    ),
+  );
+}
+
+/** Claims named slots once and reports invalid or repeated labels. */
+function bindNamedArgs(
+  op: SolidPrimitiveOp,
+  aliasesToSlot: Map<string, number>,
+  ctx: EvalCtx,
+): NamedArgumentSlots {
+  const named = new Map<string, SolidPrimitiveArg>();
+  const occupiedSlots = new Set<number>();
+  for (const arg of op.args) {
+    if (arg.name === null) continue;
+    const slot = aliasesToSlot.get(arg.name);
+    if (slot === undefined) {
+      addError(ctx, `Unknown ${op.primitive} argument '${arg.name}'`, arg.span);
+      continue;
+    }
+    if (occupiedSlots.has(slot)) {
+      addError(
+        ctx,
+        `Duplicate ${op.primitive} argument for '${arg.name}'`,
+        arg.span,
+      );
+      continue;
+    }
+    occupiedSlots.add(slot);
+    named.set(arg.name, arg);
+  }
+  return { named, occupiedSlots };
+}
+
+/** Fills free parameter slots with positional values in source order. */
+function bindPositionalArgs(
+  op: SolidPrimitiveOp,
+  schema: PrimitiveArgSchema,
+  occupiedSlots: Set<number>,
+  ctx: EvalCtx,
+): (SolidPrimitiveArg | undefined)[] {
+  const positional: (SolidPrimitiveArg | undefined)[] = [];
+  let nextSlot = 0;
+  for (const arg of op.args) {
+    if (arg.name !== null) continue;
+    while (occupiedSlots.has(nextSlot)) nextSlot++;
+    if (nextSlot >= schema.length) {
+      addError(
+        ctx,
+        `Too many positional arguments for ${op.primitive}`,
+        arg.span,
+      );
+      continue;
+    }
+    positional[nextSlot] = arg;
+    occupiedSlots.add(nextSlot);
+    nextSlot++;
+  }
+  return positional;
+}
+
+/** Chooses the roundedCuboid size or dimension overload before slot binding. */
+function usesRoundedCuboidSizeForm(
+  op: SolidPrimitiveOp,
+  ctx: EvalCtx,
+): boolean {
+  const dimensionAliases = new Set(['width', 'x', 'depth', 'y', 'height', 'z']);
+  const hasDimensionLabels = op.args.some(
+    (arg) => arg.name !== null && dimensionAliases.has(arg.name),
+  );
+  const firstPositional = op.args.find((arg) => arg.name === null);
+  const positionalCount = op.args.filter((arg) => arg.name === null).length;
+  const sizeOverload =
+    op.args.some((arg) => arg.name === 'size') ||
+    (!hasDimensionLabels && positionalCount < 3) ||
+    (!hasDimensionLabels &&
+      firstPositional !== undefined &&
+      Array.isArray(evalExpr(firstPositional.value, ctx)));
+  return sizeOverload;
 }
 
 /**
@@ -76,8 +277,9 @@ export function optionalNum(
   args: ArgBag,
   ctx: EvalCtx,
   names: string[],
+  positionalIndex = -1,
 ): number | undefined {
-  const arg = named(args, names);
+  const arg = named(args, names) ?? args.positional[positionalIndex];
   return arg ? evalNum(arg.value, ctx) : undefined;
 }
 
@@ -101,8 +303,9 @@ export function optionalRadius(
   args: ArgBag,
   ctx: EvalCtx,
   names: string[],
+  positionalIndex = -1,
 ): number | undefined {
-  const arg = named(args, names);
+  const arg = named(args, names) ?? args.positional[positionalIndex];
   if (!arg) return undefined;
   const value = evalNum(arg.value, ctx);
   return arg.name?.startsWith('d') || arg.name?.startsWith('diameter')
@@ -140,8 +343,9 @@ export function vec2Arg(
   ctx: EvalCtx,
   names: string[],
   fallback: [number, number],
+  positionalIndex = 1,
 ): [number, number] {
-  const arg = named(args, names) ?? args.positional[1];
+  const arg = named(args, names) ?? args.positional[positionalIndex];
   const value = arg ? evalExpr(arg.value, ctx) : fallback;
   return Array.isArray(value) &&
     value.length >= 2 &&
@@ -200,8 +404,13 @@ export function faceList(
 /**
  * Handles segments in the geometry flow.
  */
-export function segments(args: ArgBag, ctx: EvalCtx): number {
-  return Math.max(3, Math.round(numArg(args, ctx, ['segments', 'fn'], -1, 48)));
+export function segments(
+  args: ArgBag,
+  ctx: EvalCtx,
+  positionalIndex = -1,
+  names = ['segments', 'fn'],
+): number {
+  return Math.max(3, Math.round(numArg(args, ctx, names, positionalIndex, 48)));
 }
 
 /**

@@ -16,6 +16,7 @@ export const detailOperationHelp: Record<string, LanguageHelpEntry> = {
       'Rounds selected 3D edges with a radius, or rounds a supported 2D sketch primitive in sketch-expression context.',
     signatures: [
       'fillet(@target, radius);',
+      'fillet(target: @target, radius: value);',
       'sketch name = fillet(profile, radius);',
     ],
     parameters: [
@@ -44,7 +45,10 @@ export const detailOperationHelp: Record<string, LanguageHelpEntry> = {
   },
   chamfer: {
     summary: 'Bevels selected edges with an equal-distance, 45-degree chamfer.',
-    signatures: ['chamfer(@target, offset);'],
+    signatures: [
+      'chamfer(@target, offset);',
+      'chamfer(target: @target, offset: value);',
+    ],
     parameters: [
       {
         name: '@target',
@@ -70,9 +74,9 @@ export const detailOperationHelp: Record<string, LanguageHelpEntry> = {
     summary:
       'Hollows an existing solid with a uniform wall thickness and optional removed opening faces.',
     signatures: [
-      'shell: object thickness;',
-      'shell: object thickness open: face;',
-      'shell: object thickness open: [face, face];',
+      'shell(object, thickness);',
+      'shell(object, thickness, faces);',
+      'shell(target: object, thickness: value, open: faces);',
     ],
     parameters: [
       { name: 'object', description: 'Existing solid object name.' },
@@ -88,18 +92,19 @@ export const detailOperationHelp: Record<string, LanguageHelpEntry> = {
       },
     ],
     behavior: [
-      'Use colon statement syntax; shell is not a function-style modifier.',
+      'Labels are optional; positional values follow object, thickness, and open-face order.',
       'Shelling uses the current body after previous operations; thickness must fit its geometry.',
+      'Available at file scope and inside parts, functions, loops, and branches wherever statements are accepted.',
     ],
     examples: [
-      'part sample {\nobj box = cube([60, 40, 20]);\nshell: box 2 open: top;\n}',
+      'part sample {\nobj box = cube([60, 40, 20]);\nshell(box, 2, open: top);\n}',
     ],
     related: ['open', 'thicken', 'cut'],
   },
   draft: {
     summary:
       'Tilts selected solid faces around a neutral base plane to add a mold-release draft angle.',
-    signatures: ['draft: object.face angle;'],
+    signatures: ['draft(@object.face, angle);'],
     parameters: [
       {
         name: 'object.face',
@@ -114,10 +119,11 @@ export const detailOperationHelp: Record<string, LanguageHelpEntry> = {
     ],
     behavior: [
       'Draft changes whole faces. It is not an edge bevel.',
-      'Use colon syntax and a face reference without the leading @.',
+      'Pass a face reference with @. Labels are optional and can select slots.',
+      'Available at file scope and inside parts, functions, loops, and branches wherever statements are accepted.',
     ],
     examples: [
-      'part sample {\nobj base = cube([40, 30, 20]);\ndraft: base.sides 2deg;\n}',
+      'part sample {\nobj base = cube([40, 30, 20]);\ndraft(@base.sides, 2deg);\n}',
     ],
     related: ['chamfer', 'fillet'],
   },
@@ -125,8 +131,8 @@ export const detailOperationHelp: Record<string, LanguageHelpEntry> = {
     summary:
       'Selects faces removed by a shell operation to create an opening in the hollow body.',
     signatures: [
-      'shell: object thickness open: top;',
-      'shell: object thickness open: [top, front];',
+      'shell(object, thickness, top);',
+      'shell(object, thickness, [top, front]);',
     ],
     parameters: [
       {
@@ -136,7 +142,7 @@ export const detailOperationHelp: Record<string, LanguageHelpEntry> = {
       },
     ],
     examples: [
-      'part sample {\nobj box = cube([40, 30, 20]);\nshell: box 1.5 open: top;\n}',
+      'part sample {\nobj box = cube([40, 30, 20]);\nshell(box, 1.5, open: top);\n}',
     ],
     related: ['shell'],
   },

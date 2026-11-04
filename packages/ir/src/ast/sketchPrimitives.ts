@@ -124,10 +124,7 @@ export type PathSegmentItem = {
 
 /** Compact closed primitives accepted alongside explicit path segments. */
 export type PathEmbeddedPrimitive =
-  | RectPrimitive
-  | CirclePrimitive
-  | EllipsePrimitive
-  | PathEmbeddedAtPrimitive;
+  RectPrimitive | CirclePrimitive | EllipsePrimitive | PathEmbeddedAtPrimitive;
 
 /** Local translation around a compact primitive embedded in `path(...)`. */
 export type PathEmbeddedAtPrimitive = {
@@ -173,7 +170,8 @@ export type PathArcSegment = {
   form: 'explicit' | 'inferred';
   start?: [Expr, Expr];
   end: [Expr, Expr];
-  radius: Expr;
+  /** Omitted radius creates the default semicircle between the endpoints. */
+  radius?: Expr;
   direction: 'cw' | 'ccw';
   span: ASTSourceSpan;
 };

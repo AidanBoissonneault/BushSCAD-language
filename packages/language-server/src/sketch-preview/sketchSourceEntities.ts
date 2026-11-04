@@ -162,7 +162,7 @@ function pathSegmentSource(
         ? endpointSource(segment.end, source)
         : undefined,
     radius:
-      segment.kind === 'arc'
+      segment.kind === 'arc' && segment.radius
         ? sourceTextForExpression(source, segment.radius)
         : undefined,
   };

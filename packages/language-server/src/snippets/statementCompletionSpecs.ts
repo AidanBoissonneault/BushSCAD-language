@@ -61,12 +61,12 @@ export const BUSHSCAD_STATEMENT_COMPLETION_SPECS = [
   },
   {
     label: 'shell',
-    insertText: 'shell: ${1:body} ${2:2} open: ${3:top};',
+    insertText: 'shell(${1:body}, ${2:2}, open: ${3:top});',
     detail: 'Hollow a body',
   },
   {
     label: 'draft',
-    insertText: 'draft: ${1:target} ${2:2deg};',
+    insertText: 'draft(@${1:target.sides}, ${2:2deg});',
     detail: 'Apply draft angle',
   },
   {

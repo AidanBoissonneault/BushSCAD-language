@@ -137,11 +137,6 @@ const STATIC_ACCESS: Record<IROp['kind'], OperationStaticAccess> = {
     continuation: true,
   }),
   alignShape: mutation('positive'),
-  flange: mutation('positive'),
-  flat_pattern: meta('output', 'neutral', {
-    cacheSafe: true,
-    orderSensitive: true,
-  }),
   surface: recipe('definition', 'neutral', {
     topologySensitive: true,
     continuation: true,

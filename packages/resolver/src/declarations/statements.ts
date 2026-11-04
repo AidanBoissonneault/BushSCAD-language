@@ -36,7 +36,6 @@ import { resolveObj } from './objects.js';
 import { resolveFaceRef, resolveFromRef } from '../references/refs.js';
 import { recordSelectorAlias } from '../references/selector-aliases.js';
 import { resolveSketch } from '../sketch/sketch.js';
-import { resolveSheet } from '../geometry/sheet.js';
 import { resolveSurface } from '../geometry/surface.js';
 import { resolveMetadataAssignment } from './metadata.js';
 import { isSelectorNameValue } from '../references/selector-vars.js';
@@ -169,6 +168,28 @@ type SharedResolver = (stmt: Statement, scope: Scope, state: State) => void;
 const SHARED_STMT_RESOLVERS: Partial<
   Record<Statement['kind'], SharedResolver>
 > = {
+  fillet: (stmt, scope, state) =>
+    resolveFilletDetail(
+      stmt as Extract<Statement, { kind: 'fillet' }>,
+      scope,
+      state,
+    ),
+  chamfer: (stmt, scope, state) =>
+    resolveChamferDetail(
+      stmt as Extract<Statement, { kind: 'chamfer' }>,
+      scope,
+      state,
+    ),
+  draft: (stmt, scope, state) =>
+    resolveDraftDetail(
+      stmt as Extract<Statement, { kind: 'draft' }>,
+      scope,
+      state,
+    ),
+  shell: (stmt, scope, state) =>
+    resolveShell(stmt as ComponentStatement, scope, state),
+  thread: (stmt, scope, state) =>
+    resolveThread(stmt as ComponentStatement, scope, state),
   heal: (stmt, scope, state) => resolveHeal(stmt as HealDecl, scope, state),
   defeature: (stmt, scope, state) =>
     resolveDefeature(stmt as DefeatureDecl, scope, state),
@@ -192,8 +213,6 @@ const SHARED_STMT_RESOLVERS: Partial<
       state,
     ),
   joint: (stmt, scope, state) => resolveJoint(stmt as JointDecl, scope, state),
-  sheet: (stmt, scope, state) =>
-    resolveSheet(stmt as Extract<Statement, { kind: 'sheet' }>, scope, state),
 };
 
 /**
@@ -277,12 +296,6 @@ const TOP_STMT_RESOLVERS: Partial<
       state,
     ),
   objCall: resolveObjCall,
-  fillet: (stmt, scope, state) =>
-    resolveFilletDetail(
-      stmt as Extract<TopLevelStatement, { kind: 'fillet' }>,
-      scope,
-      state,
-    ),
   place: (stmt, scope, state) =>
     resolvePlaceStatement(stmt as PlaceStatement, scope, state),
   anchor: resolveTopAnchor,
@@ -597,16 +610,6 @@ const BODY_STMT_RESOLVERS: Partial<
     ),
   place: (stmt, scope, state) =>
     resolvePlaceStatement(stmt as PlaceStatement, scope, state),
-  fillet: (stmt, scope, state) =>
-    resolveFilletDetail(
-      stmt as Extract<ComponentStatement, { kind: 'fillet' }>,
-      scope,
-      state,
-    ),
-  chamfer: resolveChamferDetail,
-  draft: resolveDraftDetail,
-  thread: resolveThread,
-  shell: resolveShell,
   plane: resolveBodyPlane,
   anchor: resolveBodyAnchor,
 };
@@ -795,7 +798,7 @@ function resolveThread(
   scope: Scope,
   state: State,
 ): void {
-  const thread = stmt as Extract<ComponentStatement, { kind: 'thread' }>;
+  const thread = stmt as Extract<Statement, { kind: 'thread' }>;
   requireTargetObject(thread.target, scope, state, thread.span, 'thread');
   resolveExpr(thread.diameter, scope, state);
   resolveExpr(thread.pitch, scope, state);
@@ -811,7 +814,7 @@ function resolveShell(
   scope: Scope,
   state: State,
 ): void {
-  const shell = stmt as Extract<ComponentStatement, { kind: 'shell' }>;
+  const shell = stmt as Extract<Statement, { kind: 'shell' }>;
   requireTargetObject(shell.target, scope, state, shell.span, 'shell');
   resolveExpr(shell.thickness, scope, state);
 }

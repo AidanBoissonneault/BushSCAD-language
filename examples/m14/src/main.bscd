@@ -9,7 +9,7 @@ env build_mode fallback 'preview';
 part enclosure {
   sketch body = roundrect(70, 42, r: 5);
   obj body = extrude(body, 18);
-  shell: body 2 open: top;
+  shell(body, 2, open: top);
 
   place(make_lid(), @body.top.center);
   if build_mode == 'preview' {

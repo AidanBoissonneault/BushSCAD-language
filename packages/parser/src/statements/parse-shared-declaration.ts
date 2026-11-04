@@ -10,9 +10,10 @@ import type { Parser } from '../core/parser.js';
 import { parseSketch } from '../sketch/parse-sketch.js';
 import { parseObj } from '../objects/parse-object-ops.js';
 import { parsePath } from '../paths/parse-paths.js';
-import { parseRef } from './parse-top-level.js';
+import { parseRef, parseUseDecl } from './parse-top-level.js';
 import { parseSpatialAnchor } from './parse-modifiers.js';
 import { parseSurfaceDecl } from '../geometry/parse-surface.js';
+import { parseEnv, parseVar } from './parse-declarations.js';
 
 /**
  * Parses declarations accepted in both top-level and component scopes.
@@ -24,6 +25,12 @@ export function parseSharedDeclaration(
   p: Parser,
 ): TopLevelStatement | ComponentStatement | null {
   switch (p.peek().kind) {
+    case 'VAR':
+      return parseVar(p);
+    case 'ENV':
+      return parseEnv(p);
+    case 'USE':
+      return parseUseDecl(p);
     case 'SKETCH':
       return parseSketch(p);
     case 'SURFACE':

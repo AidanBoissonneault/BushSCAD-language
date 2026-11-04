@@ -47,7 +47,6 @@ const SEMANTIC_OBJECT_OUTPUTS = new Set<IROp['kind']>([
   'sweep_cut',
   'surfaceThicken',
   'solidPrimitive',
-  'flange',
 ]);
 const SEMANTIC_NAME_OUTPUTS = new Set<IROp['kind']>([
   'sketch',
@@ -261,7 +260,6 @@ function additionalOutputNames(op: IROp): string[] {
     return [op.kind === 'path' ? op.name : op.objName];
   if (op.kind === 'joint') return [op.name];
   if (op.kind === 'fit') return [op.fitName];
-  if (op.kind === 'flat_pattern') return [op.name];
   return [];
 }
 

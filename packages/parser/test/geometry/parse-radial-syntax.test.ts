@@ -36,6 +36,46 @@ part p {
     expect(op.extent.kind).toBe('angle-length');
   });
 
+  it('accepts the positional axis, angle, and length overload', () => {
+    const op = radialOp(`
+part p {
+  sketch s = rect(1, 1);
+  obj o = radial_extrude(s, z, 90, 10);
+}
+`);
+    expect(op.kind).toBe('radial_extrude');
+    expect(op.axis).toBe('z');
+    expect(op.extent).toMatchObject({ kind: 'angle-length' });
+  });
+
+  it('fills positional radial values around named slots', () => {
+    const op = radialOp(`
+part p {
+  sketch s = rect(1, 1);
+  obj o = radial_extrude(s, axis: z, 90, length: 10);
+}
+`);
+    expect(op.axis).toBe('z');
+    expect(op.extent).toMatchObject({
+      kind: 'angle-length',
+      angle: { kind: 'number', value: 90 },
+      length: { kind: 'number', value: 10 },
+    });
+  });
+
+  it('accepts a positional inference placement before angle and length', () => {
+    const op = radialOp(`
+part p {
+  sketch s = rect(1, 1);
+  obj o = radial_extrude(s, @base.top.center, 90, 10);
+}
+`);
+    expect(op.kind).toBe('radial_extrude');
+    expect(op.axis).toBeNull();
+    expect(op.from).toMatchObject({ kind: 'faceRef' });
+    expect(op.extent.kind).toBe('angle-length');
+  });
+
   it('accepts placement bridge radial_cut', () => {
     const op = radialOp(`
 part p {

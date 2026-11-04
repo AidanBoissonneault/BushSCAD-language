@@ -24,5 +24,4 @@ export * from './details.js';
 export * from './placement.js';
 export * from './declarations.js';
 export * from './drawing.js';
-export * from './sheet.js';
 export * from './surface.js';

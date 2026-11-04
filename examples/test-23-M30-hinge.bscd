@@ -5,7 +5,7 @@ base_unit = mm;
 part box {
     sketch sk = rect(80, 60);
     obj body = extrude(sk, 40);
-    shell: body 3 open: top;
+    shell(body, 3, open: top);
     fillet(@body.bottom.edges, 2);
     part.color = #1D4ED8;
 }

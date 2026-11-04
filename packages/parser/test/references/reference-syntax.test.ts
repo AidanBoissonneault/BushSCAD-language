@@ -148,6 +148,25 @@ part p {
     expect(target.offset?.kind).toBe('number');
   });
 
+  it('accepts positional and labeled offsets for plane placements', () => {
+    const ast = parseOk(`
+part p {
+  place(pin, @plane(b.top.center, 2));
+  place(pin2, @plane(b.top.center, offset: 3));
+}
+`);
+    const part = firstPart(ast);
+    const offsets = part.body.statements
+      .filter(
+        (stmt): stmt is Extract<typeof stmt, { kind: 'place' }> =>
+          stmt.kind === 'place',
+      )
+      .map((stmt) => (stmt.target as PosRef).offset);
+    expect(
+      offsets.map((offset) => offset?.kind === 'number' && offset.value),
+    ).toEqual([2, 3]);
+  });
+
   it('rejects removed selector calls and colon modifiers', () => {
     const errors = [
       ...parseErrors('part p { fillet: b.top.edges 1; }'),
@@ -160,8 +179,8 @@ part p {
 
     expect(errors).toEqual(
       expect.arrayContaining([
-        expect.stringContaining('fillet: target radius has been removed'),
-        expect.stringContaining('chamfer: target offset has been removed'),
+        expect.stringContaining('Use fillet(@target, radius)'),
+        expect.stringContaining('Use chamfer(@target, offset)'),
         expect.stringContaining('side(...) selectors have been removed'),
         expect.stringContaining('corner(...) selectors have been removed'),
         expect.stringContaining('edge(...) selectors have been removed'),

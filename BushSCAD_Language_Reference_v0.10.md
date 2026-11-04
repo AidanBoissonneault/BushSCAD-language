@@ -1,6 +1,6 @@
 # BushSCAD Language Reference
 
-**Version 0.3.0 - November 2026**
+**Version 0.4.0 - November 2026**
 
 This reference describes BushSCAD syntax and what each language feature does.
 
@@ -441,27 +441,6 @@ drawing plate_view {
 }
 ```
 
-##### Sheet flat-pattern output
-
-**Syntax guide.** [Flat-pattern export](/docs/solid-editing#sheet-metal-features).
-
-**Syntax**
-
-```bushscad
-export flat_pattern dxf 'path';
-```
-
-**Example**
-
-```bushscad
-sheet bracket thickness: 2 bend_radius: 1 k_factor: 0.44 {
-  sketch blank = rect(80, 40);
-  obj panel = sheet_base(blank);
-  flange panel.edge(front) length: 15 angle: 90deg;
-  export flat_pattern dxf './exports/bracket-flat.dxf';
-}
-```
-
 ### Reuse and metadata
 
 #### `ref`
@@ -582,6 +561,7 @@ assert(fit_ok(bolt, bore), warning: 'Check clearance');
 **Syntax guide.** [Drawing and DXF export](/docs/import-and-export#drawing-and-dxf-export).
 
 ```bushscad
+drawing name { view reference scale; }
 drawing name { view reference scale: value; }
 ```
 
@@ -822,6 +802,8 @@ sketch outline = polygon([(0, 0), (30, 0), (15, 26)]);
 **Syntax**
 
 ```bushscad
+word(text, size?, font?, align?, origin?)
+word(text, 8, 'sans', center)
 word(text, size: 8, font: 'sans', align: center)
 ```
 
@@ -831,6 +813,11 @@ word(text, size: 8, font: 'sans', align: center)
 - `size`: Text size as a length; defaults to 8.
 - `font`: CSS-style font-family string. VS Code resolves workspace fonts before installed system fonts; sans, serif, and mono use bundled outlines.
 - `align`: center (default), left, or right relative to the sketch anchor.
+- `origin`: Optional center or corner anchor; corner uses the top-left of evaluated bounds.
+
+Argument labels are optional. Positional options follow size, font, alignment,
+then origin. Contextual words such as `center`, `left`, `right`, and `corner`
+can be supplied without quotes.
 
 **Syntax guide.** [Word sketches](/docs/sketch-profiles#word-sketch).
 
@@ -1034,16 +1021,16 @@ sketch outline = path(
 **Syntax**
 
 ```bushscad
-name = arc((x, y), radius, cw|ccw)
-name = arc(x, y, radius: value, ccw)
-name = arc((x1, y1), (x2, y2), radius, cw|ccw)
+name = arc(endpoint, radius?, direction?)
+name = arc(start, end, radius?, direction?)
+name = arc(start: point, end: point, radius: value, direction: cw|ccw)
 ```
 
 **Arguments**
 
-- `endpoint(s)`: One endpoint continues from the path cursor; two endpoint tuples establish an explicit start and end.
-- `radius`: Circle radius as a length, supplied positionally or with radius:.
-- `cw / ccw`: Required travel direction. The aliases clockwise and counterclockwise are accepted.
+- `endpoint(s)`: One point continues from the path cursor; two point tuples establish explicit start and end points.
+- `radius`: Optional circle radius. With two endpoints and no radius, the arc is a semicircle spanning them.
+- `cw / ccw`: Optional travel direction; defaults to `ccw`. The aliases clockwise and counterclockwise are accepted.
 
 **Syntax guide.** [Arc and curve primitives](/docs/sketch-profiles#arc-curve-primitives-in-sketches).
 
@@ -1052,7 +1039,7 @@ name = arc((x1, y1), (x2, y2), radius, cw|ccw)
 ```bushscad
 sketch cap = path(
   base = line((0, 0), (20, 0)),
-  rim = arc((0, 0), 10, ccw)
+  rim = arc((0, 0), (20, 0))
 );
 ```
 
@@ -1417,6 +1404,7 @@ drawing top_sheet {
 
 ```bushscad
 obj name = cube(size, @placement);
+obj name = cube(width, depth, height);
 obj name = cube(width: x, depth: y, height: z);
 ```
 
@@ -1445,6 +1433,7 @@ obj block = cube(12);
 
 ```bushscad
 obj name = cuboid([width, depth, height], @placement);
+obj name = cuboid(width, depth, height);
 obj name = cuboid(width: x, depth: y, height: z);
 ```
 
@@ -1473,13 +1462,14 @@ obj plate = cuboid(width: 60, depth: 40, height: 4);
 
 ```bushscad
 obj name = sphere(r: radius, segments: count, @placement);
+obj name = sphere(radius, segments);
 obj name = sphere(d: diameter);
 ```
 
 **Arguments**
 
-- `r / radius`: Positive radius; defaults to 1. Use the named form.
-- `d / diameter`: Positive diameter, converted to radius; takes precedence over r/radius.
+- `r / radius`: Positive radius; defaults to 1. The first positional value supplies it.
+- `d / diameter`: Positive full diameter, converted to radius when labeled; an unlabeled first value means radius.
 - `segments`: Meridian profile subdivisions, rounded to an integer with a minimum of 3; default 48.
 
 **Syntax guide.** [3D primitives](/docs/solid-primitives#direct-3d-primitives).
@@ -1487,7 +1477,7 @@ obj name = sphere(d: diameter);
 **Usage**
 
 ```bushscad
-obj ball = sphere(r: 10, segments: 64);
+obj ball = sphere(10, 64);
 ```
 
 **Related:** [`ellipsoid`](#ellipsoid), [`geodesicSphere`](#geodesicsphere), [`revolve`](#revolve).
@@ -1502,6 +1492,7 @@ obj ball = sphere(r: 10, segments: 64);
 
 ```bushscad
 obj name = ellipsoid(radius: [rx, ry, rz], segments: count);
+obj name = ellipsoid([rx, ry, rz], segments);
 ```
 
 **Arguments**
@@ -1528,13 +1519,13 @@ obj dome = ellipsoid(radius: [10, 10, 18], segments: 64);
 **Syntax**
 
 ```bushscad
-obj name = geodesicSphere(r: radius, segments: count);
+obj name = geodesicSphere(radius, segments);
 ```
 
 **Arguments**
 
-- `r / radius`: Positive radius; defaults to 1. Use the named form.
-- `d / diameter`: Positive diameter, converted to radius; takes precedence over r/radius.
+- `r / radius`: Positive radius; defaults to 1. The first positional value supplies it.
+- `d / diameter`: Positive full diameter, converted to radius when labeled; an unlabeled first value means radius.
 - `segments`: Meridian profile subdivisions, rounded to an integer with a minimum of 3; default 48.
 
 **Syntax guide.** [3D primitives](/docs/solid-primitives#direct-3d-primitives).
@@ -1587,8 +1578,8 @@ obj pin = cylinder(12, d: 6, @base.top.center);
 **Syntax**
 
 ```bushscad
-obj name = cylinderElliptic(height: h, radius: [rx, ry]);
-obj name = cylinderElliptic(height: h, startRadius: [rx, ry], endRadius: [rx, ry]);
+obj name = cylinderElliptic(height, radius);
+obj name = cylinderElliptic(height, radius, startRadius, endRadius, segments);
 ```
 
 **Arguments**
@@ -1603,7 +1594,7 @@ obj name = cylinderElliptic(height: h, startRadius: [rx, ry], endRadius: [rx, ry
 **Usage**
 
 ```bushscad
-obj oval = cylinderElliptic(height: 20, radius: [10, 6], segments: 48);
+obj oval = cylinderElliptic(20, [10, 6], segments: 48);
 ```
 
 **Related:** [`ellipse`](#ellipse), [`extrude`](#extrude), [`loft`](#loft), [`cylinder`](#cylinder).
@@ -1674,7 +1665,7 @@ obj reducer = frustum(height: 25, r1: 12, r2: 6);
 **Syntax**
 
 ```bushscad
-obj name = roundedCuboid(size: [width, depth, height], r: radius, segments: count);
+obj name = roundedCuboid([width, depth, height], radius, segments);
 ```
 
 **Arguments**
@@ -1703,7 +1694,7 @@ obj case_body = roundedCuboid(size: [60, 40, 12], r: 4);
 **Syntax**
 
 ```bushscad
-obj name = roundedCylinder(height: h, r: radius, roundingRadius: amount);
+obj name = roundedCylinder(height, radius, radiusBottom, radiusTop, segments, roundingRadius);
 ```
 
 **Arguments**
@@ -1730,7 +1721,7 @@ obj pin = roundedCylinder(height: 20, r: 6, roundingRadius: 0);
 **Syntax**
 
 ```bushscad
-obj name = torus(majorRadius: ringRadius, minorRadius: tubeRadius, minorSegments: count);
+obj name = torus(majorRadius, minorRadius, majorSegments, minorSegments);
 ```
 
 **Arguments**
@@ -2224,9 +2215,9 @@ chamfer(@plate.bottom.edges, 1);
 **Syntax**
 
 ```bushscad
-shell: object thickness;
-shell: object thickness open: face;
-shell: object thickness open: [face, face];
+shell(object, thickness);
+shell(object, thickness, faces);
+shell(target: object, thickness: value, open: faces);
 ```
 
 **Arguments**
@@ -2242,7 +2233,7 @@ shell: object thickness open: [face, face];
 ```bushscad
 part sample {
 obj box = cube([60, 40, 20]);
-shell: box 2 open: top;
+shell(box, 2, top);
 }
 ```
 
@@ -2257,12 +2248,13 @@ shell: box 2 open: top;
 **Syntax**
 
 ```bushscad
-draft: object.face angle;
+draft(@object.face, angle);
+draft(target: @object.face, angle: value);
 ```
 
 **Arguments**
 
-- `object.face`: Face-only selector, such as base.front or base.sides; points and edges are not valid targets.
+- `@object.face`: Face-only selector, such as @base.front or @base.sides; points and edges are not valid targets.
 - `angle`: Draft angle in degrees; use deg to make the unit explicit.
 
 **Syntax guide.** [Draft syntax](/docs/solid-editing#edge-and-face-details).
@@ -2272,7 +2264,7 @@ draft: object.face angle;
 ```bushscad
 part sample {
 obj base = cube([40, 30, 20]);
-draft: base.sides 2deg;
+draft(@base.sides, 2deg);
 }
 ```
 
@@ -2375,138 +2367,6 @@ obj insert_pocket = heatset_insert(M3, depth: 5, @boss.top.center);
 **Related:** [`hole`](#hole), [`cut`](#cut).
 
 **More:** [solid editing](/docs/solid-editing#heat-set-insert-pockets).
-
-### Sheet-metal features
-
-#### `sheet`
-
-**Purpose.** Declares a sheet-metal part with thickness, bend settings, panels, and optional flat-pattern output.
-
-**Syntax**
-
-```bushscad
-sheet name thickness: value bend_radius: value k_factor: value { ... }
-```
-
-**Arguments**
-
-- `thickness`: Required positive sheet thickness.
-- `bend_radius`: Default bend radius for flanges; default 1.
-- `k_factor`: Neutral-axis thickness fraction used in bend allowance; default 0.44.
-- `material`: Optional quoted material-catalog name.
-
-**Syntax guide.** [Sheet-metal features](/docs/solid-editing#sheet-metal-features).
-
-**Usage**
-
-```bushscad
-sheet bracket thickness: 2 bend_radius: 1 k_factor: 0.44 {
-  sketch blank = rect(80, 40);
-  obj panel = sheet_base(blank);
-  flange panel.edge(front) length: 15 angle: 90deg;
-  export flat_pattern dxf './exports/bracket-flat.dxf';
-}
-```
-
-**Related:** [`sheet_base`](#sheetbase), [`flange`](#flange), [`flat_pattern`](#export-flatpattern).
-
-**More:** [solid editing](/docs/solid-editing#sheet-metal-features).
-
-#### `sheet_base`
-
-**Purpose.** Creates a sheet panel by extruding a sketch to the enclosing sheet thickness.
-
-**Syntax**
-
-```bushscad
-obj panel = sheet_base(sketchName);
-```
-
-**Arguments**
-
-- `sketchName`: Named sketch defined inside the sheet block.
-
-**Syntax guide.** [Sheet-metal features](/docs/solid-editing#sheet-metal-features).
-
-**Usage**
-
-```bushscad
-sheet plate thickness: 2 {
-  sketch blank = rect(60, 40);
-  obj panel = sheet_base(blank);
-}
-```
-
-**Related:** [`sheet`](#sheet), [`flange`](#flange), [`extrude`](#extrude).
-
-**More:** [solid editing](/docs/solid-editing#sheet-metal-features).
-
-#### `flange`
-
-**Purpose.** Folds a rectangular panel edge into a bent wall.
-
-**Syntax**
-
-```bushscad
-flange panel.edge(front) length: distance angle: degrees radius: distance direction: up;
-```
-
-**Arguments**
-
-- `edge`: front, back, left, or right on a rectangular sheet_base panel.
-- `length`: Required positive flat strip length, including bend allowance.
-- `angle`: Required bend angle in degrees, greater than 0 and at most 180.
-- `radius`: Positive bend radius; defaults to the sheet bend_radius.
-- `direction`: up or down; defaults to up.
-
-**Syntax guide.** [Flange syntax](/docs/solid-editing#sheet-metal-features).
-
-**Usage**
-
-```bushscad
-sheet bracket thickness: 2 bend_radius: 1 k_factor: 0.44 {
-  sketch blank = rect(80, 40);
-  obj panel = sheet_base(blank);
-  flange panel.edge(front) length: 15 angle: 90deg;
-  export flat_pattern dxf './exports/bracket-flat.dxf';
-}
-```
-
-**Related:** [`sheet`](#sheet), [`sheet_base`](#sheetbase), [`flat_pattern`](#export-flatpattern).
-
-**More:** [solid editing](/docs/solid-editing#sheet-metal-features).
-
-#### `export flat_pattern`
-
-**Purpose.** Exports the sheet blank outline and bend lines as a DXF.
-
-**Syntax**
-
-```bushscad
-export flat_pattern dxf './exports/name.dxf';
-```
-
-**Arguments**
-
-- `dxf`: The supported flat-pattern export format.
-- `path`: Quoted output path recorded by the sheet export declaration.
-
-**Syntax guide.** [Flat-pattern export](/docs/solid-editing#sheet-metal-features).
-
-**Usage**
-
-```bushscad
-sheet bracket thickness: 2 bend_radius: 1 k_factor: 0.44 {
-  sketch blank = rect(80, 40);
-  obj panel = sheet_base(blank);
-  flange panel.edge(front) length: 15 angle: 90deg;
-  export flat_pattern dxf './exports/bracket-flat.dxf';
-}
-```
-
-**Related:** [`sheet`](#sheet), [`flange`](#flange).
-
-**More:** [solid editing](/docs/solid-editing#sheet-metal-features).
 
 ### Placement and transforms
 
@@ -3519,7 +3379,7 @@ lines and may contain nested template strings.
 var width = 24;
 var enabled = true;
 var label = `width=${width}; enabled=${enabled}`;
-var doubled = `2 × width = ${width * 2}`;
+var doubled = `2 Ã— width = ${width * 2}`;
 var nested = `result: ${`value ${width}`}`;
 ```
 
@@ -3543,7 +3403,7 @@ part enclosure {
     var wall_thickness = 3;          // local - shadows global inside enclosure
     sketch body = rect(80, 60);
     obj body = extrude(body, 40);
-    shell: body wall_thickness;      // uses 3
+    shell(body, wall_thickness);      // uses 3
 }
 
 part thin_plate {
@@ -3707,6 +3567,12 @@ computed expressions.
 ### Functions
 
 Functions encapsulate reusable geometry operations. They accept parameters, follow the same scoping rules as components, and can contain any valid BushSCAD statements.
+
+Built-in call labels such as `radius:` and `target:` are optional. Unlabeled
+values fill the documented positional slots in order, and may be interleaved
+with labeled values. Labels remain available when a call needs a specific
+slot; required values still need to be supplied, while optional values may be
+omitted.
 
 Parameter names must be unique. Positional arguments fill the next unassigned
 parameter in declaration order; named arguments bind by name and may be
@@ -3894,15 +3760,15 @@ part plate {
 
 ```
 local component scope
-  → parent component scope
-  → file scope
-  → imported scope (via import statements)
-  → error: undefined identifier
+  â†’ parent component scope
+  â†’ file scope
+  â†’ imported scope (via import statements)
+  â†’ error: undefined identifier
 ```
 
 ### Optional Keyword Arguments
 
-Value arguments can use positional values, keyword labels, or a mix. Positional values fill the remaining argument slots. Structural keywords that select an operation or geometry remain required.
+Value arguments can use positional values, keyword labels, or a mix. Positional values fill remaining slots in the order listed by each function. Labels are optional and can select a slot when skipping a defaulted argument or specifying values out of order. Structural keywords that select an operation or geometry remain required.
 
 ```bushscad
 sketch base = rect(60, 40);
@@ -3913,7 +3779,7 @@ sketch slot = rect(8, 4);
 obj pocket = cut(slot, through body, @body.top.center);
 ```
 
-Keywords such as `through`, `around`, `fallback`, `open`, and `axis` specify operation behavior and cannot be omitted.
+Keywords such as `through`, `around`, and `fallback` select an operation or declaration form and remain required when that form is used. Value labels such as `depth:`, `open:`, and `axis:` may be omitted when the value is supplied in its positional slot.
 
 ## Sketch Profiles
 
@@ -4057,14 +3923,14 @@ name = line((x, y))
 line(x, y)
 line((x, y))
 line([(x1, y1), (x2, y2), ...])
-name = arc((x, y), radius, cw)
-name = arc(x, y, radius: radius, ccw)
-name = arc((x1, y1), (x2, y2), radius, ccw)
+name = arc(endpoint, radius?, direction?)
+name = arc(start, end, radius?, direction?)
+name = arc(start: point, end: point, radius: value, direction: cw|ccw)
 name = close()
 close()
 ```
 
-`(x, y)` is the universal 2D point expression. When a `line(...)` or `arc(...)` call displays two points, both points must use tuple syntax. For one cursor-inferred endpoint, the tuple is optional: `line(20, 10)` and `line((20, 10))` are equivalent inside `path(...)`. A list of point tuples repeats cursor-inferred lines in order.
+`(x, y)` is the universal 2D point expression. When a `line(...)` or `arc(...)` call displays two points, both points must use tuple syntax. For one cursor-inferred endpoint, the tuple is optional: `line(20, 10)` and `line((20, 10))` are equivalent inside `path(...)`. A two-point arc with no radius makes a semicircle; radius and direction are optional positional or labeled values. A list of point tuples repeats cursor-inferred lines in order.
 
 Path sketches may contain more than one closed body. By default,
 `extrude(sketch_name, depth)` uses every detected closed body that has not been
@@ -4646,7 +4512,7 @@ Optional `radius:` named argument offsets the profile outward from the revolve a
 ```
 sketch cross = circle(3);
 obj ring = revolve(cross, 360deg around z, radius: 20);
-// → torus: tube radius 3mm, ring radius 20mm from Z axis
+// â†’ torus: tube radius 3mm, ring radius 20mm from Z axis
 ```
 
 `radius:` is resolved as an expression before placement. It may reference variables but not `this.` (since the object does not yet exist at revolve time).
@@ -4959,7 +4825,7 @@ part plate {
     obj boss = extrude(boss, 8, @base.top.center);
 
     // Shell executes here - geometry below sees hollow body
-    shell: base 1.5 open: top;
+    shell(base, 1.5, top);
 
     // Cut into inner wall - valid because shell already ran
     sketch label = word('INSIDE', size: 5, font: 'sans', align: center);
@@ -4994,16 +4860,16 @@ chamfer(@base.top.front_left, 2);   // corner chamfer
 #### Shell
 
 ```
-shell: base 1.5;                       // hollow with 1.5mm uniform wall
-shell: base 1.5 open: top;             // open face on top
-shell: base 1.5 open: [top, front];    // multiple open faces
+shell(base, 1.5);                       // hollow with 1.5mm uniform wall
+shell(base, 1.5, top);             // open face on top
+shell(base, 1.5, [top, front]);    // multiple open faces
 ```
 
 #### Draft Angle
 
 ```
-draft: base.sides 2deg;            // 2 degree draft on all sides
-draft: base.front 3deg;      // single face
+draft(@base.sides, 2deg);            // 2 degree draft on all sides
+draft(@base.front, 3deg);      // single face
 ```
 
 Draft tilts selected faces around the neutral base plane; it is not an edge bevel. Use `chamfer` or `fillet` when the intended change is only along selected edges.
@@ -5135,24 +5001,6 @@ Hardware dimension tables can be overridden in `bushscad.json`:
   }
 }
 ```
-
-### Sheet Metal Features
-
-A `sheet` declaration sets panel thickness and bend settings. `sheet_base`
-creates a panel, `flange` folds one edge into a wall, and `flat_pattern` exports
-the blank outline and bend lines as DXF.
-
-```bushscad
-sheet bracket thickness: 2 bend_radius: 1 k_factor: 0.44 {
-    sketch blank = rect(80, 40);
-    obj panel = sheet_base(blank);
-    flange panel.edge(front) length: 15 angle: 90deg;
-    export flat_pattern dxf './bracket-flat.dxf';
-}
-```
-
-This supports rectangular panels with edge flanges; it does not unfold arbitrary
-solids.
 
 ## References and Placement
 
@@ -5293,7 +5141,7 @@ results; they never silently choose the first result.
 ```bushscad
 surface bad_corner = fill(body.top.front_left); // error: corner is not a loop
 surface bad_many = fill(@body.[top, bottom]);   // error: fill requires one target
-draft: body.top.edges 2deg;                     // error: draft requires faces
+draft(@body.top.edges, 2deg);                     // error: draft requires faces
 ```
 
 ```bushscad
@@ -5373,8 +5221,8 @@ instance paths, for example `pocket[0].top.corner.front_right` and
 obj pocket = cut(hole, 1, @body.[top, bottom]);
 fillet(@pocket.edges, 0.25);     // affects both generated pockets
 chamfer(@pocket[1].edges, 0.1);  // affects only the second generated pocket
-shell: pocket 0.5;               // object-level ops also affect all pockets
-shell: pocket[1] 0.5;            // object-level ops can select one item
+shell(pocket, 0.5);               // object-level ops also affect all pockets
+shell(pocket[1], 0.5);            // object-level ops can select one item
 ```
 
 #### Point References
@@ -5406,7 +5254,7 @@ Explicit corner anchors keep their named-corner origin. For example, `@base.top.
 After a `shell` operation, faces split into inner and outer surfaces. Use the `inner` / `outer` qualifier to reach the correct one. Without qualifier, `outer` is assumed for backward compatibility.
 
 ```
-shell: body 2 open: top;
+shell(body, 2, top);
 
 // Outer surfaces (default)
 fillet(@body.outer.top.edges, 1);
@@ -5757,7 +5605,7 @@ obj cap = my_cap();          // geometry bound to name like any inline obj
 fillet(@cap.top.edges, 1);    // normal face references work on the result
 ```
 
-#### `place … as` Aliasing
+#### `place â€¦ as` Aliasing
 
 `place(source, @target) as alias` places a component and binds that specific instance to a name. Downstream operations on the alias target only that instance. References to the source name continue to resolve to the original definition.
 
@@ -5786,7 +5634,7 @@ pattern(bolt, linear, 4, 12);
 pattern(target: rib, mode: linear, x: 3, y: 2, spacing: (20, 15));
 ```
 
-The target (`bolt`, `rib`) must be an `obj`, alias, placed instance, ref instance, or anchor. Each generated instance gets a stable generated name (`bolt_0`, `bolt_1`, …) for downstream references. Use `as` aliasing when targeting individual instances.
+The target (`bolt`, `rib`) must be an `obj`, alias, placed instance, ref instance, or anchor. Each generated instance gets a stable generated name (`bolt_0`, `bolt_1`, â€¦) for downstream references. Use `as` aliasing when targeting individual instances.
 
 The linear positional order is `pattern(target, linear, x_count, spacing, y_count?)`.
 Use `spacing: (x, y)` or `spacingX:` / `spacingY:` when the two axes differ.
@@ -5968,9 +5816,9 @@ The positional order is `assert(condition, severity?, message?)`. Use
 | --------------------- | ------------------------------------------------ |
 | `distance(a, b)`      | Minimum distance between two geometry references |
 | `clearance(a, b)`     | Unsigned minimum distance, as with `distance`    |
-| `bounding_box(obj)`   | Axis-aligned bounding-box volume in mm³          |
-| `face_area(ref)`      | Built-shape surface area in mm²                  |
-| `volume(obj)`         | Volume of a solid in mm³                         |
+| `bounding_box(obj)`   | Axis-aligned bounding-box volume in mmÂ³          |
+| `face_area(ref)`      | Built-shape surface area in mmÂ²                  |
+| `volume(obj)`         | Volume of a solid in mmÂ³                         |
 | `wall_thickness(obj)` | Approximate minimum positive face separation     |
 
 `face_area` resolves the root built shape and can therefore measure the whole

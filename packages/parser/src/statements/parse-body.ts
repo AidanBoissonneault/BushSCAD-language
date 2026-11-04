@@ -42,7 +42,6 @@ const RETURN_ENTRY_START_TOKENS = new Set<string>([
   'TRANSFORM',
   'ASSERT',
   'FIT',
-  'SHEET',
   'THIS',
   'AT_SIGN',
 ]);

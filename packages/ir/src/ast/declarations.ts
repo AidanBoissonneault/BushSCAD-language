@@ -8,11 +8,10 @@
 import type { ASTSourceSpan } from './sourceSpan.js';
 import type { Literal, Expr, FnCallExpr } from './expressions.js';
 import type { DrawingDecl } from './drawing.js';
-import type { SheetDecl } from './sheet.js';
+import type { DetailStatement } from './details.js';
 import type { SurfaceDecl } from './surface.js';
 import type { SketchPlacement, SketchPrimitive } from './sketchPrimitives.js';
 import type { ObjectOperation, PathPrimitive } from './operations.js';
-import type { FilletDetail } from './details.js';
 import type {
   AnchorDecl,
   MirrorStmt,
@@ -63,7 +62,7 @@ export type TopLevelStatement =
   | ObjFromCallDecl
   | AnchorDecl
   | RotateStatement
-  | FilletDetail
+  | DetailStatement
   | PlaceStatement
   | PatternLinearStmt
   | PatternRadialStmt
@@ -78,8 +77,7 @@ export type TopLevelStatement =
   | AssertStatement
   | FitDecl
   | DrawingDecl
-  | JointDecl
-  | SheetDecl;
+  | JointDecl;
 
 /**
  * Var decl, including operation kind, name, display value, and span.
@@ -292,12 +290,7 @@ export type AssertStatement = {
  * 'tight'.
  */
 export type FitKind =
-  | 'clearance'
-  | 'slip'
-  | 'press'
-  | 'interference'
-  | 'loose'
-  | 'tight';
+  'clearance' | 'slip' | 'press' | 'interference' | 'loose' | 'tight';
 /**
  * Accepted values for tolerance level are 'normal', 'tight', and 'loose'.
  */

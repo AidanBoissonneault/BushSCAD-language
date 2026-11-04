@@ -7,8 +7,7 @@
 
 /**
  * Creates a minimal DXF R12 document buffer with an open ENTITIES section.
- * Drawing exports and sheet-metal flat patterns use the same R12 header and
- * unit metadata; keeping it shared prevents the two writers from drifting.
+ * Drawing exports use the R12 header and unit metadata.
  */
 export function createDxfR12Document(): string[] {
   const lines: string[] = [];

@@ -26,6 +26,7 @@ import {
   vec2Arg,
   vec3Arg,
 } from './eval-solid-primitive-values.js';
+import { evalExpr } from '../expressions/eval-expressions.js';
 
 /**
  * Defines the `PrimitiveNormalizer` callback contract used by the geometry layer.
@@ -70,7 +71,7 @@ export function normalizeSolidPrimitive(
   op: SolidPrimitiveOp,
   ctx: EvalCtx,
 ): IRSolidPrimitiveShape {
-  return PRIMITIVE_NORMALIZERS[op.primitive](op, argBag(op.args), ctx);
+  return PRIMITIVE_NORMALIZERS[op.primitive](op, argBag(op, ctx), ctx);
 }
 
 /**
@@ -83,8 +84,8 @@ function normalizeSphere(
 ): IRSolidPrimitiveShape {
   return {
     primitive: op.primitive === 'geodesicSphere' ? 'geodesicSphere' : 'sphere',
-    radius: positive(radiusArg(args, ctx, 1), 'sphere radius', op.span, ctx),
-    segments: segments(args, ctx),
+    radius: positive(radiusArg(args, ctx, 0), 'sphere radius', op.span, ctx),
+    segments: segments(args, ctx, 1),
   };
 }
 
@@ -104,7 +105,7 @@ function normalizeEllipsoid(
       op.span,
       ctx,
     ),
-    segments: segments(args, ctx),
+    segments: segments(args, ctx, 1),
   };
 }
 
@@ -117,20 +118,65 @@ function normalizeCuboid(
   ctx: EvalCtx,
   span: SolidPrimitiveOp['span'],
 ): Extract<IRSolidPrimitiveShape, { primitive: 'cuboid' | 'roundedCuboid' }> {
-  const sizeArg = named(args, ['size']) ?? args.positional[0];
-  const size = sizeArg
-    ? sizeValue(sizeArg.value, ctx)
-    : ([
-        numArg(args, ctx, ['width', 'x'], -1, 1),
-        numArg(args, ctx, ['depth', 'y'], -1, 1),
-        numArg(args, ctx, ['height', 'z'], -1, 1),
-      ] as [number, number, number]);
+  const { size, sourceSpan } = normalizeCuboidSize(
+    args,
+    ctx,
+    span,
+    args.roundedCuboidSizeForm === true,
+  );
+  const sizeForm = primitive === 'roundedCuboid' && args.roundedCuboidSizeForm;
+  const radius = optionalNum(args, ctx, ['radius', 'r'], sizeForm ? 1 : 3);
   return {
     primitive: primitive === 'roundedCuboid' ? 'roundedCuboid' : 'cuboid',
-    size: positiveVec3(size, `${primitive} size`, sizeArg?.span ?? span, ctx),
-    radius: optionalNum(args, ctx, ['radius', 'r']),
-    segments: segments(args, ctx),
+    size: positiveVec3(size, `${primitive} size`, sourceSpan, ctx),
+    radius,
+    segments: segments(args, ctx, sizeForm ? 2 : 4),
   };
+}
+
+/** Resolves the size tuple or independent dimension slots for a cuboid call. */
+function normalizeCuboidSize(
+  args: ArgBag,
+  ctx: EvalCtx,
+  fallbackSpan: SolidPrimitiveOp['span'],
+  roundedCuboidSizeForm: boolean,
+): { size: [number, number, number]; sourceSpan: SolidPrimitiveOp['span'] } {
+  const sizeArg = named(args, ['size']);
+  const firstPositional = args.positional[0];
+  const firstPositionalIsVector =
+    firstPositional !== undefined &&
+    Array.isArray(evalExpr(firstPositional.value, ctx));
+  if (sizeArg) {
+    return { size: sizeValue(sizeArg.value, ctx), sourceSpan: sizeArg.span };
+  }
+  if (
+    firstPositional &&
+    (roundedCuboidSizeForm ||
+      firstPositionalIsVector ||
+      !hasCuboidDimensions(args))
+  ) {
+    return {
+      size: sizeValue(firstPositional.value, ctx),
+      sourceSpan: firstPositional.span,
+    };
+  }
+  return {
+    size: [
+      numArg(args, ctx, ['width', 'x'], 0, 1),
+      numArg(args, ctx, ['depth', 'y'], 1, 1),
+      numArg(args, ctx, ['height', 'z'], 2, 1),
+    ],
+    sourceSpan: fallbackSpan,
+  };
+}
+
+/** Detects when cuboid input selects width/depth/height instead of a size. */
+function hasCuboidDimensions(args: ArgBag): boolean {
+  return (
+    args.positional[1] !== undefined ||
+    args.positional[2] !== undefined ||
+    named(args, ['depth', 'y', 'height', 'z']) !== undefined
+  );
 }
 
 /**
@@ -156,21 +202,19 @@ function normalizeCylinder(
     primitive,
     height,
     radius: positive(radius, 'cylinder radius', span, ctx),
-    radiusTop: optionalRadius(args, ctx, [
-      'r2',
-      'radiusTop',
-      'topRadius',
-      'd2',
-      'diameterTop',
-    ]),
-    radiusBottom: optionalRadius(args, ctx, [
-      'r1',
-      'radiusBottom',
-      'bottomRadius',
-      'd1',
-      'diameterBottom',
-    ]),
-    segments: segments(args, ctx),
+    radiusTop: optionalRadius(
+      args,
+      ctx,
+      ['r2', 'radiusTop', 'topRadius', 'd2', 'diameterTop'],
+      3,
+    ),
+    radiusBottom: optionalRadius(
+      args,
+      ctx,
+      ['r1', 'radiusBottom', 'bottomRadius', 'd1', 'diameterBottom'],
+      2,
+    ),
+    segments: segments(args, ctx, 4),
   };
 }
 
@@ -187,7 +231,8 @@ function normalizeRoundedCylinder(
     ...cylinder,
     primitive: 'roundedCylinder',
     roundingRadius: positive(
-      optionalNum(args, ctx, ['roundingRadius', 'roundRadius', 'fillet']) ?? 0,
+      optionalNum(args, ctx, ['roundingRadius', 'roundRadius', 'fillet'], 5) ??
+        0,
       'roundedCylinder rounding radius',
       span,
       ctx,
@@ -214,7 +259,7 @@ function normalizeCone(
     ),
     radiusBottom: positive(radiusArg(args, ctx, 1), 'cone radius', span, ctx),
     radiusTop: 0,
-    segments: segments(args, ctx),
+    segments: segments(args, ctx, 2),
   };
 }
 
@@ -249,7 +294,7 @@ function normalizeFrustum(
       ctx,
       true,
     ),
-    segments: segments(args, ctx),
+    segments: segments(args, ctx, 3),
   };
 }
 
@@ -261,7 +306,7 @@ function normalizeEllipticCylinder(
   ctx: EvalCtx,
   span: SolidPrimitiveOp['span'],
 ): Extract<IRSolidPrimitiveShape, { primitive: 'cylinderElliptic' }> {
-  const radius = vec2Arg(args, ctx, ['radius', 'r'], [1, 1]);
+  const radius = vec2Arg(args, ctx, ['radius', 'r'], [1, 1], 1);
   return {
     primitive: 'cylinderElliptic',
     height: positive(
@@ -271,18 +316,18 @@ function normalizeEllipticCylinder(
       ctx,
     ),
     startRadius: positiveVec2(
-      vec2Arg(args, ctx, ['startRadius', 'radiusStart', 'r1'], radius),
+      vec2Arg(args, ctx, ['startRadius', 'radiusStart', 'r1'], radius, 2),
       'cylinderElliptic startRadius',
       span,
       ctx,
     ),
     endRadius: positiveVec2(
-      vec2Arg(args, ctx, ['endRadius', 'radiusEnd', 'r2'], radius),
+      vec2Arg(args, ctx, ['endRadius', 'radiusEnd', 'r2'], radius, 3),
       'cylinderElliptic endRadius',
       span,
       ctx,
     ),
-    segments: segments(args, ctx),
+    segments: segments(args, ctx, 4),
   };
 }
 
@@ -308,11 +353,11 @@ function normalizeTorus(
       span,
       ctx,
     ),
-    majorSegments: segments(args, ctx),
+    majorSegments: segments(args, ctx, 2, ['segments', 'majorSegments', 'fn']),
     minorSegments: Math.max(
       8,
       Math.round(
-        optionalNum(args, ctx, ['minorSegments', 'tubeSegments']) ?? 16,
+        optionalNum(args, ctx, ['minorSegments', 'tubeSegments'], 3) ?? 16,
       ),
     ),
   };

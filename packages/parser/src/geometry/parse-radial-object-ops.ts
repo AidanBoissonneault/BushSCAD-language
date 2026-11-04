@@ -96,7 +96,7 @@ function parseRadialOperationHead(
   const extent = resolveRadialExtent(p, args, start);
   if (!args.axis && !args.from && !args.to) {
     p.addError(
-      `${opName} requires 'axis:' or an inferable 'from:' placement`,
+      `${opName} requires an axis or an inferable axis from placement`,
       p.spanFrom(start),
     );
   }
@@ -154,7 +154,7 @@ function resolveBridgeExtent(
 ): RadialExtent {
   if (!args.from || !args.to) {
     p.addError(
-      `radial placement bridge requires from: and to:`,
+      `radial placement bridge requires from and to placements`,
       p.spanFrom(startSpan),
     );
   }
@@ -176,7 +176,7 @@ function resolveAngleLengthExtent(
 ): RadialExtent {
   if (args.angle === null || args.length === null) {
     p.addError(
-      `radial extent: 'angle:' and 'length:' are both required (or use from:+to:+along:)`,
+      `radial extent requires angle and length (or use from, to, and optional along)`,
       p.spanFrom(startSpan),
     );
     const zero: Expr = { kind: 'number', value: 0, span: startSpan };

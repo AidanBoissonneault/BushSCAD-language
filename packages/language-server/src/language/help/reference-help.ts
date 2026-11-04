@@ -174,15 +174,15 @@ export const referenceHelp: Record<string, LanguageHelpEntry> = {
   },
   edge: {
     summary:
-      'Selects a named edge in consumers that support the edge(name) selector, such as a sheet flange.',
+      'Selects a named edge in consumers that support the edge(name) selector.',
     signatures: ['body.edge(front)', '@body.top.front_edge'],
     behavior: [
-      'Use .edges for all matching boundary edges. A single named edge is needed for operations such as flange that depend on a particular boundary.',
+      'Use .edges for all matching boundary edges. A single named edge is useful when an operation needs one particular boundary.',
     ],
     examples: [
       'obj body = extrude(rect(40, 30), 8);\nfillet(@body.top.front_edge, 1);',
     ],
-    related: ['edges', 'flange'],
+    related: ['edges', 'fillet', 'chamfer'],
   },
   face: {
     summary:

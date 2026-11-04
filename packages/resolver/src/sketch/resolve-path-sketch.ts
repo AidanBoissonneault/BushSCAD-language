@@ -73,7 +73,7 @@ function resolvePathItem(
   } else if (segment.kind === 'arc') {
     if (segment.start) resolveSketchPoint(segment.start, scope, state);
     resolveSketchPoint(segment.end, scope, state);
-    resolveExpr(segment.radius, scope, state);
+    if (segment.radius) resolveExpr(segment.radius, scope, state);
   }
 }
 

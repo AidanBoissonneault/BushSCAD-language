@@ -26,7 +26,27 @@ type ThreadParams = {
   length: Expr | null;
   direction: ThreadDirection;
   angle: Expr | null;
+  supplied: Set<ThreadArgSlot>;
 };
+
+type ThreadArgSlot =
+  | 'target'
+  | 'threadType'
+  | 'diameter'
+  | 'pitch'
+  | 'length'
+  | 'direction'
+  | 'angle';
+
+const THREAD_POSITIONAL_SLOTS: readonly ThreadArgSlot[] = [
+  'target',
+  'threadType',
+  'diameter',
+  'pitch',
+  'length',
+  'direction',
+  'angle',
+];
 
 /**
  * Parses thread modifiers into the existing AST shape.
@@ -69,6 +89,7 @@ function defaultThreadParams(): ThreadParams {
     length: null,
     direction: 'regular',
     angle: null,
+    supplied: new Set(),
   };
 }
 
@@ -76,13 +97,9 @@ function defaultThreadParams(): ThreadParams {
  * Parses thread call args from the supplied source into the statements representation.
  */
 function parseThreadCallArgs(p: Parser, params: ThreadParams): void {
-  let positional = 0;
   while (!p.check('RPAREN', 'EOF')) {
     const named = parseThreadNamedArg(p, params);
-    if (!named) {
-      parseThreadPositionalArg(p, params, positional);
-      positional++;
-    }
+    if (!named) parseThreadPositionalArg(p, params);
     if (!p.eat('COMMA')) break;
   }
 }
@@ -97,22 +114,18 @@ function parseThreadNamedArg(p: Parser, params: ThreadParams): boolean {
 /**
  * Parses thread positional arg from the supplied source into the statements representation.
  */
-function parseThreadPositionalArg(
-  p: Parser,
-  params: ThreadParams,
-  index: number,
-): void {
-  if (index === 0) params.target = parseObjectTargetName(p);
-  else if (index === 1) params.threadType = parseThreadType(p);
-  else if (index === 2) params.diameter = p.parseExpr();
-  else if (index === 3) params.pitch = p.parseExpr();
-  else if (index === 4) params.length = p.parseExpr();
-  else if (index === 5) params.direction = parseThreadDirection(p);
-  else if (index === 6) params.angle = p.parseExpr();
-  else {
+function parseThreadPositionalArg(p: Parser, params: ThreadParams): void {
+  const slot = THREAD_POSITIONAL_SLOTS.find(
+    (candidate) => !params.supplied.has(candidate),
+  );
+  if (!slot) {
     const extra = p.parseExpr();
     p.addError('thread() accepts at most 7 positional arguments', extra.span);
+    return;
   }
+  const span = p.peek().span;
+  const value = parseThreadSlotValue(p, slot);
+  assignThreadSlot(p, params, slot, value, span);
 }
 
 /**
@@ -123,20 +136,63 @@ function threadParamHandlers(
   params: ThreadParams,
 ): Readonly<Record<string, (argSpan: Expr['span']) => void>> {
   return {
-    target: () => (params.target = parseObjectTargetName(p)),
-    object: () => (params.target = parseObjectTargetName(p)),
-    type: () => (params.threadType = parseThreadType(p)),
-    d: () => (params.diameter = p.parseExpr()),
-    diameter: () => (params.diameter = p.parseExpr()),
-    pitch: () => (params.pitch = p.parseExpr()),
-    length: () => (params.length = p.parseExpr()),
-    angle: () => (params.angle = p.parseExpr()),
-    degrees: () => (params.angle = p.parseExpr()),
+    target: (span) =>
+      assignThreadSlot(p, params, 'target', parseObjectTargetName(p), span),
+    object: (span) =>
+      assignThreadSlot(p, params, 'target', parseObjectTargetName(p), span),
+    type: (span) =>
+      assignThreadSlot(p, params, 'threadType', parseThreadType(p), span),
+    d: (span) => assignThreadSlot(p, params, 'diameter', p.parseExpr(), span),
+    diameter: (span) =>
+      assignThreadSlot(p, params, 'diameter', p.parseExpr(), span),
+    pitch: (span) => assignThreadSlot(p, params, 'pitch', p.parseExpr(), span),
+    length: (span) =>
+      assignThreadSlot(p, params, 'length', p.parseExpr(), span),
+    angle: (span) => assignThreadSlot(p, params, 'angle', p.parseExpr(), span),
+    degrees: (span) =>
+      assignThreadSlot(p, params, 'angle', p.parseExpr(), span),
     depth: (argSpan) => parseRemovedThreadDepth(p, argSpan),
-    direction: () => (params.direction = parseThreadDirection(p)),
-    handedness: () => (params.direction = parseThreadDirection(p)),
-    hand: () => (params.direction = parseThreadDirection(p)),
+    direction: (span) =>
+      assignThreadSlot(p, params, 'direction', parseThreadDirection(p), span),
+    handedness: (span) =>
+      assignThreadSlot(p, params, 'direction', parseThreadDirection(p), span),
+    hand: (span) =>
+      assignThreadSlot(p, params, 'direction', parseThreadDirection(p), span),
   };
+}
+
+/** Parses the value belonging to the next open thread argument slot. */
+function parseThreadSlotValue(
+  p: Parser,
+  slot: ThreadArgSlot,
+): string | Expr | ThreadDirection {
+  if (slot === 'target') return parseObjectTargetName(p);
+  if (slot === 'threadType') return parseThreadType(p);
+  if (slot === 'direction') return parseThreadDirection(p);
+  return p.parseExpr();
+}
+
+/** Stores a thread argument once and reports repeated positional or named inputs. */
+function assignThreadSlot(
+  p: Parser,
+  params: ThreadParams,
+  slot: ThreadArgSlot,
+  value: string | Expr | ThreadDirection,
+  span: Expr['span'],
+): void {
+  if (params.supplied.has(slot)) {
+    p.addError(`thread() got duplicate argument '${slot}'`, span);
+    return;
+  }
+  params.supplied.add(slot);
+  if (slot === 'target') params.target = value as string;
+  else if (slot === 'threadType')
+    params.threadType = value as 'external' | 'internal';
+  else if (slot === 'diameter') params.diameter = value as Expr;
+  else if (slot === 'pitch') params.pitch = value as Expr;
+  else if (slot === 'length') params.length = value as Expr;
+  else if (slot === 'direction') params.direction = value as ThreadDirection;
+  else params.angle = value as Expr;
 }
 
 /**
@@ -178,18 +234,15 @@ function finalizeThreadParams(
     params.target = '';
   }
   if (params.threadType === null) {
-    p.addError(
-      `Thread requires 'type: external' or 'type: internal'`,
-      p.spanFrom(start),
-    );
+    p.addError(`Thread requires type external or internal`, p.spanFrom(start));
     params.threadType = 'external';
   }
   if (params.diameter === null) {
-    p.addError(`Thread requires 'd: <diameter>'`, p.spanFrom(start));
+    p.addError(`Thread requires diameter`, p.spanFrom(start));
     params.diameter = missingNumber(p, start);
   }
   if (params.pitch === null) {
-    p.addError(`Thread requires 'pitch: <pitch>'`, p.spanFrom(start));
+    p.addError(`Thread requires pitch`, p.spanFrom(start));
     params.pitch = missingNumber(p, start);
   }
 }

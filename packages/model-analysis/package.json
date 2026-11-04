@@ -1,6 +1,6 @@
 {
     "name":  "@bushscad/model-analysis",
-    "version":  "0.3.0",
+    "version":  "0.4.0",
     "type":  "module",
     "bin":  {
                 "bushscad-analyze-model":  "./dist/cli.js"
@@ -14,8 +14,8 @@
                     "test":  "vitest run"
                 },
     "dependencies":  {
-                         "@bushscad/compiler":  "^0.3.0",
-                         "@bushscad/ir":  "^0.3.0"
+                         "@bushscad/compiler":  "^0.4.0",
+                         "@bushscad/ir":  "^0.4.0"
                      },
     "devDependencies":  {
                             "esbuild":  "^0.28.0",

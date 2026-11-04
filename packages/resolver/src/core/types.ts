@@ -27,7 +27,7 @@ export type AssetLoader = (path: string) => Uint8Array | null;
 
 /**
  * Accepted values for sym kind are 'var', 'env', 'font', 'shape', 'sketch', 'path', 'obj',
- * 'component', 'part', 'fn', 'binding', 'plane', 'anchor', 'param', 'fit', 'joint', 'sheet', and
+ * 'component', 'part', 'fn', 'binding', 'plane', 'anchor', 'param', 'fit', 'joint', and
  * 'surface'.
  */
 export type SymKind =
@@ -47,7 +47,6 @@ export type SymKind =
   | 'param'
   | 'fit'
   | 'joint'
-  | 'sheet'
   | 'surface';
 
 /**

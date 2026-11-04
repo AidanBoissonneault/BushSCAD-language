@@ -211,7 +211,7 @@ function parsePathArc(p: Parser): PathSegment {
   const arc = normalizeArcArgs(args);
   if (!arc) {
     p.addError(
-      'arc() in path() expects arc(x, y, radius, cw|ccw), arc((x, y), radius, cw|ccw), or arc((x1, y1), (x2, y2), radius, cw|ccw).',
+      'arc() in path() expects an endpoint, two endpoints, or an endpoint/radius pair. Use point tuples for explicit endpoints.',
       start,
     );
     const fallback = missingPoint(p);
@@ -219,7 +219,6 @@ function parsePathArc(p: Parser): PathSegment {
       kind: 'arc',
       form: 'inferred',
       end: fallback,
-      radius: fallback[0],
       direction: 'ccw',
       span: p.spanFrom(start),
     };

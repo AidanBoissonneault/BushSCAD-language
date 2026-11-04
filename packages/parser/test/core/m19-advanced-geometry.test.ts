@@ -44,7 +44,7 @@ part m19 {
     obj vase = revolve(profile, 360deg around y);
     obj body = loft(profile, mid, height: 40, guide: rail);
     sketch label = rect(4,1);
-    obj label = cut(label, 0.8 , @vase.curved(surfaceAngle: 0deg)) wrap: true;
+    obj label = cut(label, 0.8 , @vase.curved(surfaceAngle: 0deg)) wrap true;
     sketch rib = rect(2,10);
     obj rib = extrude(rib, 1 , @vase.curved(surfaceAngle: 45deg)) wrap: false;
     fillet(@vase.lip.edges, 0.5);

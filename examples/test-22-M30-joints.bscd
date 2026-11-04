@@ -8,7 +8,7 @@ var wall = 2;
 part housing {
     sketch outer = rect(80, 60);
     obj body = extrude(outer, bodyheight);
-    shell: body 3 open: front;
+    shell(body, 3, open: front);
     fillet(@body.bottom.edges, wall);
 
     part.color = #2563EB;

@@ -144,6 +144,20 @@ describe('parser — sketch primitives', () => {
     }
   });
 
+  it('accepts positional word options without labels', () => {
+    const ast = parseOk(
+      "sketch label = word('FRONT', 7, 'sans', left, corner);",
+    );
+    const s = ast.statements[0] as SketchDecl;
+    expect(s.primitive.kind).toBe('word');
+    if (s.primitive.kind === 'word') {
+      expect(s.primitive.size).toMatchObject({ kind: 'number', value: 7 });
+      expect(s.primitive.font).toMatchObject({ kind: 'string', value: 'sans' });
+      expect(s.primitive.align).toBe('left');
+      expect(s.primitive.origin).toBe('corner');
+    }
+  });
+
   it('parses word , @variable', () => {
     const ast = parseOk(
       "sketch serial = word(part_id, size: 5, font: 'mono', align: left);",

@@ -11,8 +11,9 @@ private projects and consume the public packages from npm.
 - [Canonical language reference](BushSCAD_Language_Reference_v0.10.md)
 - [Compiler pipeline](PIPELINE.md)
 
-The current language compatibility version and public `@bushscad/*` package
-version is `0.3.0`. The VS Code extension has its own independent version.
+The current language compatibility version is `0.4.0`. Core language packages
+for this release are versioned `0.4.0`; stable standard-library packages and
+the VS Code extension keep their own independent versions.
 
 ## Use the language packages
 

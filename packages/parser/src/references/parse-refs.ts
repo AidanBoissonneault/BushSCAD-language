@@ -139,9 +139,9 @@ export function parsePosRef(p: Parser): PosRef {
     result = parseOrderedExprArgs(p, 'pos', [
       { name: 'x' },
       { name: 'y' },
-      { name: 'radius', positional: false },
-      { name: 'angle', positional: false },
-      { name: 'offset', positional: false },
+      { name: 'radius' },
+      { name: 'angle' },
+      { name: 'offset' },
     ]);
   }
   p.expect('RPAREN');
@@ -185,14 +185,17 @@ function parsePlaneSpatialRef(p: Parser, start: Token['span']): PosRef {
   const anchor = parseFaceRefFromIdent(p, p.expect('IDENT'));
   let offset: Expr | undefined;
   if (p.eat('COMMA')) {
-    const name = p.advance();
-    if (name.value !== 'offset') {
-      p.addError(`plane() does not accept argument '${name.value}'`, name.span);
+    const named = p.parseNamedExprArg();
+    if (named) {
+      const [name, value] = named;
+      if (name !== 'offset') {
+        p.addError(`plane() does not accept argument '${name}'`, value.span);
+      } else {
+        offset = value;
+      }
+    } else {
+      offset = p.parseExpr();
     }
-    p.expect('COLON');
-    offset = p.parseExpr();
-  } else {
-    p.addError(`plane() requires an offset: argument`, p.peek().span);
   }
   p.expect('RPAREN');
   return { kind: 'pos', anchor, offset, span: p.spanFrom(start) };

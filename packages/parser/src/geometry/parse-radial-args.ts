@@ -258,25 +258,201 @@ export function parseRadialArgs(
     from: null,
   };
 
+  let positionalMode:
+    'axis' | 'extent' | 'from-extent' | 'between' | 'bridge' | null = null;
+  const supplied = new Set<RadialPositionalSlot>();
   while (p.eat('COMMA')) {
     const tok = p.peek();
-    if (!isRadialNamedArgStart(tok, p.peek(1))) {
-      p.addError(
-        `Expected named argument, got ${tok.kind}('${tok.value}')`,
-        tok.span,
-      );
-      p.advance();
+    if (p.check('RPAREN', 'EOF')) break;
+    if (isRadialNamedArgStart(tok, p.peek(1))) {
+      const argName = p.advance().value;
+      p.advance(); // COLON
+      const parseArg = RADIAL_ARG_PARSERS[argName];
+      if (parseArg) {
+        const slot = argName as RadialPositionalSlot;
+        if (supplied.has(slot) || radialSlotIsSet(args, slot)) {
+          p.addError(
+            `radial operation got duplicate argument '${argName}'`,
+            tok.span,
+          );
+          parseArg(p, { ...args });
+        } else {
+          parseArg(p, args);
+          supplied.add(slot);
+        }
+      } else {
+        p.addError(`Unknown radial argument '${argName}'`, p.peek().span);
+        p.parseExpr();
+      }
       continue;
     }
-    const argName = p.advance().value;
-    p.advance(); // COLON
-    const parseArg = RADIAL_ARG_PARSERS[argName];
-    if (parseArg) {
-      parseArg(p, args);
-    } else {
-      p.addError(`Unknown radial argument '${argName}'`, p.peek().span);
-      p.parseExpr();
-    }
+    positionalMode ??= radialPositionalMode(p, args);
+    parseRadialPositionalArg(p, args, positionalMode, supplied);
   }
   return args;
+}
+
+/** Chooses the positional overload from the first input after the sketch. */
+function radialPositionalMode(
+  p: Parser,
+  args: RadialArgs,
+): 'axis' | 'extent' | 'from-extent' | 'between' | 'bridge' {
+  if (args.axis !== null) return 'axis';
+  if (args.between !== null) return 'between';
+  if (args.to !== null || args.along !== null) return 'bridge';
+  return inferRadialPositionalMode(p, args);
+}
+
+/** Infers the radial overload from its first unlabeled geometry input. */
+function inferRadialPositionalMode(
+  p: Parser,
+  args: RadialArgs,
+): 'axis' | 'extent' | 'from-extent' | 'between' | 'bridge' {
+  if (p.check('LPAREN')) return 'between';
+  if (isRadialPlacementStart(p)) {
+    return args.from !== null || nextRadialArgumentIsPlacement(p)
+      ? 'bridge'
+      : 'from-extent';
+  }
+  if (args.from !== null) return 'extent';
+  return isWorldAxisToken(p) ? 'axis' : 'extent';
+}
+
+/** Recognizes a bare world-axis token before choosing an explicit-axis overload. */
+function isWorldAxisToken(p: Parser): boolean {
+  return (
+    p.peek().kind === 'IDENT' &&
+    ['x', 'y', 'z'].includes(p.peek().value) &&
+    p.peek(1).kind !== 'DOT'
+  );
+}
+
+/** Parses the next unlabelled radial slot in its overload's documented order. */
+function parseRadialPositionalArg(
+  p: Parser,
+  args: RadialArgs,
+  mode: 'axis' | 'extent' | 'from-extent' | 'between' | 'bridge',
+  supplied: Set<RadialPositionalSlot>,
+): void {
+  const slots = radialPositionalSlots(mode);
+  const next = slots.find(
+    (slot) => !supplied.has(slot) && !radialSlotIsSet(args, slot),
+  );
+  if (!next) {
+    const value = p.parseExpr();
+    p.addError(
+      'radial operation received too many positional arguments',
+      value.span,
+    );
+    return;
+  }
+  RADIAL_ARG_PARSERS[next](p, args);
+  supplied.add(next);
+}
+
+type RadialPositionalSlot =
+  | 'axis'
+  | 'angle'
+  | 'length'
+  | 'between'
+  | 'from'
+  | 'to'
+  | 'along'
+  | 'curve'
+  | 'direction'
+  | 'start'
+  | 'twist'
+  | 'taper'
+  | 'radius'
+  | 'sections';
+
+/** Returns the ordered slots supported by each radial call form. */
+function radialPositionalSlots(
+  mode: 'axis' | 'extent' | 'from-extent' | 'between' | 'bridge',
+): RadialPositionalSlot[] {
+  const options: RadialPositionalSlot[] = [
+    'curve',
+    'direction',
+    'start',
+    'twist',
+    'taper',
+    'radius',
+    'sections',
+  ];
+  if (mode === 'axis') return ['axis', 'angle', 'length', ...options];
+  if (mode === 'extent') return ['angle', 'length', ...options];
+  if (mode === 'from-extent') return ['from', 'angle', 'length', ...options];
+  if (mode === 'between') return ['between', ...options];
+  return ['from', 'to', 'along', ...options];
+}
+
+/** Recognizes an authored placement that can select an inferred radial axis. */
+function isRadialPlacementStart(p: Parser): boolean {
+  return (
+    p.check('AT_SIGN') ||
+    (p.peek().kind === 'IDENT' && p.peek(1).kind === 'DOT')
+  );
+}
+
+/** Distinguishes a positional placement bridge from a placement plus extent. */
+function nextRadialArgumentIsPlacement(p: Parser): boolean {
+  let depth = 0;
+  for (let offset = 0; ; offset++) {
+    const token = p.peek(offset);
+    if (isEndOfRadialArgumentList(token, depth)) return false;
+    if (token.kind === 'COMMA' && depth === 0)
+      return isPlacementAtOffset(p, offset + 1);
+    depth = nextRadialScanDepth(depth, token);
+  }
+}
+
+/** Checks for an argument-list boundary while scanning nested radial values. */
+function isEndOfRadialArgumentList(
+  token: ReturnType<Parser['peek']>,
+  depth: number,
+): boolean {
+  return token.kind === 'EOF' || (token.kind === 'RPAREN' && depth === 0);
+}
+
+/** Checks whether one scanned argument begins with a placement reference. */
+function isPlacementAtOffset(p: Parser, offset: number): boolean {
+  const token = p.peek(offset);
+  return (
+    token.kind === 'AT_SIGN' ||
+    (token.kind === 'IDENT' && p.peek(offset + 1).kind === 'DOT')
+  );
+}
+
+/** Updates nesting depth while scanning ahead to classify a radial overload. */
+function nextRadialScanDepth(
+  depth: number,
+  token: ReturnType<Parser['peek']>,
+): number {
+  if (token.kind === 'LPAREN' || token.kind === 'LBRACKET') return depth + 1;
+  if (token.kind === 'RPAREN' || token.kind === 'RBRACKET') return depth - 1;
+  return depth;
+}
+
+/** Checks whether a radial slot has already been supplied positionally or by name. */
+function radialSlotIsSet(
+  args: RadialArgs,
+  slot: RadialPositionalSlot,
+): boolean {
+  const state: Record<RadialPositionalSlot, boolean> = {
+    axis: args.axis !== null,
+    angle: args.angle !== null,
+    length: args.length !== null,
+    between: args.between !== null,
+    from: args.from !== null,
+    to: args.to !== null,
+    along: args.along !== null,
+    curve: args.curve.kind !== 'natural',
+    direction: args.direction !== 'ccw',
+    start: args.start !== null,
+    twist: args.twist !== null,
+    taper: args.taper !== null,
+    radius: args.radius !== null,
+    sections: args.sections.kind !== 'auto',
+  };
+  return state[slot];
 }

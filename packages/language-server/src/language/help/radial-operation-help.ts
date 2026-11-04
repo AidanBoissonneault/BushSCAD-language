@@ -17,7 +17,7 @@ const radialParameters = [
   {
     name: 'axis / from',
     description:
-      'Explicit x/y/z or reference axis; otherwise infer the axis from from: placement.',
+      'Explicit x/y/z or reference axis; otherwise infer the axis from a from placement.',
   },
   {
     name: 'angle, length',
@@ -46,7 +46,7 @@ const radialParameters = [
   },
 ];
 const radialBehavior = [
-  'Choose one extent mode: angle:+length:, between:(a,b), or from:+to: with optional along:. Do not combine modes.',
+  'Choose one extent mode: angle and length, between(a, b), or from and to placements with optional along path. Labels are optional and may be mixed with positional values. Do not combine modes.',
   'Taper must be strictly between -89 and 89 degrees. Cubic-bezier X controls must be in [0,1].',
   'The OCCT angle/length path rejects nonzero twist and taper. between: is parsed but unsupported by the geometry bridge; use angle:+length: or a placement bridge.',
   'Use base_unit = mm for radial length/radius values: these currently pass directly from evaluated numbers into millimeter IR fields.',
@@ -57,8 +57,9 @@ export const radialOperationHelp: Record<string, LanguageHelpEntry> = {
     summary:
       'Adds a solid by moving a closed section through simultaneous rotation and axial travel, or between referenced placements.',
     signatures: [
+      'obj name = radial_extrude(profile, z, degrees, distance);',
       'obj name = radial_extrude(profile, axis: z, angle: degrees, length: distance);',
-      'obj name = radial_extrude(profile, from: start, to: end, along: path);',
+      'obj name = radial_extrude(profile, start, end, path);',
     ],
     parameters: radialParameters,
     behavior: radialBehavior,
@@ -69,13 +70,13 @@ export const radialOperationHelp: Record<string, LanguageHelpEntry> = {
     summary:
       'Subtracts a radial or guided swept section from the body owning the starting placement.',
     signatures: [
-      'obj name = radial_cut(profile, from: target.face.center, angle: degrees, length: distance);',
+      'obj name = radial_cut(profile, target.face.center, degrees, distance);',
       'obj name = radial_cut(profile, from: start, to: end, along: path);',
     ],
     parameters: radialParameters,
     behavior: [
       ...radialBehavior,
-      'Requires from: or an active placement context to identify the body to subtract from.',
+      'Requires a starting placement or an active placement context to identify the body to subtract from.',
     ],
     examples: [
       'obj base = cube([40, 40, 20]);\nsketch slot = rect(3, 2);\nobj groove = radial_cut(slot, axis: z, from: base.top.center, angle: 90, length: 5, radius: 10);',
@@ -176,24 +177,18 @@ export const radialOperationHelp: Record<string, LanguageHelpEntry> = {
     related: ['radial_extrude', 'radial_cut'],
   },
   direction: {
-    summary:
-      'Sets radial winding or sheet-flange folding direction in the owning operation.',
+    summary: 'Sets radial winding direction in the owning operation.',
     signatures: [
       'radial_extrude(profile, axis: z, angle: a, length: h, direction: cw)',
-      'flange panel.edge(front) length: l angle: a direction: down;',
     ],
     parameters: [
       {
         name: 'ccw / cw',
         description: 'Counterclockwise/clockwise radial rotation; default ccw.',
       },
-      {
-        name: 'up / down',
-        description: 'Sheet-flange fold direction; default up.',
-      },
     ],
     examples: [radialExample('direction: cw')],
-    related: ['radial_extrude', 'flange'],
+    related: ['radial_extrude', 'radial_cut'],
   },
   guide: {
     summary:

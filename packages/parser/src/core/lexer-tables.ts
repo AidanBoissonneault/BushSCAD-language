@@ -69,7 +69,6 @@ export const KEYWORDS: Record<string, TokenKind> = {
   view: 'VIEW',
   dimension: 'DIMENSION',
   between: 'BETWEEN',
-  sheet: 'SHEET',
   surface: 'SURFACE',
   fill: 'FILL',
   offset_surface: 'OFFSET_SURFACE',

@@ -35,7 +35,7 @@ export const moduleHelp: Record<string, LanguageHelpEntry> = {
   },
   export: {
     summary:
-      'Makes declarations available to source imports; export directives also request supported drawing/flat-pattern output.',
+      'Makes declarations available to source imports. Drawing exports are declared inside drawing blocks.',
     signatures: [
       'export var name = expression;',
       'export fn name(parameters) { statements }',
@@ -47,7 +47,7 @@ export const moduleHelp: Record<string, LanguageHelpEntry> = {
     examples: [
       'export var wall = 2;\nexport part bracket {\n  obj body = cube([30, 20, 4]);\n}',
     ],
-    related: ['import', 'flat_pattern'],
+    related: ['import', 'drawing'],
   },
   as: {
     summary:

@@ -371,20 +371,17 @@
       }
     },
     {
-      "id": "11-sheet-and-drawing",
-      "title": "Sheet metal and drawings",
-      "description": "A sheet base receives two flanges and a flat-pattern export while a solid part produces a dimensioned drawing.",
-      "file": "11_sheet_and_drawing.bscd",
+      "id": "11-drawings-and-dimensions",
+      "title": "Drawings and dimensions",
+      "description": "A solid part produces a dimensioned drawing in DXF and SVG formats.",
+      "file": "11_drawings_and_dimensions.bscd",
       "capabilities": [
-        "manufacturing.drawing",
-        "manufacturing.sheet",
-        "manufacturing.flange",
-        "manufacturing.flat-pattern"
+        "manufacturing.drawing"
       ],
       "expectations": {
-        "minMeshes": 2,
+        "minMeshes": 1,
         "minTriangles": 40,
-        "requiredOperations": ["part", "flange", "flat_pattern"],
+        "requiredOperations": ["part", "sketch", "extrude", "cut"],
         "maxWarnings": 20,
         "allowBoundaryEdges": true,
         "allowDisconnectedComponents": true

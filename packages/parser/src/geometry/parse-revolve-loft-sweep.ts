@@ -80,18 +80,16 @@ export function parseRevolveOp(p: Parser): RevolveOp {
   const around = parseAxisRef(p);
   let radius: Expr | undefined;
   while (p.eat('COMMA')) {
-    const isNamedArg =
-      (p.peek().kind === 'IDENT' || p.peek().kind === 'RADIUS') &&
-      p.peek(1).kind === 'COLON';
-    if (isNamedArg) {
-      const argName = p.advance().value;
-      p.advance(); // COLON
-      if (argName === 'radius') {
-        radius = p.parseExpr();
-      } else {
-        p.addError(`Unknown revolve argument '${argName}'`, p.peek().span);
-        p.parseExpr();
-      }
+    if (p.check('RPAREN', 'EOF')) break;
+    const named = p.parseNamedExprArg();
+    const value = named?.[1] ?? p.parseExpr();
+    const argName = named?.[0] ?? 'radius';
+    if (argName === 'radius') {
+      if (radius)
+        p.addError("revolve() got duplicate argument 'radius'", value.span);
+      else radius = value;
+    } else {
+      p.addError(`Unknown revolve argument '${argName}'`, value.span);
     }
   }
   p.expect('RPAREN');
@@ -137,22 +135,23 @@ function parseLoftNamedArg(
   const argName = p.advance().value;
   p.advance(); // COLON
   if (argName === 'height') {
-    state.height = p.parseExpr();
+    const value = p.parseExpr();
+    if (state.height !== null) {
+      p.addError("loft() got duplicate argument 'height'", value.span);
+    } else {
+      state.height = value;
+    }
     return;
   }
   if (argName === 'guide') {
-    state.guide = parseSketchInput(p);
-    if (p.eat('IN')) {
-      const wpTok = p.advance();
-      const v = wpTok.value;
-      if (v === 'XY' || v === 'XZ' || v === 'YZ') {
-        state.guideWorkplane = v;
-      } else {
-        p.addError(
-          `Unknown workplane '${v}' - expected XY, XZ, or YZ`,
-          wpTok.span,
-        );
-      }
+    const guide = parseSketchInput(p);
+    if (state.guide !== null) {
+      p.addError("loft() got duplicate argument 'guide'", guide.span);
+      if (p.eat('IN'))
+        parseLoftGuideWorkplane(p, { guideWorkplane: undefined });
+    } else {
+      state.guide = guide;
+      if (p.eat('IN')) parseLoftGuideWorkplane(p, state);
     }
     return;
   }
@@ -175,10 +174,16 @@ export function parseLoftOp(p: Parser): LoftOp {
     height: Expr | null;
     guide: LoftOp['guide'];
     guideWorkplane: LoftOp['guideWorkplane'];
+    profileCount: number;
+    positionalProfileCount: number;
+    profileListProvided: boolean;
   } = {
     height: null,
     guide: null,
     guideWorkplane: undefined,
+    profileCount: 0,
+    positionalProfileCount: 0,
+    profileListProvided: false,
   };
   let stoppedAtBoundary = false;
 
@@ -190,25 +195,33 @@ export function parseLoftOp(p: Parser): LoftOp {
     }
     if (isLoftNamedArgStart(p)) {
       parseLoftNamedArg(p, state);
-    } else if (
-      p.check('IDENT') ||
-      p.check('RECT', 'CIRCLE', 'ROUNDRECT', 'TRIANGLE', 'POLYGON', 'WORD') ||
-      p.check('LBRACE', 'LPAREN', 'LBRACKET')
-    ) {
-      sketches.push(parseSketchInput(p));
+    } else if (canParseLoftProfile(p, state)) {
+      const input = parseSketchInput(p);
+      sketches.push(input);
+      state.profileCount += sketchInputCount(input);
+      state.positionalProfileCount += 1;
+      state.profileListProvided ||=
+        input.kind === 'sketchList' || input.kind === 'sketchBodyList';
+    } else if (state.height === null) {
+      state.height = p.parseExpr();
+    } else if (state.guide === null) {
+      parseLoftGuide(p, state);
     } else {
       p.addError(
-        `Expected loft profile or named argument, got ${p.peek().kind}`,
+        `Unexpected extra loft argument '${p.peek().value}'`,
         p.peek().span,
       );
-      p.advance();
+      p.parseExpr();
     }
     p.eat('COMMA');
   }
 
   if (!stoppedAtBoundary) p.expect('RPAREN');
+  if (state.profileCount < 2) {
+    p.addError('loft requires at least two profiles', p.spanFrom(start));
+  }
   if (!state.height) {
-    p.addError('loft requires height: argument', p.spanFrom(start));
+    p.addError('loft requires a height value', p.spanFrom(start));
     state.height = { kind: 'number', value: 0, span: start };
   }
   return {
@@ -219,6 +232,100 @@ export function parseLoftOp(p: Parser): LoftOp {
     guideWorkplane: state.guideWorkplane,
     span: p.spanFrom(start),
   };
+}
+
+/** Accepts one positional profile until the height slot follows two profiles. */
+function canParseLoftProfile(
+  p: Parser,
+  state: {
+    height: Expr | null;
+    profileCount: number;
+    positionalProfileCount: number;
+    profileListProvided: boolean;
+  },
+): boolean {
+  if (state.height !== null) return false;
+  if (state.profileListProvided) return loftHasNamedHeightAhead(p);
+  if (state.profileCount === 0 || state.positionalProfileCount < 2) {
+    return (
+      p.check('IDENT') ||
+      p.check('RECT', 'CIRCLE', 'ROUNDRECT', 'TRIANGLE', 'POLYGON', 'WORD') ||
+      p.check('LBRACE', 'LPAREN', 'LBRACKET')
+    );
+  }
+  return loftHasNamedHeightAhead(p);
+}
+
+/** Preserves extra positional profiles when a later labeled height disambiguates them. */
+function loftHasNamedHeightAhead(p: Parser): boolean {
+  let depth = 0;
+  for (let offset = 0; ; offset++) {
+    const token = p.peek(offset);
+    if (isEndOfLoftArguments(token, depth)) return false;
+    if (depth === 0 && isNamedLoftHeight(p, offset)) return true;
+    depth = nextLoftScanDepth(depth, token);
+  }
+}
+
+/** Detects the optional height label while scanning at loft call depth. */
+function isNamedLoftHeight(p: Parser, offset: number): boolean {
+  return (
+    p.peek(offset).value === 'height' && p.peek(offset + 1).kind === 'COLON'
+  );
+}
+
+/** Returns whether the ahead scan has reached the end of the loft call. */
+function isEndOfLoftArguments(
+  token: ReturnType<Parser['peek']>,
+  depth: number,
+): boolean {
+  return token.kind === 'EOF' || (token.kind === 'RPAREN' && depth === 0);
+}
+
+/** Updates nested expression depth while looking for a later named height. */
+function nextLoftScanDepth(
+  depth: number,
+  token: ReturnType<Parser['peek']>,
+): number {
+  if (token.kind === 'LPAREN' || token.kind === 'LBRACKET') return depth + 1;
+  if (token.kind === 'RPAREN' || token.kind === 'RBRACKET') return depth - 1;
+  return depth;
+}
+
+/** Counts the profiles represented by a named list input. */
+function sketchInputCount(input: LoftOp['sketches'][number]): number {
+  if (input.kind === 'sketchList') return input.items.length;
+  if (input.kind === 'sketchBodyList') return input.bodyNames.length;
+  return 1;
+}
+
+/** Parses a positional guide input and its optional workplane. */
+function parseLoftGuide(
+  p: Parser,
+  state: {
+    guide: LoftOp['guide'];
+    guideWorkplane: LoftOp['guideWorkplane'];
+  },
+): void {
+  state.guide = parseSketchInput(p);
+  if (p.eat('IN')) parseLoftGuideWorkplane(p, state);
+}
+
+/** Parses the workplane suffix shared by named and positional loft guides. */
+function parseLoftGuideWorkplane(
+  p: Parser,
+  state: { guideWorkplane: LoftOp['guideWorkplane'] },
+): void {
+  const wpTok = p.advance();
+  const workplane = wpTok.value;
+  if (workplane === 'XY' || workplane === 'XZ' || workplane === 'YZ') {
+    state.guideWorkplane = workplane;
+  } else {
+    p.addError(
+      `Unknown workplane '${workplane}' - expected XY, XZ, or YZ`,
+      wpTok.span,
+    );
+  }
 }
 
 /**
@@ -244,15 +351,69 @@ function parseSweepOrientation(p: Parser): SweepOrientation {
 function parseSweepOrientationArg(
   p: Parser,
   current: SweepOrientation,
-): SweepOrientation {
-  const argName = p.advance().value;
+  alreadyProvided: boolean,
+): { orientation: SweepOrientation; provided: boolean } {
+  const argToken = p.advance();
+  const argName = argToken.value;
   p.advance(); // COLON
   if (argName === 'orientation') {
-    return parseSweepOrientation(p);
+    const orientation = parseSweepOrientation(p);
+    if (alreadyProvided) {
+      p.addError("sweep() got duplicate argument 'orientation'", argToken.span);
+      return { orientation: current, provided: true };
+    }
+    return { orientation, provided: true };
   }
-  p.addError(`Unknown sweep argument '${argName}'`, p.peek().span);
+  p.addError(`Unknown sweep argument '${argName}'`, argToken.span);
   p.parseExpr();
-  return current;
+  return { orientation: current, provided: alreadyProvided };
+}
+
+/** Parses the optional orientation slot shared by sweep and sweep-cut calls. */
+function parseSweepOrientations(
+  p: Parser,
+  stopBeforeCutExtent = false,
+): SweepOrientation {
+  let orientation: SweepOrientation = 'default';
+  let orientationProvided = false;
+  while (p.check('COMMA') && !isSweepCutExtentStart(p, stopBeforeCutExtent)) {
+    p.advance();
+    if (p.check('RPAREN', 'EOF')) break;
+    if (
+      (p.peek().kind === 'IDENT' || p.peek().kind === 'AROUND') &&
+      p.peek(1).kind === 'COLON'
+    ) {
+      const parsed = parseSweepOrientationArg(
+        p,
+        orientation,
+        orientationProvided,
+      );
+      orientation = parsed.orientation;
+      orientationProvided = parsed.provided;
+      continue;
+    }
+    const orientationSpan = p.peek().span;
+    const parsed = parseSweepOrientation(p);
+    if (orientationProvided) {
+      p.addError(
+        "sweep() got duplicate argument 'orientation'",
+        orientationSpan,
+      );
+    } else {
+      orientation = parsed;
+    }
+    orientationProvided = true;
+  }
+  return orientation;
+}
+
+/** Leaves the outer cut extent comma for its owning parser. */
+function isSweepCutExtentStart(p: Parser, enabled: boolean): boolean {
+  if (!enabled) return false;
+  return (
+    p.peek(1).kind === 'THROUGH' ||
+    (p.peek(1).kind === 'IDENT' && p.peek(1).value === 'depth')
+  );
 }
 
 /**
@@ -265,15 +426,7 @@ export function parseSweepOp(p: Parser): SweepOp {
   p.advance(); // SWEEP
   p.expect('LPAREN');
   const { sketch, path } = parseSweepHeader(p);
-  let orientation: SweepOrientation = 'default';
-  while (p.eat('COMMA')) {
-    if (
-      (p.peek().kind === 'IDENT' || p.peek().kind === 'AROUND') &&
-      p.peek(1).kind === 'COLON'
-    ) {
-      orientation = parseSweepOrientationArg(p, orientation);
-    }
-  }
+  const orientation = parseSweepOrientations(p);
   p.expect('RPAREN');
   return { kind: 'sweep', sketch, path, orientation, span: p.spanFrom(start) };
 }
@@ -290,17 +443,7 @@ export function parseSweepCutOp(p: Parser): SweepCutOp {
   p.advance(); // SWEEP
   p.expect('LPAREN');
   const { sketch, path } = parseSweepHeader(p);
-  let orientation: SweepOrientation = 'default';
-  while (
-    p.check('COMMA') &&
-    p.peek(1).kind !== 'THROUGH' &&
-    !(p.peek(1).kind === 'IDENT' && p.peek(1).value === 'depth')
-  ) {
-    p.eat('COMMA');
-    if (p.peek().kind === 'IDENT' && p.peek(1).kind === 'COLON') {
-      orientation = parseSweepOrientationArg(p, orientation);
-    }
-  }
+  const orientation = parseSweepOrientations(p, true);
   p.expect('RPAREN'); // close sweep(...)
 
   p.expect('COMMA');

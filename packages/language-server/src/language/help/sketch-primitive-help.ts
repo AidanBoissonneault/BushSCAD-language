@@ -182,7 +182,11 @@ export const sketchPrimitiveHelp: Record<string, LanguageHelpEntry> = {
   word: {
     summary:
       'Creates a 2D text outline that can be extruded for embossing or cut for engraving.',
-    signatures: ["word(text, size: 8, font: 'sans', align: center)"],
+    signatures: [
+      'word(text, size?, font?, align?, origin?)',
+      "word(text, 8, 'sans', center)",
+      "word(text, size: 8, font: 'sans', align: center)",
+    ],
     parameters: [
       {
         name: 'text',
@@ -203,6 +207,7 @@ export const sketchPrimitiveHelp: Record<string, LanguageHelpEntry> = {
     ],
     behavior: [
       'Comma-separated family stacks are tried in order. Explicit imported font assets remain deterministic across machines.',
+      'Argument labels are optional. Positional options follow size, font, alignment, then origin; center, left, right, and corner can be written as contextual words.',
       'The profile follows the normal of its placement face.',
     ],
     examples: [

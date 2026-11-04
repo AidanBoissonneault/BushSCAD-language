@@ -165,11 +165,6 @@ const TOP_LEVEL_COLLECTORS: Partial<
       (stmt as Extract<TopLevelStatement, { kind: 'fit' }>).fitName,
       'fit',
     ),
-  sheet: (stmt, scope) =>
-    scope.define(
-      (stmt as Extract<TopLevelStatement, { kind: 'sheet' }>).name,
-      'sheet',
-    ),
 };
 
 /**

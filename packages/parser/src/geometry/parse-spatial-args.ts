@@ -46,10 +46,10 @@ function parsePlanarSpatialArgs(p: Parser): SpatialArgs {
   return parseOrderedExprArgs(p, 'spatial reference', [
     { name: 'x' },
     { name: 'y' },
-    { name: 'radius', positional: false },
-    { name: 'angle', positional: false },
-    { name: 'offset', positional: false },
-    { name: 'surfaceAngle', positional: false },
+    { name: 'radius' },
+    { name: 'angle' },
+    { name: 'offset' },
+    { name: 'surfaceAngle' },
   ]);
 }
 
@@ -63,10 +63,10 @@ function parseCenterSpatialArgs(p: Parser): SpatialArgs {
   return parseOrderedExprArgs(p, 'spatial reference', [
     { name: 'x' },
     { name: 'y' },
-    { name: 'radius', positional: false },
-    { name: 'angle', positional: false },
-    { name: 'offset', positional: false },
-    { name: 'surfaceAngle', positional: false },
+    { name: 'radius' },
+    { name: 'angle' },
+    { name: 'offset' },
+    { name: 'surfaceAngle' },
   ]);
 }
 
@@ -86,7 +86,10 @@ function parseWrapOnlyArgs(p: Parser): SpatialArgs {
 function parseCurvedArgs(p: Parser): SpatialArgs {
   const args: SpatialArgs = {};
   while (!p.check('RPAREN', 'EOF')) {
-    if (p.eat('WRAP')) {
+    const wrapToken = p.eat('WRAP');
+    if (wrapToken) {
+      if (args.wrap)
+        p.addError("curved() got duplicate argument 'wrap'", wrapToken.span);
       args.wrap = true;
     } else if (p.peek().kind === 'IDENT' && p.peek(1).kind === 'COLON') {
       parseCurvedNamedArg(p, args);
@@ -113,8 +116,8 @@ function parseCurvedNamedArg(p: Parser, args: SpatialArgs): void {
   if (name.value === 'surfaceAngle' || name.value === 'angle') {
     if (args.surfaceAngle) {
       p.addError("curved() got duplicate argument 'surfaceAngle'", name.span);
-    }
-    args.surfaceAngle = p.parseExpr();
+      p.parseExpr();
+    } else args.surfaceAngle = p.parseExpr();
     return;
   }
   p.addError(`curved() does not accept argument '${name.value}'`, name.span);

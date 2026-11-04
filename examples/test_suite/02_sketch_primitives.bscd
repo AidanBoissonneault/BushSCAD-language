@@ -25,7 +25,7 @@ part sketch_primitives {
     sketch path_profile = path(
         bottom = line((-48, -8), (-24, -8)),
         right = line(-24, 6),
-        crown = arc((-36, 12), radius: 14, ccw),
+        crown = arc((-24, 6), (-48, 6)),
         left = close()
     );
     obj path_profile = extrude(path_profile, 4);

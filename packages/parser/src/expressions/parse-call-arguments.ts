@@ -13,6 +13,37 @@ import type { Parser } from '../core/parser.js';
  */
 export type NamedArgHandler = (span: ASTSourceSpan) => void;
 
+/** Claims one canonical call slot and reports duplicate positional or labeled values. */
+export function claimCallArgument(
+  p: Parser,
+  callName: string,
+  slot: string,
+  supplied: Set<string>,
+  span: ASTSourceSpan,
+): boolean {
+  if (supplied.has(slot)) {
+    p.addError(`${callName}() got duplicate argument '${slot}'`, span);
+    return false;
+  }
+  supplied.add(slot);
+  return true;
+}
+
+/** Parses one labeled value and stores it only when its canonical slot is free. */
+export function parseAndClaimCallArgument<T>(
+  p: Parser,
+  callName: string,
+  slot: string,
+  supplied: Set<string>,
+  span: ASTSourceSpan,
+  parseValue: () => T,
+): T | undefined {
+  const value = parseValue();
+  return claimCallArgument(p, callName, slot, supplied, span)
+    ? value
+    : undefined;
+}
+
 /**
  * Consumes a named call argument and dispatches it to a caller-provided handler.
  * Statement-call syntaxes share the same `name: value` detection and unknown

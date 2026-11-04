@@ -12,7 +12,10 @@ import type {
   TransformStmt,
 } from '@bushscad/ir';
 import type { Parser } from '../core/parser.js';
-import { tryParseNamedCallArg } from '../expressions/parse-call-arguments.js';
+import {
+  claimCallArgument,
+  tryParseNamedCallArg,
+} from '../expressions/parse-call-arguments.js';
 import {
   expectName,
   parseObjectTargetName,
@@ -25,6 +28,7 @@ import { parseAxisRef } from '../references/parse-axis-ref.js';
 type TransformArgs = {
   target: string | null;
   operation: TransformOp | null;
+  supplied: Set<'target' | 'operation'>;
 };
 /**
  * Derives `RotateAround` from `Extract<TransformOp, { kind: 'rotate' }>['around']` to preserve its
@@ -34,11 +38,20 @@ type RotateAround = Extract<TransformOp, { kind: 'rotate' }>['around'];
 /**
  * State for translate, including x, y, and z.
  */
-type TranslateState = { x: Expr | null; y: Expr | null; z: Expr | null };
+type TranslateState = {
+  x: Expr | null;
+  y: Expr | null;
+  z: Expr | null;
+  supplied: Set<'x' | 'y' | 'z'>;
+};
 /**
  * State for rotate, including angle and around.
  */
-type RotateState = { angle: Expr | null; around: RotateAround | null };
+type RotateState = {
+  angle: Expr | null;
+  around: RotateAround | null;
+  supplied: Set<'angle' | 'around'>;
+};
 
 /**
  * Parses transform statements in call-style form.
@@ -60,23 +73,35 @@ export function parseTransform(p: Parser): TransformStmt {
  * Parses transform call args from the supplied source into the objects representation.
  */
 function parseTransformCallArgs(p: Parser): TransformArgs {
-  const args: TransformArgs = { target: null, operation: null };
-  let positional = 0;
+  const args: TransformArgs = {
+    target: null,
+    operation: null,
+    supplied: new Set(),
+  };
   while (!p.check('RPAREN', 'EOF')) {
     if (tryParseTransformNamedArg(p, args)) {
       if (!p.eat('COMMA')) break;
       continue;
     }
-    if (positional === 0) args.target = parseObjectTargetName(p);
-    else if (positional === 1) args.operation = parseTransformOperation(p);
-    else {
+    if (!args.supplied.has('target')) {
+      const span = p.peek().span;
+      assignTransformArg(p, args, 'target', parseObjectTargetName(p), span);
+    } else if (!args.supplied.has('operation')) {
+      const span = p.peek().span;
+      assignTransformArg(
+        p,
+        args,
+        'operation',
+        parseTransformOperation(p),
+        span,
+      );
+    } else {
       p.addError(
         'transform() accepts at most 2 positional arguments',
         p.peek().span,
       );
       p.advance();
     }
-    positional++;
     if (!p.eat('COMMA')) break;
   }
   return args;
@@ -87,11 +112,40 @@ function parseTransformCallArgs(p: Parser): TransformArgs {
  */
 function tryParseTransformNamedArg(p: Parser, args: TransformArgs): boolean {
   return tryParseNamedCallArg(p, 'transform', {
-    target: () => (args.target = parseObjectTargetName(p)),
-    object: () => (args.target = parseObjectTargetName(p)),
-    operation: () => (args.operation = parseTransformOperation(p)),
-    op: () => (args.operation = parseTransformOperation(p)),
+    target: (span) =>
+      assignTransformArg(p, args, 'target', parseObjectTargetName(p), span),
+    object: (span) =>
+      assignTransformArg(p, args, 'target', parseObjectTargetName(p), span),
+    operation: (span) =>
+      assignTransformArg(
+        p,
+        args,
+        'operation',
+        parseTransformOperation(p),
+        span,
+      ),
+    op: (span) =>
+      assignTransformArg(
+        p,
+        args,
+        'operation',
+        parseTransformOperation(p),
+        span,
+      ),
   });
+}
+
+/** Stores a transform target or operation once and reports duplicate inputs. */
+function assignTransformArg(
+  p: Parser,
+  args: TransformArgs,
+  slot: 'target' | 'operation',
+  value: string | TransformOp,
+  span: ASTSourceSpan,
+): void {
+  if (!claimCallArgument(p, 'transform', slot, args.supplied, span)) return;
+  if (slot === 'target') args.target = value as string;
+  else args.operation = value as TransformOp;
 }
 
 /**
@@ -120,49 +174,62 @@ function parseTransformOp(p: Parser, opName: string): TransformOp {
  * Parses translate op from the supplied source into the objects representation.
  */
 function parseTranslateOp(p: Parser): TransformOp {
-  const state: TranslateState = { x: null, y: null, z: null };
-  let positional = 0;
+  const state: TranslateState = {
+    x: null,
+    y: null,
+    z: null,
+    supplied: new Set(),
+  };
   while (!p.check('RPAREN', 'EOF')) {
     const named = parseTranslateNamedArg(p);
-    if (named) {
-      assignTranslateNamedArg(state, named);
+    if (named?.axis) {
+      assignTranslateNamedArg(p, state, named);
+    } else if (named) {
+      // The named parser consumed and reported the invalid axis.
     } else {
-      parseTranslatePositionalArg(p, state, positional);
-      positional++;
+      parseTranslatePositionalArg(p, state);
     }
     if (!p.eat('COMMA')) break;
   }
-  return { kind: 'translate', ...state };
+  return { kind: 'translate', x: state.x, y: state.y, z: state.z };
 }
 
 /**
  * Handles assign translate named arg in the objects flow.
  */
 function assignTranslateNamedArg(
+  p: Parser,
   state: TranslateState,
-  named: { axis: 'x' | 'y' | 'z'; value: Expr },
+  named: { axis: 'x' | 'y' | 'z'; value: Expr; span: ASTSourceSpan },
 ): void {
+  if (state.supplied.has(named.axis)) {
+    p.addError(
+      `translate() got duplicate argument '${named.axis}'`,
+      named.span,
+    );
+    return;
+  }
   state[named.axis] = named.value;
+  state.supplied.add(named.axis);
 }
 
 /**
  * Parses translate positional arg from the supplied source into the objects representation.
  */
-function parseTranslatePositionalArg(
-  p: Parser,
-  state: TranslateState,
-  index: number,
-): void {
-  if (index === 0) state.x = p.parseExpr();
-  else if (index === 1) state.y = p.parseExpr();
-  else if (index === 2) state.z = p.parseExpr();
-  else {
+function parseTranslatePositionalArg(p: Parser, state: TranslateState): void {
+  const axis = (['x', 'y', 'z'] as const).find(
+    (candidate) => !state.supplied.has(candidate),
+  );
+  if (!axis) {
     const extra = p.parseExpr();
     p.addError(
       'translate() accepts at most 3 positional arguments',
       extra.span,
     );
+    return;
   }
+  state[axis] = p.parseExpr();
+  state.supplied.add(axis);
 }
 
 /**
@@ -170,30 +237,37 @@ function parseTranslatePositionalArg(
  */
 function parseTranslateNamedArg(
   p: Parser,
-): { axis: 'x' | 'y' | 'z'; value: Expr } | null {
+):
+  | { axis: 'x' | 'y' | 'z'; value: Expr; span: ASTSourceSpan }
+  | { axis: null }
+  | null {
   if (!p.isNamedArgToken(p.peek()) || p.peek(1).kind !== 'COLON') return null;
   const axisTok = p.advance();
   p.advance(); // COLON
   const axis = axisTok.value;
   const value = p.parseExpr();
-  if (axis === 'x' || axis === 'y' || axis === 'z') return { axis, value };
+  if (axis === 'x' || axis === 'y' || axis === 'z') {
+    return { axis, value, span: axisTok.span };
+  }
   p.addError(`Unknown translate axis '${axis}'`, axisTok.span);
-  return null;
+  return { axis: null };
 }
 
 /**
  * Parses rotate op from the supplied source into the objects representation.
  */
 function parseRotateOp(p: Parser): TransformOp {
-  const state: RotateState = { angle: null, around: null };
-  let positional = 0;
+  const state: RotateState = {
+    angle: null,
+    around: null,
+    supplied: new Set(),
+  };
   while (!p.check('RPAREN', 'EOF')) {
     if (tryParseRotateNamedArg(p, state)) {
       if (!p.eat('COMMA')) break;
       continue;
     }
-    parseRotatePositionalArg(p, state, positional);
-    positional++;
+    parseRotatePositionalArg(p, state);
     if (!p.eat('COMMA')) break;
   }
   return finalizeRotateOp(p, state);
@@ -204,25 +278,45 @@ function parseRotateOp(p: Parser): TransformOp {
  */
 function tryParseRotateNamedArg(p: Parser, state: RotateState): boolean {
   return tryParseNamedCallArg(p, 'rotate', {
-    angle: () => (state.angle = p.parseExpr()),
-    around: () => (state.around = parseAxisRef(p)),
-    axis: () => (state.around = parseAxisRef(p)),
+    angle: (span) => assignRotateArg(p, state, 'angle', p.parseExpr(), span),
+    around: (span) =>
+      assignRotateArg(p, state, 'around', parseAxisRef(p), span),
+    axis: (span) => assignRotateArg(p, state, 'around', parseAxisRef(p), span),
   });
+}
+
+/** Stores one rotate slot once so positional values fill only open slots. */
+function assignRotateArg(
+  p: Parser,
+  state: RotateState,
+  slot: 'angle' | 'around',
+  value: Expr | RotateAround,
+  span: ASTSourceSpan,
+): void {
+  if (state.supplied.has(slot)) {
+    p.addError(`rotate() got duplicate argument '${slot}'`, span);
+    return;
+  }
+  state.supplied.add(slot);
+  if (slot === 'angle') state.angle = value as Expr;
+  else state.around = value as RotateAround;
 }
 
 /**
  * Parses rotate positional arg from the supplied source into the objects representation.
  */
-function parseRotatePositionalArg(
-  p: Parser,
-  state: RotateState,
-  index: number,
-): void {
-  if (index === 0) {
-    state.angle = p.parseExpr();
-    if (p.eat('AROUND')) state.around = parseAxisRef(p);
-  } else if (index === 1) {
-    state.around = parseAxisRef(p);
+function parseRotatePositionalArg(p: Parser, state: RotateState): void {
+  if (!state.supplied.has('angle')) {
+    const span = p.peek().span;
+    const angle = p.parseExpr();
+    assignRotateArg(p, state, 'angle', angle, span);
+    if (p.eat('AROUND')) {
+      const aroundSpan = p.peek().span;
+      assignRotateArg(p, state, 'around', parseAxisRef(p), aroundSpan);
+    }
+  } else if (!state.supplied.has('around')) {
+    const aroundSpan = p.peek().span;
+    assignRotateArg(p, state, 'around', parseAxisRef(p), aroundSpan);
   } else {
     const extra = p.parseExpr();
     p.addError('rotate() accepts at most 2 positional arguments', extra.span);
@@ -249,15 +343,26 @@ function finalizeRotateOp(p: Parser, state: RotateState): TransformOp {
  */
 function parseScaleOp(p: Parser): TransformOp {
   let factor: Expr | null = null;
+  let supplied = false;
   while (!p.check('RPAREN', 'EOF')) {
     if (
       tryParseNamedCallArg(p, 'scale', {
-        factor: () => (factor = p.parseExpr()),
+        factor: (span) => {
+          const value = p.parseExpr();
+          if (supplied)
+            p.addError("scale() got duplicate argument 'factor'", span);
+          else factor = value;
+          supplied = true;
+        },
       })
     ) {
       // Named handler consumed the value.
     } else {
-      factor = p.parseExpr();
+      const value = p.parseExpr();
+      if (supplied)
+        p.addError("scale() got duplicate argument 'factor'", value.span);
+      else factor = value;
+      supplied = true;
     }
     if (!p.eat('COMMA')) break;
   }

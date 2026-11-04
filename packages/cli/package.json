@@ -1,6 +1,6 @@
 {
     "name": "@bushscad/cli",
-    "version": "0.3.1",
+    "version": "0.4.0",
     "type": "module",
     "bin": {
         "bushscad": "./dist/index.js"
@@ -16,8 +16,8 @@
         "prepack": "npm run build"
     },
     "dependencies": {
-        "@bushscad/compiler": "^0.3.0",
-        "@bushscad/ir": "^0.3.0",
+        "@bushscad/compiler": "^0.4.0",
+        "@bushscad/ir": "^0.4.0",
         "opencascade.js": ">=2.0.0-0"
     },
     "devDependencies": {

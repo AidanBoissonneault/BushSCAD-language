@@ -8,7 +8,6 @@
 import type { ASTSourceSpan } from './sourceSpan.js';
 import type { Expr, FaceRef } from './expressions.js';
 import type { SurfaceDecl } from './surface.js';
-import type { SheetDecl } from './sheet.js';
 import type { DetailStatement } from './details.js';
 import type {
   AnchorDecl,
@@ -77,8 +76,7 @@ export type ComponentStatement =
   | MetadataAssignment
   | AssertStatement
   | FitDecl
-  | JointDecl
-  | SheetDecl;
+  | JointDecl;
 
 /**
  * Return statement, including operation kind, body, and span.

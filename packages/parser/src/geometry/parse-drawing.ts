@@ -41,11 +41,17 @@ function parseView(p: Parser): DrawingViewDecl {
   }
 
   let scale: number | null = null;
-  if (p.peek().kind === 'IDENT' && p.peek().value === 'scale') {
-    p.advance(); // 'scale'
+  if (
+    p.peek().kind === 'IDENT' &&
+    p.peek().value === 'scale' &&
+    p.peek(1).kind === 'COLON'
+  ) {
+    p.advance(); // scale
     p.expect('COLON');
     const numTok = p.expect('NUMBER');
     scale = parseFloat(numTok.value);
+  } else if (p.check('NUMBER')) {
+    scale = parseFloat(p.advance().value);
   }
 
   p.eatSemi();

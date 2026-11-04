@@ -47,6 +47,17 @@ describe('drawing blocks', () => {
     expect(drawing.view.scale).toBeNull();
   });
 
+  it('accepts a positional view scale without its label', () => {
+    const ast = parseOk(`
+      obj base = cube([20, 10, 4]);
+      drawing d { view base.top 2; }
+    `);
+    const drawing = ast.statements.find(
+      (s) => s.kind === 'drawing',
+    ) as import('@bushscad/ir').DrawingDecl;
+    expect(drawing.view.scale).toBe(2);
+  });
+
   it('parses point_to_face dimension', () => {
     const ast = parseOk(`
       sketch s = rect(60, 40);

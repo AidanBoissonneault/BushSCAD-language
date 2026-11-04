@@ -17,7 +17,6 @@ const DECLARATION_KINDS = new Set([
   'refPart',
   'shapeImport',
   'place',
-  'sheet',
 ]);
 
 /**
@@ -65,7 +64,8 @@ function appendInteractionDeclaration(
   node: Record<string, unknown>,
   declarations: InteractionDeclarationSource[],
 ): void {
-  if (typeof node.kind !== 'string' || !DECLARATION_KINDS.has(node.kind)) return;
+  if (typeof node.kind !== 'string' || !DECLARATION_KINDS.has(node.kind))
+    return;
   if (!isSpan(node.span)) return;
   declarations.push({
     span: node.span,

@@ -111,6 +111,54 @@ part p {
     });
   });
 
+  it('fills positional arguments after labeled arguments in call order', () => {
+    const body = statements(`
+part p {
+  sketch base = rect(20, 20);
+  obj base = extrude(base, 10);
+  sketch hole = circle(2);
+  obj hole = cut(hole, through base);
+  pattern(target: hole, radial, 6, base.top.center);
+  transform(target: base, translate(x: 1, 2, 3));
+  assert(condition: volume(base) > 1, warning, 'too small');
+  fit(kind: clearance, M3_bolt, through, hole);
+  thread(target: hole, external, 4, 1, length: 8);
+}
+`);
+
+    expect(statementOf<PatternRadialStmt>(body, 'patternRadial')).toMatchObject(
+      {
+        target: 'hole',
+        count: { kind: 'number', value: 6 },
+      },
+    );
+    const transform = statementOf<TransformStmt>(body, 'transform');
+    expect(transform.target).toBe('base');
+    expect(transform.operation).toMatchObject({
+      kind: 'translate',
+      x: { kind: 'number', value: 1 },
+      y: { kind: 'number', value: 2 },
+      z: { kind: 'number', value: 3 },
+    });
+    expect(statementOf<AssertStatement>(body, 'assert')).toMatchObject({
+      severity: 'warning',
+      message: 'too small',
+    });
+    expect(statementOf<FitDecl>(body, 'fit')).toMatchObject({
+      fitKind: 'clearance',
+      fitName: 'M3_bolt',
+      relation: 'through',
+      targetName: 'hole',
+    });
+    expect(statementOf<ThreadDetail>(body, 'thread')).toMatchObject({
+      target: 'hole',
+      threadType: 'external',
+      diameter: { kind: 'number', value: 4 },
+      pitch: { kind: 'number', value: 1 },
+      length: { kind: 'number', value: 8 },
+    });
+  });
+
   it('rejects removed legacy command forms', () => {
     const result = parse(
       `

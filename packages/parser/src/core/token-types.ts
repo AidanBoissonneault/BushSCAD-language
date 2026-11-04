@@ -16,7 +16,7 @@ import type { ASTSourceSpan } from '@bushscad/ir';
  * 'PLANE', 'OFFSET', 'COLOR', 'MATERIAL', 'ROTATE', 'AROUND', 'REVOLVE', 'RADIAL_EXTRUDE',
  * 'RADIAL_CUT', 'PLANT', 'LOFT', 'GUIDE', 'WRAP', 'PATTERN', 'LINEAR', 'MIRROR', 'ACROSS',
  * 'TRANSFORM', 'PATH', 'SWEEP', 'ALONG', 'USE', 'HOLE', 'HEATSET_INSERT', 'DEPTH', 'ASSERT',
- * 'WARNING', 'FIT', 'INTO', 'DRAWING', 'VIEW', 'DIMENSION', 'BETWEEN', 'SHEET', 'SURFACE',
+ * 'WARNING', 'FIT', 'INTO', 'DRAWING', 'VIEW', 'DIMENSION', 'BETWEEN', 'SURFACE',
  * 'FILL', 'OFFSET_SURFACE', 'THICKEN', 'CONSTRAIN', 'RECT', 'CIRCLE', 'ROUNDRECT',
  * 'TRIANGLE', 'POLYGON', 'WORD', 'INSET', 'LINE', 'ARC', 'RADIUS', 'CLOCKWISE',
  * 'COUNTERCLOCKWISE', 'FILLET', 'CHAMFER', 'SHELL', 'DRAFT', 'THREAD', 'OPEN', 'RANGE', 'GRID',
@@ -109,8 +109,7 @@ export type TokenKind =
   | 'DIMENSION'
   // Assemblies / joints
   | 'BETWEEN'
-  // Sheet metal
-  | 'SHEET'
+  // Surfaces
   | 'SURFACE'
   | 'FILL'
   | 'OFFSET_SURFACE'

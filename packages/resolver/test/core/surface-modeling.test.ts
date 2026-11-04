@@ -36,7 +36,7 @@ obj solid_cap = thicken(missing, 1.5);
 sketch profile = rect(20, 10);
 surface cap = fill(profile);
 part p {
-  shell: cap 1;
+  shell(cap, 1);
 }
 `);
     expect(errors).toContain(

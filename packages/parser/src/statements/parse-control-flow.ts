@@ -242,8 +242,8 @@ function parseGridIterator(p: Parser): GridIter {
     { name: 'cols', required: true },
     { name: 'rows', required: true },
     { name: 'spacing' },
-    { name: 'spacingX', aliases: ['spacing_x'], positional: false },
-    { name: 'spacingY', aliases: ['spacing_y'], positional: false },
+    { name: 'spacingX', aliases: ['spacing_x'] },
+    { name: 'spacingY', aliases: ['spacing_y'] },
   ]);
   p.expect('RPAREN');
   return {

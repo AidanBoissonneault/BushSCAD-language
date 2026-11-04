@@ -1,0 +1,17 @@
+// True check: dimensioned drawing output from a solid part.
+base_unit = mm;
+
+part drawing_model {
+    sketch profile = rect(60, 40);
+    obj base = extrude(profile, 10);
+    sketch hole_profile = circle(8);
+    obj hole = cut(hole_profile, through base, @base.top.center);
+}
+
+drawing inspection {
+    view drawing_model.top scale: 1;
+    dimension drawing_model.width;
+    dimension drawing_model.hole.center to drawing_model.base.left;
+    export dxf './outputs/inspection.dxf';
+    export svg './outputs/inspection.svg';
+}

@@ -54,14 +54,10 @@ export function parseThickenOp(p: Parser): ThickenOp {
   return { kind: 'thicken', surface, thickness, span: p.spanFrom(start) };
 }
 
-/**
- * Parses the optional `wrap: true|false` suffix for extrude and cut.
- * Wrap is intentionally a suffix instead of a regular operation argument, and
- * only the caller knows whether the current operation supports it.
- */
+/** Parses the optional boolean wrap suffix for extrude and cut. */
 export function parseWrapSuffix(p: Parser): boolean {
   if (!p.eat('WRAP')) return false;
-  p.expect('COLON');
-  const value = p.expect('BOOL', 'Expected wrap: true or wrap: false');
+  p.eat('COLON');
+  const value = p.expect('BOOL', 'Expected true or false after wrap');
   return value.value === 'true';
 }

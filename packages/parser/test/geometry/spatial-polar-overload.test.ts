@@ -93,4 +93,20 @@ part p {
     expect(target.x).toBeUndefined();
     expect(target.y).toBeUndefined();
   });
+
+  it('accepts positional polar and surface offsets without labels', () => {
+    const part = parseOk(`
+part p {
+  sketch base = rect(1, 1);
+  obj base = extrude(base, 1);
+  place(child, @base.top(10, 15, 20, 45deg, 2));
+}`);
+
+    const target = placeTarget(part);
+    expect(target.x?.kind).toBe('number');
+    expect(target.y?.kind).toBe('number');
+    expect(target.radius?.kind).toBe('number');
+    expect(target.angle?.kind).toBe('unit');
+    expect(target.offset?.kind).toBe('number');
+  });
 });

@@ -18,7 +18,6 @@ import {
   tryEvalAssertCondition,
 } from '../geometry/eval-geometry-queries.js';
 import { evalObjOp, evalPathDecl } from '../geometry/eval-op-emission.js';
-import { evalSheetDecl } from '../geometry/eval-sheet.js';
 import { evalSurfaceDecl } from '../geometry/eval-surface.js';
 import { evalFitDecl, evalUseLibrary } from '../objects/eval-fit.js';
 import { declareAnchorAlias } from '../references/eval-anchor-aliases.js';
@@ -87,9 +86,6 @@ export function evalSharedStmt(
       return true;
     case 'fn':
       ctx.functions.set(stmt.name, stmt);
-      return true;
-    case 'sheet':
-      evalSheetDecl(stmt, ctx);
       return true;
     case 'surface':
       evalSurfaceDecl(stmt, ctx);

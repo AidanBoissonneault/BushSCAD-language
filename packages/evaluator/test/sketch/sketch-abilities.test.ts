@@ -122,6 +122,31 @@ function expectReflexBlendTurnsIntoPoint(
 }
 
 describe('new sketch abilities', () => {
+  it('infers semicircle radius from two points and accepts a positional radius', () => {
+    const sketches = evalSketches(`
+sketch semicircle = path(arc((0, 0), (10, 0)));
+sketch radius_arc = path(arc((0, 0), (10, 0), 8));
+`);
+
+    const semicircle = profileSegments(
+      sketches.find((sketch) => sketch.name === 'semicircle'),
+    )[0];
+    const radiusArc = profileSegments(
+      sketches.find((sketch) => sketch.name === 'radius_arc'),
+    )[0];
+
+    expect(semicircle).toMatchObject({
+      kind: 'arc',
+      radius: 5,
+      clockwise: false,
+    });
+    expect(radiusArc).toMatchObject({
+      kind: 'arc',
+      radius: 8,
+      clockwise: false,
+    });
+  });
+
   it('lowers path sketches with planted, named, inferred, arc, and close segments', () => {
     const sketches = evalSketches(`
 sketch profile = path(

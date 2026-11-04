@@ -163,7 +163,9 @@ function lowerPathArc(
   const segment = item.segment;
   if (segment.kind !== 'arc') return null;
   const { from, to } = lowerPathEndpoint(segment, item, name, state, ctx);
-  const radius = evalNum(segment.radius, ctx);
+  const radius = segment.radius
+    ? evalNum(segment.radius, ctx)
+    : Math.hypot(to[0] - from.point[0], to[1] - from.point[1]) / 2;
   validateArcRadius(name, from.point, to, radius, item.span, ctx);
   registerPathEndpoint(state, name, from, to);
   return {

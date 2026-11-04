@@ -9,7 +9,7 @@ part enclosure {
     obj body = extrude(body, 36);
 
     // Shell executes immediately — ops below see hollow geometry
-    shell: body wall open: top;
+    shell(body, wall, open: top);
 
 
     // Lid using inset shorthand (resolves against body.top dimensions)
@@ -21,7 +21,7 @@ part enclosure {
     obj label = cut(label, through body , @body.outer.front.center);
 
     // Draft on the solid lid side faces (deferred — runs after all geometry ops)
-    draft: lid.sides 13deg;
+    draft(@lid.sides, 13deg);
 
     // Fillet forms: perimeter-only and single named edge
     fillet(@body.top.perimeter, 1);

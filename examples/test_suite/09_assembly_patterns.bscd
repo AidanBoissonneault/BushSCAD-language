@@ -28,7 +28,7 @@ part pattern_plate {
 part joint_housing {
     sketch housing_profile = rect(58, 42);
     obj housing = extrude(housing_profile, 22);
-    shell: housing 3 open: front;
+    shell(housing, 3, open: front);
 }
 
 part drawer {

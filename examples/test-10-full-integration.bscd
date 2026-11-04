@@ -26,7 +26,7 @@ part housing {
     obj body = extrude(body, 48);
 
     // Shell executes immediately
-    shell: body wall open: top;
+    shell(body, wall, open: top);
 
     // Inset lid
     sketch lid_face = rect inset(wall);

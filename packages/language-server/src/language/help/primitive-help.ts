@@ -23,7 +23,8 @@ const boxParameters = [
 const sphereParameters = [
   {
     name: 'r / radius',
-    description: 'Positive radius; defaults to 1. Use the named form.',
+    description:
+      'Positive radius; defaults to 1. The first positional value sets it.',
   },
   {
     name: 'd / diameter',
@@ -43,7 +44,7 @@ export const primitiveHelp: Record<string, LanguageHelpEntry> = {
       'Creates a direct 3D block without a sketch; a vector size also makes a rectangular cuboid.',
     signatures: [
       'obj name = cube(size, @placement);',
-      'obj name = cube(width: x, depth: y, height: z);',
+      'obj name = cube(width, depth, height);',
     ],
     parameters: boxParameters,
     behavior: [bottomPlacement, primitiveUnits],
@@ -55,7 +56,7 @@ export const primitiveHelp: Record<string, LanguageHelpEntry> = {
       'Creates a rectangular solid with explicit X, Y, and Z dimensions and optional trailing placement.',
     signatures: [
       'obj name = cuboid([width, depth, height], @placement);',
-      'obj name = cuboid(width: x, depth: y, height: z);',
+      'obj name = cuboid(width, depth, height);',
     ],
     parameters: boxParameters,
     behavior: [bottomPlacement, primitiveUnits],
@@ -66,12 +67,12 @@ export const primitiveHelp: Record<string, LanguageHelpEntry> = {
     summary:
       'Creates a sphere-shaped solid centered on its authored origin using a revolved sampled meridian.',
     signatures: [
-      'obj name = sphere(r: radius, segments: count, @placement);',
+      'obj name = sphere(radius, segments, @placement);',
       'obj name = sphere(d: diameter);',
     ],
     parameters: sphereParameters,
     behavior: [
-      'Use named r/d arguments: a single positional value does not set the radius in the current evaluator.',
+      'The first positional value sets the radius; d/diameter labels convert a diameter to radius.',
       'The profile is sampled; increasing segments refines its meridian.',
       primitiveUnits,
     ],
@@ -81,7 +82,7 @@ export const primitiveHelp: Record<string, LanguageHelpEntry> = {
   geodesicSphere: {
     summary:
       'Creates a sphere-shaped solid through the sphere primitive compatibility path.',
-    signatures: ['obj name = geodesicSphere(r: radius, segments: count);'],
+    signatures: ['obj name = geodesicSphere(radius, segments);'],
     parameters: sphereParameters,
     behavior: [
       'Current geometry uses the same revolved meridian as sphere; it does not construct an icosahedral geodesic mesh.',
@@ -93,9 +94,7 @@ export const primitiveHelp: Record<string, LanguageHelpEntry> = {
   ellipsoid: {
     summary:
       'Declares positive X/Y/Z radii for an ellipsoid; the current geometry supports rotationally symmetric spheroids.',
-    signatures: [
-      'obj name = ellipsoid(radius: [rx, ry, rz], segments: count);',
-    ],
+    signatures: ['obj name = ellipsoid([rx, ry, rz], segments);'],
     parameters: [
       {
         name: 'radius',
@@ -119,7 +118,7 @@ export const primitiveHelp: Record<string, LanguageHelpEntry> = {
     summary:
       'Extrudes a rounded rectangular footprint into a block with rounded vertical corners.',
     signatures: [
-      'obj name = roundedCuboid(size: [width, depth, height], r: radius, segments: count);',
+      'obj name = roundedCuboid([width, depth, height], radius, segments);',
     ],
     parameters: [
       ...boxParameters,
@@ -146,7 +145,7 @@ export const primitiveHelp: Record<string, LanguageHelpEntry> = {
     summary:
       'Declares a cylinder with a rounding-radius parameter; current geometry remains a straight cylinder.',
     signatures: [
-      'obj name = roundedCylinder(height: h, r: radius, roundingRadius: amount);',
+      'obj name = roundedCylinder(height, radius, radiusBottom, radiusTop, segments, roundingRadius);',
     ],
     parameters: [
       {
@@ -174,7 +173,7 @@ export const primitiveHelp: Record<string, LanguageHelpEntry> = {
     summary:
       'Creates a ring by revolving a circular tube profile around local Z.',
     signatures: [
-      'obj name = torus(majorRadius: ringRadius, minorRadius: tubeRadius, minorSegments: count);',
+      'obj name = torus(majorRadius, minorRadius, majorSegments, minorSegments);',
     ],
     parameters: [
       {

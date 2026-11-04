@@ -12,6 +12,7 @@ import type {
   PlaceStatement,
 } from '@bushscad/ir';
 import type { Parser } from '../core/parser.js';
+import { claimCallArgument } from '../expressions/parse-call-arguments.js';
 
 /**
  * Parses component, function, and ref placement statements.
@@ -118,41 +119,87 @@ function parseRotateCallArgs(
   p: Parser,
   start: ASTSourceSpan,
 ): PlaceStatement['rotate'] {
-  if (p.peek().kind === 'IDENT' && p.peek(1).kind === 'COLON') {
-    const rotate: NonNullable<PlaceStatement['rotate']> = {
-      kind: 'axes',
-      x: null,
-      y: null,
-      z: null,
-      span: start,
-    };
-    while (!p.check('RPAREN', 'EOF')) {
-      const arg = p.parseNamedExprArg();
-      if (!arg)
-        p.fail('Expected rotate axis keyword x, y, or z', p.peek().span);
-      const [name, value] = arg;
-      if (name === 'x') rotate.x = value;
-      else if (name === 'y') rotate.y = value;
-      else if (name === 'z') rotate.z = value;
-      else p.addError(`Unknown rotate axis '${name}'`, value.span);
-      p.eat('COMMA');
-    }
-    return { ...rotate, span: p.spanFrom(start) };
+  const args = defaultPlacementRotateArgs(start);
+  while (!p.check('RPAREN', 'EOF')) {
+    if (!parseNamedPlacementRotateArg(p, args))
+      parsePositionalPlacementRotateArg(p, args);
+    if (!p.eat('COMMA')) break;
   }
+  return finalizePlacementRotateArgs(p, args, start);
+}
 
-  const first = p.parseExpr();
-  if (!p.eat('COMMA')) {
-    return { kind: 'default', angle: first, span: p.spanFrom(start) };
-  }
+type PlacementRotateArgs = {
+  rotate: Extract<NonNullable<PlaceStatement['rotate']>, { kind: 'axes' }>;
+  supplied: Set<'x' | 'y' | 'z'>;
+  hasNamed: boolean;
+  positionalCount: number;
+};
 
-  const second = p.parseExpr();
-  p.expect('COMMA');
-  const third = p.parseExpr();
+/** Creates the empty positional/named rotation state for a placement call. */
+function defaultPlacementRotateArgs(start: ASTSourceSpan): PlacementRotateArgs {
   return {
-    kind: 'axes',
-    x: first,
-    y: second,
-    z: third,
-    span: p.spanFrom(start),
+    rotate: { kind: 'axes', x: null, y: null, z: null, span: start },
+    supplied: new Set(),
+    hasNamed: false,
+    positionalCount: 0,
   };
+}
+
+/** Parses one named axis value while preserving unfilled positional slots. */
+function parseNamedPlacementRotateArg(
+  p: Parser,
+  args: PlacementRotateArgs,
+): boolean {
+  const named = p.parseNamedExprArg();
+  if (!named) return false;
+  args.hasNamed = true;
+  const [name, value] = named;
+  if (name !== 'x' && name !== 'y' && name !== 'z') {
+    p.addError(`Unknown rotate axis '${name}'`, value.span);
+  } else if (claimCallArgument(p, 'rotate', name, args.supplied, value.span)) {
+    args.rotate[name] = value;
+  }
+  return true;
+}
+
+/** Fills the next free rotation axis from one positional expression. */
+function parsePositionalPlacementRotateArg(
+  p: Parser,
+  args: PlacementRotateArgs,
+): void {
+  const value = p.parseExpr();
+  const axis = (['x', 'y', 'z'] as const).find(
+    (candidate) => !args.supplied.has(candidate),
+  );
+  if (axis) {
+    args.rotate[axis] = value;
+    args.supplied.add(axis);
+  } else {
+    p.addError('rotate() accepts at most 3 axis values', value.span);
+  }
+  args.positionalCount++;
+}
+
+/** Returns the single-angle or axis-vector placement rotation representation. */
+function finalizePlacementRotateArgs(
+  p: Parser,
+  args: PlacementRotateArgs,
+  start: ASTSourceSpan,
+): PlaceStatement['rotate'] {
+  if (args.supplied.size === 0)
+    p.addError('rotate() requires an angle or axis value', p.spanFrom(start));
+  if (!args.hasNamed && args.positionalCount === 1 && args.rotate.x) {
+    return {
+      kind: 'default',
+      angle: args.rotate.x,
+      span: p.spanFrom(start),
+    };
+  }
+  if (!args.hasNamed && args.positionalCount === 2) {
+    p.addError(
+      'rotate() accepts one angle or three axis values',
+      p.spanFrom(start),
+    );
+  }
+  return { ...args.rotate, span: p.spanFrom(start) };
 }

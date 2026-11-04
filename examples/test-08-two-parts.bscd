@@ -5,7 +5,7 @@ base_unit = mm;
 part tray {
     sketch body = rect(100, 80);
     obj body = extrude(body, 32);
-    shell: body 2 open: top;
+    shell(body, 2, open: top);
 
     // Corner mounting holes via list loop
     for pt in [

@@ -27,11 +27,7 @@ export type IndependentPartPlan = Readonly<
   | { eligible: false; reason: string }
 >;
 
-const COORDINATOR_ONLY_OPS = new Set<IROp['kind']>([
-  'assert',
-  'flat_pattern',
-  'joint',
-]);
+const COORDINATOR_ONLY_OPS = new Set<IROp['kind']>(['assert', 'joint']);
 
 /**
  * Selects the conservative P3 boundary: independent explicit whole parts.

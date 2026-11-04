@@ -69,6 +69,10 @@ const TOP_HANDLERS: {
   sketch: (stmt, ctx) => emitSketchOp(stmt, ctx, stmt.name),
   objCall: evalTopObjCall,
   fillet: (stmt, ctx, state) => evalBodyStmt(stmt, ctx, state.deferred),
+  chamfer: (stmt, ctx, state) => evalBodyStmt(stmt, ctx, state.deferred),
+  shell: (stmt, ctx, state) => evalBodyStmt(stmt, ctx, state.deferred),
+  draft: (stmt, ctx, state) => evalBodyStmt(stmt, ctx, state.deferred),
+  thread: (stmt, ctx, state) => evalBodyStmt(stmt, ctx, state.deferred),
   place: (stmt, ctx, state) =>
     evalPlace(stmt, ctx, state.deferred, { evalBodyStatements, evalFunction }),
   anchor: (stmt, ctx) => declareAnchorAlias(stmt.name, stmt.point, ctx),

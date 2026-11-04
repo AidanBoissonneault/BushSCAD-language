@@ -6,7 +6,6 @@
  */
 
 import type { IRPlacement, SourceSpan } from './ir-core.js';
-import type { IRProfileSegment } from '../sketch/sketchIr.js';
 
 // Manufacturing fits and tolerances
 
@@ -178,49 +177,4 @@ export type ResolvedJointData = {
   axis: [number, number, number]; // unit direction for rotation/translation
   movingPartName: string; // sideA object prefix
   staticPartName: string; // sideB object prefix
-};
-
-// Sheet metal (M33)
-
-// A flange grown from a straight base-panel edge. The cross-section profile
-// (bend arc + flat flange) is precomputed by the evaluator in the (u, v) plane
-// and prismed along the edge by the OCCT bridge, then fused into objName.
-/**
- * Ir flange, including operation kind, obj name, edge name, profile, and origin.
- */
-export type IRFlange = {
-  kind: 'flange';
-  objName: string; // base panel body to fuse the flange into
-  edgeName: string; // named edge, for diagnostics
-  profile: IRProfileSegment[]; // cross-section in local (u, v) coords
-  origin: [number, number, number]; // edge start point (world)
-  edgeDir: [number, number, number]; // unit direction along the edge (prism dir)
-  outwardDir: [number, number, number]; // unit u-axis: base-outward, ⊥ edge
-  edgeLength: number;
-  span: SourceSpan;
-};
-
-/**
- * Ir flat pattern segment, including x1, y1, x2, y2, and layer.
- */
-export type IRFlatPatternSegment = {
-  x1: number;
-  y1: number;
-  x2: number;
-  y2: number;
-  layer: 'OUTLINE' | 'BEND';
-};
-
-// A flat-pattern DXF export. Outline + bend lines are precomputed analytically
-// by the evaluator; the OCCT bridge only formats and emits the DXF file.
-/**
- * Ir flat pattern, including operation kind, name, export format, path, and segments.
- */
-export type IRFlatPattern = {
-  kind: 'flat_pattern';
-  name: string;
-  format: 'dxf';
-  path: string;
-  segments: IRFlatPatternSegment[];
-  span: SourceSpan;
 };

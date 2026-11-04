@@ -20,12 +20,12 @@ part solid_operations {
 
     fillet(@base.top.perimeter, 1.2);
     chamfer(@base.bottom.edges, 0.6);
-    draft: boss.sides 2deg;
+    draft(@boss.sides, 2deg);
 }
 
 part shelled_detail {
     obj body = cube([34, 28, 22]);
-    shell: body 2 open: top;
+    shell(body, 2, open: top);
 }
 
 part threaded_detail {

@@ -109,9 +109,6 @@ export const LANGUAGE_CAPABILITIES = [
   'manufacturing.fit',
   'manufacturing.assert',
   'manufacturing.drawing',
-  'manufacturing.sheet',
-  'manufacturing.flange',
-  'manufacturing.flat-pattern',
   'assets.shape-import',
   'assets.font-import',
 ] as const;

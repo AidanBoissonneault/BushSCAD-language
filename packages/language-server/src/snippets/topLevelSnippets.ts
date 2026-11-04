@@ -233,18 +233,6 @@ export const BUSHSCAD_TOP_LEVEL_SNIPPETS = [
       'obj ${1:name} = sweep(${2:sketch} along ${3:path}, orientation: fixed);',
     detail: 'Sweep with fixed orientation',
   },
-  {
-    label: 'sheet',
-    insertText:
-      "sheet ${1:bracket} thickness: ${2:2} material: '${3:aluminum}' bend_radius: ${4:1} {\n\tsketch base = rect(${5:80}, ${6:40});\n\tobj base = sheet_base(base);\n\tflange base.edge(front) length: ${7:20} angle: ${8:90deg} radius: ${4:1};\n\texport flat_pattern dxf './${9:exports/bracket-flat.dxf}';\n}",
-    detail: 'Sheet-metal block',
-  },
-  {
-    label: 'flange',
-    insertText:
-      'flange ${1:base}.edge(${2|front,back,left,right|}) length: ${3:20} angle: ${4:90deg} radius: ${5:1};',
-    detail: 'Fold a flange from an edge',
-  },
   ...BUSHSCAD_VALIDATION_SNIPPETS,
   {
     label: 'use std.printing.fdm',
