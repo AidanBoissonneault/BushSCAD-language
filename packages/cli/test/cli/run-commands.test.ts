@@ -7,7 +7,7 @@
 
 import type { ExportFileResult } from '@bushscad/compiler/node';
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import type { CliOptions } from '../../src/commands/args.js';
+import type { CliOptions } from '../../src/commands/arguments/types.js';
 import { writeBuildText } from '../../src/cli/runBuild.js';
 import { runExport } from '../../src/cli/runExport.js';
 import { exportWithDefaultCompiler } from '../../src/cli/default-compiler.js';

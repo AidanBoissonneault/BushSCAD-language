@@ -13,7 +13,7 @@
  * Delegates to CLI or service mode based on parsed args.
  */
 
-import { parseArgs, usage } from './commands/args.js';
+import { parseArgs, usage } from './commands/arguments/parse-args.js';
 import { runCli } from './cli/runCli.js';
 import { runService } from './service/runService.js';
 import { runParallelOcctWorker } from './service/parallel/run-worker.js';

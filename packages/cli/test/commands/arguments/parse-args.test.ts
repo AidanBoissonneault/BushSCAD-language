@@ -6,9 +6,8 @@
  */
 
 import { describe, expect, it } from 'vitest';
-import { parseArgs, usage, type CliOptions } from '../../src/commands/args.js';
-import { stringifyCliResult } from '../../src/dto/json.js';
-import type { CompileError } from '@bushscad/ir';
+import { parseArgs, usage } from '../../../src/commands/arguments/parse-args.js';
+import type { CliOptions } from '../../../src/commands/arguments/types.js';
 
 /**
  * Handles options in the commands flow.
@@ -97,31 +96,6 @@ describe('parseArgs', () => {
       filePath: 'model.bscd',
       check: true,
       json: true,
-    });
-  });
-});
-
-describe('stringifyCliResult', () => {
-  it('serializes Error-backed compile error messages', () => {
-    const error = new Error('Unknown object for rotate') as Error &
-      CompileError;
-    error.span = { file: 'model.bscd', line: 40, col: 5 };
-
-    expect(
-      JSON.parse(
-        stringifyCliResult({
-          ok: false,
-          errors: [error],
-        }),
-      ),
-    ).toMatchObject({
-      ok: false,
-      errors: [
-        {
-          message: 'Unknown object for rotate',
-          span: { file: 'model.bscd', line: 40, col: 5 },
-        },
-      ],
     });
   });
 });

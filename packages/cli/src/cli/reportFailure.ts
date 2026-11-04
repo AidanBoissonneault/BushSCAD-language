@@ -6,7 +6,7 @@
  */
 
 import type { CompileError } from '@bushscad/ir';
-import type { CliOptions } from '../commands/args.js';
+import type { CliOptions } from '../commands/arguments/types.js';
 import { stringifyCliResult } from '../dto/json.js';
 import { printErrors } from './printErrors.js';
 

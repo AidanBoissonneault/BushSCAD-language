@@ -5,7 +5,7 @@
  * @last-edited October 6, 2026
  */
 
-import type { CliOptions } from '../commands/args.js';
+import type { CliOptions } from '../commands/arguments/types.js';
 import { previewWithDefaultCompiler } from './default-compiler.js';
 import { reportFailure } from './reportFailure.js';
 import { writeDrawingFiles } from './writeDrawingFiles.js';

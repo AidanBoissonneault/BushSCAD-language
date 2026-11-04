@@ -6,7 +6,7 @@
  */
 
 import { compileFileToIr } from '@bushscad/compiler/node';
-import type { CliOptions } from '../commands/args.js';
+import type { CliOptions } from '../commands/arguments/types.js';
 import { reportFailure } from './reportFailure.js';
 
 /** Runs `bushscad --check` and writes the requested text or JSON result. */

@@ -6,7 +6,7 @@
  */
 
 import { writeExportBuffers } from '@bushscad/compiler/node';
-import type { CliOptions } from '../commands/args.js';
+import type { CliOptions } from '../commands/arguments/types.js';
 import { exportWithDefaultCompiler } from './default-compiler.js';
 import { reportFailure } from './reportFailure.js';
 import { writeDrawingFiles } from './writeDrawingFiles.js';

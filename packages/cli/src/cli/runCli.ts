@@ -5,7 +5,7 @@
  * @last-edited October 6, 2026
  */
 
-import type { CliOptions } from '../commands/args.js';
+import type { CliOptions } from '../commands/arguments/types.js';
 import { runBuild } from './runBuild.js';
 import { runCheck } from './runCheck.js';
 import { runExport } from './runExport.js';
