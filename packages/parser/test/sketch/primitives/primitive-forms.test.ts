@@ -7,7 +7,7 @@
 
 import type { ExportDecl, FontImportDecl, SketchDecl } from '@bushscad/ir';
 import { describe, expect, it } from 'vitest';
-import { parseOk } from '../fixtures/parse.js';
+import { parseOk } from '../../fixtures/parse.js';
 
 describe('parser — sketch primitives', () => {
   it('parses rect', () => {

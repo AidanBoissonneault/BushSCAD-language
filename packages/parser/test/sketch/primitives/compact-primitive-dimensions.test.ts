@@ -7,7 +7,7 @@
 
 import type { SketchDecl } from '@bushscad/ir';
 import { describe, expect, it } from 'vitest';
-import { parse } from '../../src/core/parser.js';
+import { parse } from '../../../src/core/parser.js';
 
 /**
  * Compacts sketch while preserving its values.

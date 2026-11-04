@@ -7,8 +7,8 @@
 
 import type { RectPrimitive, RectSide, SketchDecl } from '@bushscad/ir';
 import { describe, expect, it } from 'vitest';
-import { parse } from '../../src/index.js';
-import { parseOk } from '../fixtures/parse.js';
+import { parse } from '../../../../src/index.js';
+import { parseOk } from '../../../fixtures/parse.js';
 
 /**
  * Handles parsed sketch in the sketch flow.

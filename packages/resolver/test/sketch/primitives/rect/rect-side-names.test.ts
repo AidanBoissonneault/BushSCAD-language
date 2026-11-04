@@ -6,7 +6,7 @@
  */
 
 import { describe, it } from 'vitest';
-import { resolveOk } from '../core/test-support.js';
+import { resolveOk } from '../../../core/test-support.js';
 
 describe('rectangle side-name resolution', () => {
   it('does not resolve side aliases as variables', () => {

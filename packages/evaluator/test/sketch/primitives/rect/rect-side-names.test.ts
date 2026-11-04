@@ -7,7 +7,7 @@
 
 import type { IRSketch } from '@bushscad/ir';
 import { describe, expect, it } from 'vitest';
-import { evalOk } from '../core/test-support.js';
+import { evalOk } from '../../../core/test-support.js';
 
 /**
  * Handles evaluated sketches in the sketch flow.

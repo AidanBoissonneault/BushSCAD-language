@@ -12,7 +12,7 @@ import {
   evalOps,
   expectProfileSketch,
   opsOfKind,
-} from '../core/test-support.js';
+} from '../../../core/test-support.js';
 
 describe('exact ellipse evaluation', () => {
   it('lowers direct unequal axes and canonicalizes equal axes', () => {

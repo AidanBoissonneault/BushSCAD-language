@@ -7,7 +7,7 @@
 
 import type { IRAlignShape, IROp, IRSketch, RectSide } from '@bushscad/ir';
 import { describe, expect, it } from 'vitest';
-import { evalOk, evalOps } from '../core/test-support.js';
+import { evalOk, evalOps } from '../../../core/test-support.js';
 
 /**
  * Handles evaluated sketch in the sketch flow.

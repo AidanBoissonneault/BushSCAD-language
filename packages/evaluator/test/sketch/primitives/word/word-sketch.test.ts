@@ -7,7 +7,7 @@
 
 import type { IRSketch } from '@bushscad/ir';
 import { describe, expect, it } from 'vitest';
-import { evalOk, opsOfKind } from './test-support.js';
+import { evalOk, opsOfKind } from '../../../core/test-support.js';
 
 describe('word sketch', () => {
   it('resolves text string and literal font string', () => {

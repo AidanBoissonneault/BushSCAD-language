@@ -9,7 +9,7 @@ import type { IRArcSegment, IRSketch } from '@bushscad/ir';
 import { parse } from '@bushscad/parser';
 import { resolve } from '@bushscad/resolver';
 import { describe, expect, it } from 'vitest';
-import { evaluate } from '../../src/index.js';
+import { evaluate } from '../../../src/index.js';
 
 /**
  * Evaluates sketch with the current evaluation context.
