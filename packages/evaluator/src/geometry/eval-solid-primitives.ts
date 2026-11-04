@@ -11,7 +11,7 @@ import { toSpan } from '../core/eval-context.js';
 import { evalRepeatablePlacements } from '../references/eval-repeatable-refs.js';
 import { materialForObject } from '../metadata/eval-material-resolution.js';
 import { registerSolidPrimitiveMetrics } from './eval-solid-primitive-metrics.js';
-import { normalizeSolidPrimitive } from './eval-solid-primitive-normalize.js';
+import { normalizeSolidPrimitive } from './solid-primitives/normalize-solid-primitive.js';
 
 /**
  * Lowers a direct source primitive into a concrete IR primitive operation.
