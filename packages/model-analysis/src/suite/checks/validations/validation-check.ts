@@ -1,5 +1,5 @@
 import type { ModelAnalysisResult } from '../../../types/types.js';
-import type { SuiteCheck, SuiteExpectation } from '../../suiteTypes.js';
+import type { SuiteCheck } from '../../suiteTypes.js';
 import { check } from '../suite-check.js';
 
 /**

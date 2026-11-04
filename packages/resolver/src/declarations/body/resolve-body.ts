@@ -1,6 +1,5 @@
 /** Coordinates predeclaration and resolution of nested body statements. */
 import { resolveSharedStmt } from '../shared-statements.js';
-import { resolveCall } from '../call/resolve-call.js';
 import { resolveFor } from '../for/resolve-for.js';
 import { resolveIf } from '../if/resolve-if.js';
 import type {
@@ -9,15 +8,11 @@ import type {
   ForStatement,
   IfStatement,
   PlaceStatement,
-  PathDecl,
-  PlaneDecl,
 } from '@bushscad/ir';
 import type { Scope } from '../../core/scope.js';
 import type { State } from '../../core/types.js';
-import { Scope as ScopeClass } from '../../core/scope.js';
 import { resolveMetadataAssignment } from '../metadata.js';
 import { resolvePlace as resolvePlaceStatement } from '../resolve-place-statement.js';
-import type { BodyResolver } from '../body-resolver.js';
 import { resolveBodyVar } from './var/resolve-body-var.js';
 import { resolveBodyEnv } from './env/resolve-body-env.js';
 import { resolveBodySketch } from './sketch/resolve-body-sketch.js';

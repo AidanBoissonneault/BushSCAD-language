@@ -4,7 +4,6 @@ import type { State } from '../../../core/types.js';
 import { resolveExpr } from '../../../references/expressions.js';
 import { resolveSketchInput } from '../../../references/operand-inputs.js';
 import {
-  resolveDepthAndFrom,
   resolveOptionalFrom,
 } from '../shared/resolve-depth-and-from.js';
 import { validateWrapTarget } from '../wrap/validate-wrap-target.js';

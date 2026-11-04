@@ -14,10 +14,7 @@ import { triangleCheck } from './checks/triangles/triangle-check.js';
 import { volumeCheck } from './checks/volume/volume-check.js';
 import { partCheck } from './checks/parts/part-check.js';
 import { operationCheck } from './checks/operations/operation-check.js';
-import {
-  changedOperationCheck,
-  traceEventChangedBodyIdentity,
-} from './checks/changed-operations/changed-operation-check.js';
+import { changedOperationCheck } from './checks/changed-operations/changed-operation-check.js';
 import { validationCheck } from './checks/validations/validation-check.js';
 import { warningCheck } from './checks/warnings/warning-check.js';
 import { topologyCheck } from './checks/topology/topology-check.js';
