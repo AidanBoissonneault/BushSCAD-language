@@ -7,30 +7,23 @@
 
 import type {
   ASTSourceSpan,
-  Expr,
-  FaceRef,
   PatternLinearStmt,
   PatternRadialStmt,
 } from '@bushscad/ir';
 import type { Parser } from '../../core/parser.js';
 import { tryParseNamedCallArg } from '../../expressions/parse-call-arguments.js';
 import { parseObjectTargetName } from '../../expressions/parse-names.js';
-
-/**
- * Pattern call args, including target, probe mode, mode from positional, count x, and count y.
- */
-type PatternCallArgs = {
-  target: string | null;
-  mode: 'linear' | 'radial';
-  modeProvided: boolean;
-  supplied: Set<string>;
-  countX: Expr | null;
-  countY: Expr | null;
-  spacingX: Expr | null;
-  spacingY: Expr | null;
-  count: Expr | null;
-  around: FaceRef | null;
-};
+import {
+  finalizeLinearPattern,
+  parseLinearPatternPositionalArg,
+  parsePatternSpacing,
+} from './linear/parse-linear-pattern.js';
+import {
+  finalizeRadialPattern,
+  parsePatternAround,
+  parseRadialPatternPositionalArg,
+} from './radial/parse-radial-pattern.js';
+import type { PatternCallArgs } from './types.js';
 
 /**
  * Parses the call-style pattern syntax with positional defaults and named slots.
@@ -275,47 +268,6 @@ function parsePatternPositionalArg(p: Parser, args: PatternCallArgs): void {
 }
 
 /**
- * Parses linear pattern positional arg from the supplied source into the objects representation.
- */
-function parseLinearPatternPositionalArg(
-  p: Parser,
-  args: PatternCallArgs,
-): void {
-  if (!args.countX && !args.supplied.has('countX')) {
-    args.countX = p.parseExpr();
-    args.supplied.add('countX');
-  } else if (!args.spacingX && !args.supplied.has('spacing')) {
-    parsePatternSpacing(p, args);
-    args.supplied.add('spacing');
-  } else if (!args.countY && !args.supplied.has('countY')) {
-    args.countY = p.parseExpr();
-    args.supplied.add('countY');
-  } else {
-    const extra = p.parseExpr();
-    p.addError('pattern(linear) accepts at most 3 value arguments', extra.span);
-  }
-}
-
-/**
- * Parses radial pattern positional arg from the supplied source into the objects representation.
- */
-function parseRadialPatternPositionalArg(
-  p: Parser,
-  args: PatternCallArgs,
-): void {
-  if (!args.count && !args.supplied.has('count')) {
-    args.count = p.parseExpr();
-    args.supplied.add('count');
-  } else if (!args.around && !args.supplied.has('around')) {
-    args.around = parsePatternAround(p);
-    args.supplied.add('around');
-  } else {
-    const extra = p.parseExpr();
-    p.addError('pattern(radial) accepts at most 2 value arguments', extra.span);
-  }
-}
-
-/**
  * Parses pattern mode from the supplied source into the objects representation.
  */
 function parsePatternMode(p: Parser): 'linear' | 'radial' {
@@ -334,30 +286,6 @@ function isPatternModeToken(p: Parser): boolean {
 }
 
 /**
- * Parses pattern spacing from the supplied source into the objects representation.
- */
-function parsePatternSpacing(p: Parser, args: PatternCallArgs): void {
-  const expr = p.parseExpr();
-  if (expr.kind === 'tuple') {
-    args.spacingX = expr.x;
-    args.spacingY = expr.y;
-    args.supplied.add('spacingX');
-    args.supplied.add('spacingY');
-  } else {
-    args.spacingX = expr;
-    args.supplied.add('spacingX');
-  }
-}
-
-/**
- * Parses pattern around from the supplied source into the objects representation.
- */
-function parsePatternAround(p: Parser): FaceRef {
-  const firstTok = p.expect('IDENT');
-  return p.parseFaceRefFromIdent(firstTok) as FaceRef;
-}
-
-/**
  * Handles finalize pattern call in the objects flow.
  */
 function finalizePatternCall(
@@ -372,66 +300,3 @@ function finalizePatternCall(
   return finalizeLinearPattern(p, args, start, target);
 }
 
-/**
- * Handles finalize radial pattern in the objects flow.
- */
-function finalizeRadialPattern(
-  p: Parser,
-  args: PatternCallArgs,
-  start: ASTSourceSpan,
-  target: string,
-): PatternRadialStmt {
-  if (!args.count) {
-    args.count = args.countX;
-    if (!args.count) {
-      p.addError('pattern(radial) requires count', p.spanFrom(start));
-      args.count = missingNumber(start);
-    }
-  }
-  if (!args.around) {
-    p.addError('pattern(radial) requires around', p.spanFrom(start));
-    args.around = { kind: 'faceRef', chain: [], span: p.spanFrom(start) };
-  }
-  return {
-    kind: 'patternRadial',
-    target,
-    count: args.count,
-    around: args.around,
-    span: p.spanFrom(start),
-  };
-}
-
-/**
- * Handles finalize linear pattern in the objects flow.
- */
-function finalizeLinearPattern(
-  p: Parser,
-  args: PatternCallArgs,
-  start: ASTSourceSpan,
-  target: string,
-): PatternLinearStmt {
-  if (!args.countX) {
-    p.addError('pattern(linear) requires x count', p.spanFrom(start));
-    args.countX = missingNumber(start);
-  }
-  if (!args.spacingX) {
-    p.addError('pattern(linear) requires spacing', p.spanFrom(start));
-    args.spacingX = missingNumber(start);
-  }
-  return {
-    kind: 'patternLinear',
-    target,
-    countX: args.countX,
-    countY: args.countY,
-    spacingX: args.spacingX,
-    spacingY: args.spacingY,
-    span: p.spanFrom(start),
-  };
-}
-
-/**
- * Handles missing number in the objects flow.
- */
-function missingNumber(start: ASTSourceSpan): Expr {
-  return { kind: 'number', value: 0, span: start };
-}
