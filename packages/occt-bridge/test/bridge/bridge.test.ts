@@ -19,6 +19,7 @@ import {
   OCCT_FALLBACK_SERIF_FONT_PATH,
   OcctBridge,
 } from '../../src/index.js';
+import { OcctBridgeImplementation } from '../../src/bridge/occt-bridge-implementation.js';
 import {
   buildSurfaceFillOperation,
   buildSurfaceOffsetOperation,
@@ -28,7 +29,7 @@ import {
   applyStableBoolCut,
   applyStableBoolFuse,
 } from '../../src/operations/boolean-operations.js';
-import type { GroupBuildState } from '../../src/bridge/bridge-types.js';
+import type { GroupBuildState, OC } from '../../src/bridge/bridge-types.js';
 import type {
   IROp,
   IRSketch,
@@ -2403,6 +2404,21 @@ function makeBridge(oc: ReturnType<typeof makeMockOC>): OcctBridge {
   return new (OcctBridge as unknown as new (oc: unknown) => OcctBridge)(oc);
 }
 
+/** Exposes focused bridge internals to tests for independently owned operations. */
+class BridgeOperationTestHarness extends OcctBridgeImplementation {
+  extractMeshForTest(shape: OC) {
+    return this.extractMesh(shape);
+  }
+
+  cutDepthTowardShapeForTest(ax2: OC, targetShape: OC, depth: number) {
+    return this.cutDepthTowardShape(ax2, targetShape, depth);
+  }
+
+  solidCutTargetAxisForTest(ax2: OC, targetShape: OC) {
+    return this.solidCutTargetAxis(ax2, targetShape);
+  }
+}
+
 /**
  * Handles use extrude shape in the bridge flow.
  */
@@ -2733,13 +2749,8 @@ describe('OcctBridge.build — basic extrude', () => {
       delete: vi.fn(),
     }));
 
-    const bridge = makeBridge(oc) as unknown as {
-      extractMesh(shape: unknown): {
-        normals: Float32Array;
-        indices: Uint32Array;
-      };
-    };
-    const mesh = bridge.extractMesh(shape);
+    const bridge = new BridgeOperationTestHarness(oc as unknown as OC);
+    const mesh = bridge.extractMeshForTest(shape as OC);
 
     expect(Array.from(mesh.indices)).toEqual([0, 1, 2]);
     expect(Array.from(mesh.normals)).toEqual([0, 0, 1, 0, 0, 1, 0, 0, 1]);
@@ -3198,31 +3209,22 @@ describe('OcctBridge.build — boolean cut', () => {
   });
 
   it('aims a top-face cut back into the target solid', () => {
-    const bridge = makeBridge(oc) as unknown as {
-      cutDepthTowardShape(
-        ax2: unknown,
-        targetShape: unknown,
-        depth: number,
-      ): number;
-    };
+    const bridge = new BridgeOperationTestHarness(oc as unknown as OC);
     const ax2 = mockAx2With(
       mockPnt(0, 0, 10),
       mockDir(0, 0, 1),
       mockDir(1, 0, 0),
     );
-    const signedDepth = bridge.cutDepthTowardShape(ax2, mockShape('solid'), 25);
+    const signedDepth = bridge.cutDepthTowardShapeForTest(
+      ax2 as OC,
+      mockShape('solid') as OC,
+      25,
+    );
     expect(signedDepth).toBe(-25);
   });
 
   it('aims a top-face solid tool back into the target solid', () => {
-    const bridge = makeBridge(oc) as unknown as {
-      solidCutTargetAxis(
-        ax2: unknown,
-        targetShape: unknown,
-      ): {
-        Direction(): { Z(): number };
-      };
-    };
+    const bridge = new BridgeOperationTestHarness(oc as unknown as OC);
     const ax2 = mockAx2With(
       mockPnt(0, 0, 10),
       mockDir(0, 0, 1),
@@ -3232,7 +3234,7 @@ describe('OcctBridge.build — boolean cut', () => {
       ...mockShape('solid'),
       _bbox: { xMin: -5, yMin: -5, zMin: 0, xMax: 5, yMax: 5, zMax: 10 },
     };
-    const inward = bridge.solidCutTargetAxis(ax2, target);
+    const inward = bridge.solidCutTargetAxisForTest(ax2 as OC, target as OC);
     expect(inward.Direction().Z()).toBe(-1);
   });
 
