@@ -1,5 +1,4 @@
-/** Resolves component body statements and their nested declaration scopes. */
-
+/** Coordinates predeclaration and resolution of nested body statements. */
 import { resolveSharedStmt } from '../shared-statements.js';
 import { resolveCall } from '../call/resolve-call.js';
 import { resolveFor } from '../for/resolve-for.js';
@@ -16,25 +15,25 @@ import type {
 import type { Scope } from '../../core/scope.js';
 import type { State } from '../../core/types.js';
 import { Scope as ScopeClass } from '../../core/scope.js';
-import { addError } from '../../core/errors.js';
-import { resolveExpr } from '../../references/expressions.js';
-import { resolveFn } from '../functions.js';
-import { resolveObj } from '../objects.js';
-import { resolveFromRef } from '../../references/refs.js';
-import { recordSelectorAlias } from '../../references/selector-aliases.js';
-import { resolveSketch } from '../../sketch/sketch.js';
-import { resolveSurface } from '../../geometry/surface.js';
 import { resolveMetadataAssignment } from '../metadata.js';
 import { resolvePlace as resolvePlaceStatement } from '../resolve-place-statement.js';
-import { isSelectorNameValue } from '../../references/selector-vars.js';
-import { resolvePathDecl } from '../resolve-path-declaration.js';
-import { resolvePlane } from '../plane/resolve-plane.js';
+import type { BodyResolver } from '../body-resolver.js';
+import { resolveBodyVar } from './var/resolve-body-var.js';
+import { resolveBodyEnv } from './env/resolve-body-env.js';
+import { resolveBodySketch } from './sketch/resolve-body-sketch.js';
+import { resolveBodySurface } from './surface/resolve-body-surface.js';
+import { resolveBodyPath } from './path/resolve-body-path.js';
+import { resolveBodyObj } from './obj/resolve-body-obj.js';
+import { resolveBodyObjCall } from './obj-call/resolve-body-obj-call.js';
+import { resolveBodyRefPart } from './ref-part/resolve-body-ref-part.js';
+import { resolveBodyRefObj } from './ref-obj/resolve-body-ref-obj.js';
+import { resolveBodyFn } from './fn/resolve-body-fn.js';
+import { resolveBodyCallStmt } from './call/resolve-body-call.js';
+import { resolveInvalidReturn } from './return/resolve-body-return.js';
+import { resolveBodyPlane } from './plane/resolve-body-plane.js';
+import { resolveBodyAnchor } from './anchor/resolve-body-anchor.js';
 
-/**
- * Resolves declarations and commands inside component, part, loop, and branch bodies.
- */
 type BodyPredeclare = (stmt: ComponentStatement, scope: Scope) => void;
-
 type BodyStmtResolver = (
   stmt: ComponentStatement,
   scope: Scope,
@@ -74,7 +73,8 @@ const BODY_STMT_RESOLVERS: Partial<
   path: resolveBodyPath,
   obj: resolveBodyObj,
   objCall: resolveBodyObjCall,
-  refPart: resolveBodyRefPart,
+  refPart: (stmt, scope, state) =>
+    resolveBodyRefPart(stmt, scope, state, resolveBody),
   refObj: resolveBodyRefObj,
   fn: resolveBodyFn,
   callStmt: resolveBodyCallStmt,
@@ -106,9 +106,8 @@ export function resolveBody(
   const prev = state.inComponent;
   state.inComponent = inComponent;
   predeclareBodySymbols(body, scope);
-  for (const stmt of body.statements) {
+  for (const stmt of body.statements)
     resolveBodyStmt(stmt, scope, state, allowPartMetadata);
-  }
   state.inComponent = prev;
 }
 
@@ -153,194 +152,4 @@ function resolveBodyStmt(
 ): void {
   if (resolveSharedStmt(stmt, scope, state)) return;
   BODY_STMT_RESOLVERS[stmt.kind]?.(stmt, scope, state, allowPartMetadata);
-}
-
-/**
- * Resolves body var against the current scope and reports unresolved references.
- */
-function resolveBodyVar(
-  stmt: ComponentStatement,
-  scope: Scope,
-  state: State,
-): void {
-  const varStmt = stmt as Extract<ComponentStatement, { kind: 'var' }>;
-  if (!isSelectorNameValue(varStmt.value)) {
-    resolveExpr(varStmt.value, scope, state);
-  }
-  scope.define(varStmt.name, 'var');
-}
-
-/**
- * Resolves body env against the current scope and reports unresolved references.
- */
-function resolveBodyEnv(stmt: ComponentStatement, scope: Scope): void {
-  scope.define(
-    (stmt as Extract<ComponentStatement, { kind: 'env' }>).name,
-    'env',
-  );
-}
-
-/**
- * Resolves body sketch against the current scope and reports unresolved references.
- */
-function resolveBodySketch(
-  stmt: ComponentStatement,
-  scope: Scope,
-  state: State,
-): void {
-  const sketch = stmt as Extract<ComponentStatement, { kind: 'sketch' }>;
-  resolveSketch(sketch, scope, state);
-  scope.define(sketch.name, 'sketch');
-}
-
-/**
- * Resolves body surface against the current scope and reports unresolved references.
- */
-function resolveBodySurface(
-  stmt: ComponentStatement,
-  scope: Scope,
-  state: State,
-): void {
-  const surface = stmt as Extract<ComponentStatement, { kind: 'surface' }>;
-  resolveSurface(surface, scope, state);
-  scope.define(surface.name, 'surface');
-}
-
-/**
- * Resolves body path against the current scope and reports unresolved references.
- */
-function resolveBodyPath(
-  stmt: ComponentStatement,
-  scope: Scope,
-  state: State,
-): void {
-  const path = stmt as PathDecl;
-  resolvePathDecl(path, scope, state);
-  scope.define(path.name, 'path');
-}
-
-/**
- * Resolves body obj against the current scope and reports unresolved references.
- */
-function resolveBodyObj(
-  stmt: ComponentStatement,
-  scope: Scope,
-  state: State,
-): void {
-  const obj = stmt as Extract<ComponentStatement, { kind: 'obj' }>;
-  resolveObj(obj, scope, state);
-  scope.define(obj.name, 'obj');
-  for (const anchor of obj.anchors) scope.define(anchor.name, 'anchor');
-}
-
-/**
- * Resolves body obj call against the current scope and reports unresolved references.
- */
-function resolveBodyObjCall(
-  stmt: ComponentStatement,
-  scope: Scope,
-  state: State,
-): void {
-  const objCall = stmt as Extract<ComponentStatement, { kind: 'objCall' }>;
-  resolveCall(objCall.call, objCall.span, scope, state);
-  scope.define(objCall.name, 'obj');
-}
-
-/**
- * Resolves body ref part against the current scope and reports unresolved references.
- */
-function resolveBodyRefPart(
-  stmt: ComponentStatement,
-  scope: Scope,
-  state: State,
-): void {
-  const refPart = stmt as Extract<ComponentStatement, { kind: 'refPart' }>;
-  resolveBody(refPart.body, new ScopeClass(scope), state, true, true);
-  scope.define(refPart.name, 'component');
-}
-
-/**
- * Resolves body ref obj against the current scope and reports unresolved references.
- */
-function resolveBodyRefObj(
-  stmt: ComponentStatement,
-  scope: Scope,
-  state: State,
-): void {
-  const refObj = stmt as Extract<ComponentStatement, { kind: 'refObj' }>;
-  resolveObj(
-    {
-      kind: 'obj',
-      name: refObj.name,
-      operation: refObj.operation,
-      anchors: [],
-      span: refObj.span,
-    },
-    scope,
-    state,
-  );
-  scope.define(refObj.name, 'obj');
-}
-
-/**
- * Resolves body fn against the current scope and reports unresolved references.
- */
-function resolveBodyFn(
-  stmt: ComponentStatement,
-  scope: Scope,
-  state: State,
-): void {
-  const fn = stmt as Extract<ComponentStatement, { kind: 'fn' }>;
-  resolveFn(fn, scope, state);
-  scope.define(fn.name, 'fn');
-}
-
-/**
- * Resolves body call stmt against the current scope and reports unresolved references.
- */
-function resolveBodyCallStmt(
-  stmt: ComponentStatement,
-  scope: Scope,
-  state: State,
-): void {
-  const callStmt = stmt as Extract<ComponentStatement, { kind: 'callStmt' }>;
-  resolveCall(callStmt.call, callStmt.span, scope, state);
-}
-
-/**
- * Resolves invalid return against the current scope and reports unresolved references.
- */
-function resolveInvalidReturn(
-  stmt: ComponentStatement,
-  _scope: Scope,
-  state: State,
-): void {
-  addError(state, `'return' is only valid inside a function body`, stmt.span);
-}
-
-/**
- * Resolves body plane against the current scope and reports unresolved references.
- */
-function resolveBodyPlane(
-  stmt: ComponentStatement,
-  scope: Scope,
-  state: State,
-): void {
-  const plane = stmt as PlaneDecl;
-  resolvePlane(plane, scope, state);
-  scope.define(plane.name, 'plane');
-}
-
-/**
- * Resolves body anchor against the current scope and reports unresolved references.
- */
-function resolveBodyAnchor(
-  stmt: ComponentStatement,
-  scope: Scope,
-  state: State,
-): void {
-  const anchor = stmt as Extract<ComponentStatement, { kind: 'anchor' }>;
-  resolveFromRef(anchor.point, scope, state, anchor.span, resolveExpr);
-  recordSelectorAlias(anchor.name, anchor.point, scope, state);
-  scope.define(anchor.name, 'anchor');
 }

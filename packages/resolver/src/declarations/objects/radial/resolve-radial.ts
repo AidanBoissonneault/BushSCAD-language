@@ -1,21 +1,21 @@
 /**
  * @author Aidan Boissonneault
- * @file object-radial-resolver.ts
+ * @file resolve-radial.ts
  * @purpose Provides object radial resolver behavior for the declarations in resolver package.
  * @last-edited October 6, 2026
  */
 
-import type { RadialCutOp, RadialExtrudeOp } from '@bushscad/ir';
-import type { Scope } from '../core/scope.js';
-import type { State } from '../core/types.js';
-import { addError } from '../core/errors.js';
-import { resolveExpr } from '../references/expressions.js';
-import { resolveFaceRef, resolveFromRef } from '../references/refs.js';
-import { resolveSketchInput } from '../references/operand-inputs.js';
+import type { ObjDecl, RadialCutOp, RadialExtrudeOp } from '@bushscad/ir';
+import type { Scope } from '../../../core/scope.js';
+import type { State } from '../../../core/types.js';
+import { addError } from '../../../core/errors.js';
+import { resolveExpr } from '../../../references/expressions.js';
+import { resolveFaceRef, resolveFromRef } from '../../../references/refs.js';
+import { resolveSketchInput } from '../../../references/operand-inputs.js';
 import {
   namedSketchInputs,
   registerObjectProfileSegments,
-} from './object-profile-segments.js';
+} from '../profile-segments/profile-segments.js';
 
 /**
  * Resolves the sketch, axis, extent, and curve expressions for radial object
@@ -50,6 +50,20 @@ export function resolveRadialOp(
   }
   if (op.from) resolveFromRef(op.from, scope, state, op.span, resolveExpr);
   registerObjectProfileSegments(objName, namedSketchInputs([op.sketch]), state);
+}
+
+/** Resolves a radial operation object while retaining its declared object name. */
+export function resolveRadialObj(
+  stmt: ObjDecl,
+  scope: Scope,
+  state: State,
+): void {
+  resolveRadialOp(
+    stmt.name,
+    stmt.operation as RadialExtrudeOp | RadialCutOp,
+    scope,
+    state,
+  );
 }
 
 /**

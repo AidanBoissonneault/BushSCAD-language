@@ -10,7 +10,7 @@ import type { Scope } from '../core/scope.js';
 import type { State } from '../core/types.js';
 import { resolveExpr } from '../references/expressions.js';
 import { resolveFromRef } from '../references/refs.js';
-import { resolveSketchPrimitive } from './resolve-sketch-primitive.js';
+import { resolveSketchPrimitive } from './primitives/resolve-sketch-primitive.js';
 import { resolveCompactSketchDimensions } from './resolve-compact-sketch-dimensions.js';
 import { sketchPrimitiveSegmentNames } from './sketch-segment-names.js';
 

@@ -1,6 +1,6 @@
 /**
  * @author Aidan Boissonneault
- * @file object-wrap-resolver.ts
+ * @file validate-wrap-target.ts
  * @purpose Provides object wrap resolver behavior for the declarations in resolver package.
  * @last-edited October 6, 2026
  */
@@ -12,8 +12,8 @@ import type {
   RepeatableSpatialRef,
 } from '@bushscad/ir';
 import { expandRepeatableSpatialRef } from '@bushscad/ir';
-import { addError } from '../core/errors.js';
-import type { State } from '../core/types.js';
+import { addError } from '../../../core/errors.js';
+import type { State } from '../../../core/types.js';
 
 /**
  * Validates that wrapped cuts and extrusions have only curved-face targets.

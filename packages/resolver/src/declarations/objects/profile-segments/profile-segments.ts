@@ -1,12 +1,12 @@
 /**
  * @author Aidan Boissonneault
- * @file object-profile-segments.ts
+ * @file profile-segments.ts
  * @purpose Provides object profile segments behavior for the declarations in resolver package.
  * @last-edited October 6, 2026
  */
 
 import type { SketchInput } from '@bushscad/ir';
-import type { State } from '../core/types.js';
+import type { State } from '../../../core/types.js';
 
 /** Returns the owning sketch names represented by nested sketch operands. */
 export function namedSketchInputs(inputs: SketchInput[]): string[] {
