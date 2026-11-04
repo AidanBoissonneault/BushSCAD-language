@@ -6,9 +6,9 @@
  */
 
 import type { IRRectPrimitive, SketchPrimitive } from '@bushscad/ir';
-import type { EvalCtx } from '../core/eval-types.js';
-import { evalAxisExpr, evalNum } from '../expressions/eval-expressions.js';
-import { evalCompactSketchDimensions } from '../sketch/eval-compact-sketch-dimensions.js';
+import type { EvalCtx } from '../../../core/eval-types.js';
+import { evalAxisExpr, evalNum } from '../../../expressions/eval-expressions.js';
+import { evalCompactSketchDimensions } from '../../eval-compact-sketch-dimensions.js';
 
 /**
  * Evaluates rectangle dimensions and carries authored side aliases into IR.

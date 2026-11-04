@@ -12,7 +12,7 @@ import type {
 } from '@bushscad/ir';
 import { metricsForPlacement, toSpan } from '../core/eval-context.js';
 import type { EvalCtx } from '../core/eval-types.js';
-import { evalPrimitive } from './eval-primitives.js';
+import { evalPrimitive } from '../sketch/primitives/evaluate-primitive.js';
 import {
   evalSketchPlacementInfo,
   rememberSurfaceBoundSketch,

@@ -31,7 +31,7 @@ import {
 import {
   requireClosedSketch,
   requireOpenGuideSketch,
-} from './eval-primitives.js';
+} from '../sketch/eval-profile-validation.js';
 import { paramSpansFrom } from '../statements/eval-param-spans.js';
 import type { Expr } from '@bushscad/ir';
 import { evalSketchBodySelection } from '../sketch/eval-sketch-body-selection.js';

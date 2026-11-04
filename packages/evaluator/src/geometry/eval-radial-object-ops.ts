@@ -26,7 +26,7 @@ import {
 } from '../references/eval-repeatable-refs.js';
 import { paramSpansFrom } from '../statements/eval-param-spans.js';
 import { evalSketchInputName } from './eval-inline-operands.js';
-import { requireClosedSketch } from './eval-primitives.js';
+import { requireClosedSketch } from '../sketch/eval-profile-validation.js';
 import { consumeSurfaceBoundSketch } from './eval-surface-bound-sketch.js';
 
 /**

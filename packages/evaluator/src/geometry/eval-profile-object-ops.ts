@@ -27,7 +27,7 @@ import { registerLoftMetrics } from './eval-loft-metrics.js';
 import {
   requireClosedSketch,
   requireOpenGuideSketch,
-} from './eval-primitives.js';
+} from '../sketch/eval-profile-validation.js';
 import { consumeSurfaceBoundSketch } from './eval-surface-bound-sketch.js';
 import { evalSingularPlacement } from '../references/eval-repeatable-refs.js';
 import { addError } from '../core/eval-context.js';

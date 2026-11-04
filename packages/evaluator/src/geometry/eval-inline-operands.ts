@@ -20,7 +20,7 @@ import type {
 import type { EvalCtx } from '../core/eval-types.js';
 import { addError, fresh, toSpan } from '../core/eval-context.js';
 import { evalNum } from '../expressions/eval-expressions.js';
-import { evalPrimitive } from './eval-primitives.js';
+import { evalPrimitive } from '../sketch/primitives/evaluate-primitive.js';
 import { evalSingularSelection } from '../references/eval-resolved-selection.js';
 
 /**

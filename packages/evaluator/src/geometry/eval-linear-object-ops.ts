@@ -24,7 +24,7 @@ import {
   evalPlacedSketchInput,
   posOffsets,
 } from './eval-object-op-placement.js';
-import { requireClosedSketch } from './eval-primitives.js';
+import { requireClosedSketch } from '../sketch/eval-profile-validation.js';
 import { evalThroughTargetName } from './eval-through-target.js';
 import { consumeSurfaceBoundSketch } from './eval-surface-bound-sketch.js';
 import { evalSketchBodySelection } from '../sketch/eval-sketch-body-selection.js';

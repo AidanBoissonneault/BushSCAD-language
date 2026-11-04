@@ -18,7 +18,7 @@ import {
 import type { EvalCtx } from '../core/eval-types.js';
 import { addError } from '../core/eval-context.js';
 import { evalAxisExpr, evalNum } from '../expressions/eval-expressions.js';
-import { evalRectPrimitive } from '../geometry/eval-rect-primitive.js';
+import { evalRectPrimitive } from './primitives/rect/eval-rect-primitive.js';
 import { applySketchOrigin } from '../geometry/eval-sketch-origin.js';
 import type { PathEvalState } from './eval-path-segments.js';
 import { validateArcRadius } from './eval-profile-validation.js';
