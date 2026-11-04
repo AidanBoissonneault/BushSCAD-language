@@ -20,7 +20,7 @@ import {
   readAsset,
   readSource,
 } from '../platform/node/nodePaths.js';
-import { resolveNodeFonts } from '../platform/node/nodeFontResolution.js';
+import { resolveNodeFonts } from '../platform/node/fonts/resolve-node-fonts.js';
 
 /**
  * Compiles a source file from disk or editor overlays into IR.

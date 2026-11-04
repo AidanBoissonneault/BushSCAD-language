@@ -13,9 +13,9 @@ import type { CompileAssets, IRProgram, IRSketch } from '@bushscad/ir';
 import { afterEach, describe, expect, it } from 'vitest';
 import {
   cssFontFamilies,
-  fontFamilyNames,
   resolveNodeFonts,
-} from '../../../src/platform/node/nodeFontResolution.js';
+} from '../../../../src/platform/node/fonts/resolve-node-fonts.js';
+import { fontFamilyNames } from '../../../../src/platform/node/fonts/font-name-table.js';
 
 const temporaryDirectories: string[] = [];
 
@@ -66,7 +66,7 @@ describe('Node font resolution', () => {
 function bundledFontPath(): string {
   return resolve(
     dirname(fileURLToPath(import.meta.url)),
-    '../../../assets/fonts/NotoSans-Regular.ttf',
+    '../../../../assets/fonts/NotoSans-Regular.ttf',
   );
 }
 
