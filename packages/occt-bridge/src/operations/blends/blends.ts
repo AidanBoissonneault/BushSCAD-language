@@ -4,7 +4,6 @@ import { DraftBridge } from '../draft/draft.js';
 
 import {
   type BlendRetryRequest,
-  dotVec,
   endpointsMatch,
   pointsClose,
   torusMesh,
@@ -31,7 +30,7 @@ import {
 
 import { recordInteractionEdgeSelection } from '../../topology/interaction-selection-counts.js';
 
-import { normalizeVec } from '../../topology/frame-utils.js';
+import { dotVec, normalizeVec } from '../../topology/frame-utils.js';
 
 import {
   edgeIntersectionFailure,

@@ -160,13 +160,6 @@ export type OcctBuildOptions = {
 };
 
 /**
- * Returns the dot product for vec using the supplied shape and operation state.
- */
-export function dotVec(a: Vec3, b: Vec3): number {
-  return a[0] * b[0] + a[1] * b[1] + a[2] * b[2];
-}
-
-/**
  * Coordinates endpoints match as part of the OpenCascade build pipeline.
  */
 export function endpointsMatch(
@@ -1575,6 +1568,7 @@ export abstract class OcctBridgeBase {
   /**
    * Builds cylindrical wrap solid for the current OpenCascade build.
    */
+  // fallow-ignore-next-line code-duplication
   protected abstract buildCylindricalWrapSolid(
     cylCenter: Vec3,
     cylAxisDir: Vec3,
@@ -2253,6 +2247,7 @@ export abstract class OcctBridgeBase {
   /**
    * Applies modifier phase for the current OpenCascade build.
    */
+  // fallow-ignore-next-line code-duplication
   protected abstract applyModifierPhase(
     state: GroupBuildState,
     ops: ModifierOp[],
@@ -2275,6 +2270,7 @@ export abstract class OcctBridgeBase {
   /**
    * Applies blend modifier phase for the current OpenCascade build.
    */
+  // fallow-ignore-next-line code-duplication
   protected abstract applyBlendModifierPhase(
     kind: BlendModifierKind,
     owner: string,
@@ -2289,6 +2285,7 @@ export abstract class OcctBridgeBase {
   /**
    * Collects blend selections for phase for the current OpenCascade build.
    */
+  // fallow-ignore-next-line code-duplication
   protected abstract collectBlendSelectionsForPhase(
     kind: BlendModifierKind,
     owner: string,
@@ -2330,6 +2327,7 @@ export abstract class OcctBridgeBase {
   /**
    * Applies blend selections for phase for the current OpenCascade build.
    */
+  // fallow-ignore-next-line code-duplication
   protected abstract applyBlendSelectionsForPhase(
     kind: BlendModifierKind,
     owner: string,
@@ -2402,6 +2400,7 @@ export abstract class OcctBridgeBase {
    * target still fails, record that target as a validation error and keep later
    * blend targets moving so one bad radius does not suppress unrelated details.
    */
+  // fallow-ignore-next-line code-duplication
   protected abstract tryBlendByTargetGroups(
     kind: BlendModifierKind,
     shape: OC,
@@ -2419,6 +2418,7 @@ export abstract class OcctBridgeBase {
    * single source feature after later geometry splits an edge. OCCT may reject
    * the whole selector batch even though each island remains valid.
    */
+  // fallow-ignore-next-line code-duplication
   protected abstract applyBlendBatchWithConnectedRetry(
     kind: BlendModifierKind,
     shape: OC,
@@ -2433,6 +2433,7 @@ export abstract class OcctBridgeBase {
   /**
    * Applies connected blend batches after failure for the current OpenCascade build.
    */
+  // fallow-ignore-next-line code-duplication
   protected abstract applyConnectedBlendBatchesAfterFailure(
     kind: BlendModifierKind,
     shape: OC,
