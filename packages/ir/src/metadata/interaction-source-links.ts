@@ -17,7 +17,11 @@ export {
 import {
   renderedOrOwnerTargetsForEntity,
   renderedTargetsForEntity,
-} from './interaction-lookup.js';
+} from './interaction-lookup/rendered-targets.js';
+export {
+  renderedOrOwnerTargetsForEntity,
+  renderedTargetsForEntity,
+} from './interaction-lookup/rendered-targets.js';
 import type {
   InteractionEffect,
   InteractionSnapshot,

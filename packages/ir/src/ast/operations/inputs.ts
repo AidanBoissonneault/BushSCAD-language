@@ -2,7 +2,6 @@ import type { ASTSourceSpan } from '../sourceSpan.js';
 import type { SketchPrimitive } from '../sketchPrimitives.js';
 import type { SurfaceOperation } from '../surface.js';
 import type { PathPrimitive } from './path/primitive.js';
-import type { ObjectOperation } from './object-operation.js';
 
 /**
  * Input for sketch is tagged by kind: 'namedSketch' carries name, 'namedSketchBody' carries

@@ -1,5 +1,5 @@
 import type { ASTSourceSpan } from '../sourceSpan.js';
-import type { Expr, RepeatableSpatialRef } from '../expressions.js';
+import type { RepeatableSpatialRef } from '../expressions.js';
 import type { SolidPrimitiveOp } from '../solidPrimitives.js';
 import type { ExtrudeOp } from './extrude/operation.js';
 import type { CutOp } from './cut/operation.js';
@@ -10,7 +10,6 @@ import type { HoleOp } from './hole/operation.js';
 import type { HeatsetInsertOp } from './heatset-insert/operation.js';
 import type { SweepOp, SweepCutOp } from './sweep/operation.js';
 import type { ThickenOp } from './thicken/operation.js';
-import type { ThroughTarget } from './inputs.js';
 
 /** Solid creation and boolean operation parsed from an obj declaration. */
 export type ObjectOperation =

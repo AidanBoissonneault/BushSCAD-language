@@ -5,7 +5,7 @@
  * @last-edited October 6, 2026
  */
 
-import { renderedTargetsForEntity } from './interaction-lookup.js';
+import { renderedTargetsForEntity } from './interaction-lookup/rendered-targets.js';
 import type { InteractionSnapshot } from './interaction-provenance.js';
 
 /** Follows an operation's dependency outputs to all currently rendered entities. */

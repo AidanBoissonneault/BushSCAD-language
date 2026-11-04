@@ -56,11 +56,8 @@ export type RadialExtent =
  */
 export type RadialSections = { kind: 'auto' } | { kind: 'expr'; value: Expr };
 
-/**
- * Radial extrude op, including operation kind, sketch, axis, extent, and curve.
- */
-export type RadialExtrudeOp = {
-  kind: 'radial_extrude';
+/** Arguments shared by radial extrude and radial cut operation contracts. */
+type RadialOperationFields = {
   sketch: SketchInput;
   axis: RevolveAxisRef | null;
   extent: RadialExtent;
@@ -75,21 +72,14 @@ export type RadialExtrudeOp = {
   span: ASTSourceSpan;
 };
 
+/** Radial extrude operation contract. */
+export type RadialExtrudeOp = RadialOperationFields & {
+  kind: 'radial_extrude';
+};
+
 /**
  * Radial cut op, including operation kind, sketch, axis, extent, and curve.
  */
-export type RadialCutOp = {
+export type RadialCutOp = RadialOperationFields & {
   kind: 'radial_cut';
-  sketch: SketchInput;
-  axis: RevolveAxisRef | null;
-  extent: RadialExtent;
-  curve: RadialCurve;
-  direction: RadialDirection;
-  start: Expr | null;
-  twist: Expr | null;
-  taper: Expr | null;
-  radius: Expr | null;
-  sections: RadialSections;
-  from: RepeatableSpatialRef | null;
-  span: ASTSourceSpan;
 };
