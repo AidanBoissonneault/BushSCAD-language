@@ -23,7 +23,7 @@ import {
 import { bodyUsesThis } from '../statements/eval-body-this.js';
 import { bodyRequiresParentContext } from '../statements/eval-body-parent-context.js';
 import { collectBodyObjectNames } from '../statements/eval-body-object-names.js';
-import { functionCallNameSpan } from '../statements/eval-body-functions.js';
+import { functionCallNameSpan } from '../statements/call/function-call-name-span.js';
 import { evaluatePartMetadata } from '../metadata/eval-metadata.js';
 import {
   evalAssertStmt,

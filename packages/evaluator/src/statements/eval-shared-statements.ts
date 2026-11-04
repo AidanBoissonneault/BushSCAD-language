@@ -1,4 +1,4 @@
-/**
+﻿/**
  * @author Aidan Boissonneault
  * @file eval-shared-statements.ts
  * @purpose Evaluates shared statements for the statements in evaluator package.
@@ -22,13 +22,11 @@ import { evalSurfaceDecl } from '../geometry/eval-surface.js';
 import { evalFitDecl, evalUseLibrary } from '../objects/eval-fit.js';
 import { declareAnchorAlias } from '../references/eval-anchor-aliases.js';
 import { evalRefDecl } from '../references/eval-ref-decl.js';
-import {
-  evalMirror,
-  evalPatternLinear,
-  evalPatternRadial,
-  evalRotate,
-  evalTransform,
-} from './eval-body-control-flow.js';
+import { evalMirror } from './mirror/eval-mirror.js';
+import { evalPatternLinear } from './pattern/linear/eval-pattern-linear.js';
+import { evalPatternRadial } from './pattern/radial/eval-pattern-radial.js';
+import { evalRotate } from './rotate/eval-rotate.js';
+import { evalTransform } from './transform/eval-transform.js';
 
 // Material application
 
@@ -122,7 +120,7 @@ export function evalAssertStmt(stmt: AssertStatement, ctx: EvalCtx): void {
   if (irAssert) {
     ctx.ops.push(irAssert);
   } else {
-    // Condition is too complex to represent as IRAssert — skip silently.
+    // Condition is too complex to represent as IRAssert â€” skip silently.
     addError(
       ctx,
       `assert condition too complex for deferred evaluation; simplify to a direct comparison`,
@@ -146,3 +144,5 @@ export function evalFitDeclInBody(stmt: FitDecl, ctx: EvalCtx): void {
 export function evalUseLibraryInBody(library: string, ctx: EvalCtx): void {
   evalUseLibrary(library, ctx);
 }
+
+

@@ -29,7 +29,7 @@ import {
   isSolidCutStart,
   parseCutOp,
 } from '../geometry/parse-cut.js';
-import { parseSpatialAnchor } from '../statements/parse-modifiers.js';
+import { parseSpatialAnchor } from '../statements/anchor/parse-anchor.js';
 import {
   parseExtrudeOp,
   parseThickenOp,

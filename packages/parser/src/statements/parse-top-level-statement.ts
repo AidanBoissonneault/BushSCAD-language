@@ -1,4 +1,4 @@
-/**
+﻿/**
  * @author Aidan Boissonneault
  * @file parse-top-level-statement.ts
  * @purpose Parses top level statement for the statements in parser package.
@@ -19,7 +19,7 @@ import {
 } from './parse-declarations.js';
 import { parseDrawingDecl } from '../geometry/parse-drawing.js';
 import { isJointDeclStart, parseJointDecl } from '../objects/parse-joint.js';
-import { parseFn } from './parse-control-flow.js';
+import { parseFn } from './fn/parse-fn.js';
 import { parseExport, parseImport, parsePart } from './parse-top-level.js';
 import { parseSharedDeclaration } from './parse-shared-declaration.js';
 import { parseSharedBodyOperation } from './parse-shared-body-operation.js';
@@ -81,3 +81,4 @@ function parseImportTopLevelStatement(p: Parser): TopLevelStatement | null {
   if (isShapeImportStart(p)) return parseShapeImport(p);
   return parseImport(p);
 }
+

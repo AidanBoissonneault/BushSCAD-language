@@ -9,10 +9,10 @@ import type { ASTSourceSpan } from './sourceSpan.js';
 import type {
   Expr,
   FaceRef,
-  FnCallExpr,
   PosRef,
   RepeatableSpatialRef,
 } from './expressions.js';
+export type { CallStatement } from './statements/call.js';
 
 /** Component placement node used inside component and part bodies. */
 export type PlaceStatement = {
@@ -58,15 +58,6 @@ export type RotateStatement = {
   target: string;
   angle: Expr;
   around: RotateAxisRef;
-  span: ASTSourceSpan;
-};
-
-/**
- * Call statement, including operation kind, call, and span.
- */
-export type CallStatement = {
-  kind: 'callStmt';
-  call: FnCallExpr;
   span: ASTSourceSpan;
 };
 

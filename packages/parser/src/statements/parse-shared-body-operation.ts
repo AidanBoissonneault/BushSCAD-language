@@ -10,12 +10,10 @@ import type { Parser } from '../core/parser.js';
 import type { TokenKind } from '../core/token-types.js';
 import { parseAssert } from './parse-assert.js';
 import { parseFitDecl } from '../objects/parse-fit.js';
-import {
-  parseChamfer,
-  parseDraft,
-  parseFillet,
-  parseShell,
-} from './parse-modifiers.js';
+import { parseChamfer } from './chamfer/parse-chamfer.js';
+import { parseDraft } from './draft/parse-draft.js';
+import { parseFillet } from './fillet/parse-fillet.js';
+import { parseShell } from './shell/parse-shell.js';
 import { parseThread } from './parse-thread.js';
 import { parseMirror } from '../objects/parse-mirror.js';
 import { parsePattern } from '../objects/parse-patterns.js';

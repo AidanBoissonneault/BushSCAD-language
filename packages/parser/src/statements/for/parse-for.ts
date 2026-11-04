@@ -1,97 +1,16 @@
-/**
- * @author Aidan Boissonneault
- * @file parse-control-flow.ts
- * @purpose Parses control flow for the statements in parser package.
- * @last-edited October 6, 2026
+﻿/**
+ * Parses for-loop bindings, iterators, and within clauses.
  */
-
 import type {
-  FnDecl,
-  FnParam,
-  ForStatement,
-  IfStatement,
-  CallStatement,
-  ReturnStatement,
-  ComponentBody,
-  GridIter,
   Expr,
+  ForStatement,
+  GridIter,
   WithinClause,
   WithinDim,
 } from '@bushscad/ir';
-import type { Parser } from '../core/parser.js';
-import { parseOrderedExprArgs } from '../expressions/parse-ordered-args.js';
-import { parseFaceRefFromIdent } from '../references/parse-refs.js';
-
-/**
- * Parses a geometry function declaration and rejects ambiguous parameter names.
- *
- * Why:
- * Function arguments bind by parameter name, so duplicate declarations cannot
- * be assigned distinct values reliably by the evaluator.
- */
-export function parseFn(p: Parser, exported: boolean): FnDecl {
-  const start = p.peek().span;
-  p.advance(); // FN
-  const name = p.expect('IDENT').value;
-  const params = parseFunctionParameters(p);
-  const body = p.parseComponentBody();
-  return { kind: 'fn', name, params, body, exported, span: p.spanFrom(start) };
-}
-
-/**
- * Parses optional function parameters and reports duplicate names.
- *
- * Why: keeping parameter-list recovery together lets `parseFn` focus on the
- * declaration lifecycle while preserving parser diagnostics and token flow.
- */
-function parseFunctionParameters(p: Parser): FnParam[] {
-  if (!p.eat('LPAREN')) {
-    p.addError(`Expected '(' after function name`, p.peek().span);
-    return [];
-  }
-  return parseFunctionParameterList(p);
-}
-
-/**
- * Parses parameters until the closing parenthesis or a recoverable syntax error.
- */
-function parseFunctionParameterList(p: Parser): FnParam[] {
-  const params: FnParam[] = [];
-  const names = new Set<string>();
-  while (!p.check('RPAREN', 'EOF')) {
-    const parameter = parseFunctionParameter(p, names);
-    if (!parameter) break;
-    params.push(parameter);
-    if (!p.eat('COMMA')) break;
-  }
-  p.expect('RPAREN');
-  return params;
-}
-
-/**
- * Parses one parameter and reports duplicate names at their source token.
- */
-function parseFunctionParameter(p: Parser, names: Set<string>): FnParam | null {
-  if (!p.check('IDENT')) {
-    p.addError(
-      `Expected parameter name, got '${p.peek().value || p.peek().kind}'`,
-      p.peek().span,
-    );
-    return null;
-  }
-  const parameter = p.expect('IDENT');
-  const name = parameter.value;
-  if (names.has(name)) {
-    p.addError(`Duplicate function parameter '${name}'`, parameter.span);
-  } else {
-    names.add(name);
-  }
-  return {
-    name,
-    default: p.eat('COLON') ? p.parseExpr() : null,
-  };
-}
-
+import type { Parser } from '../../core/parser.js';
+import { parseOrderedExprArgs } from '../../expressions/parse-ordered-args.js';
+import { parseFaceRefFromIdent } from '../../references/parse-refs.js';
 /**
  * Parses for from the supplied source into the statements representation.
  */
@@ -158,7 +77,7 @@ function parseWithinClause(p: Parser): WithinClause {
 }
 
 /**
- * Parses one `within` target — a face-dimension reference such as
+ * Parses one `within` target â€” a face-dimension reference such as
  * `base.top.width`, or a plain numeric expression.
  */
 function parseWithinDim(p: Parser): WithinDim {
@@ -308,40 +227,4 @@ function parseEnumerateIterator(p: Parser): ForStatement['iterator'] {
   const expr = p.parseExpr();
   p.expect('RPAREN');
   return { kind: 'enumerate', expr };
-}
-
-/**
- * Parses if from the supplied source into the statements representation.
- */
-export function parseIf(p: Parser): IfStatement {
-  const start = p.peek().span;
-  p.advance(); // IF
-  const condition = p.parseExpr();
-  const then = p.parseComponentBody();
-  const else_: ComponentBody | null = p.eat('ELSE')
-    ? p.parseComponentBody()
-    : null;
-  return { kind: 'if', condition, then, else: else_, span: p.spanFrom(start) };
-}
-
-/**
- * Parses call statement from the supplied source into the statements representation.
- */
-export function parseCallStatement(p: Parser): CallStatement {
-  const start = p.peek().span;
-  const name = p.expect('IDENT');
-  const call = p.parseFnCallFromIdent(name);
-  p.eatSemi();
-  return { kind: 'callStmt', call, span: p.spanFrom(start) };
-}
-
-/**
- * Parses return from the supplied source into the statements representation.
- */
-export function parseReturn(p: Parser): ReturnStatement {
-  const start = p.peek().span;
-  p.advance(); // RETURN
-  const body = p.parseReturnBody();
-  p.eatSemi();
-  return { kind: 'return', body, span: p.spanFrom(start) };
 }

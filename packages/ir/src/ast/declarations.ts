@@ -22,6 +22,8 @@ import type {
   TransformStmt,
 } from './placement.js';
 import type { ComponentBody } from './control-flow.js';
+import type { FnDecl } from './statements/fn.js';
+export type { FnDecl, FnParam } from './statements/fn.js';
 export type {
   ComponentBody,
   ComponentStatement,
@@ -231,26 +233,6 @@ export type PartDecl = {
   nameSpan?: ASTSourceSpan;
   body: ComponentBody;
   span: ASTSourceSpan;
-};
-
-/**
- * Fn decl, including operation kind, name, params, body, and exported.
- */
-export type FnDecl = {
-  kind: 'fn';
-  name: string;
-  params: FnParam[];
-  body: ComponentBody;
-  exported: boolean;
-  span: ASTSourceSpan;
-};
-
-/**
- * Fn param, including name and default.
- */
-export type FnParam = {
-  name: string;
-  default: Expr | null;
 };
 
 /**

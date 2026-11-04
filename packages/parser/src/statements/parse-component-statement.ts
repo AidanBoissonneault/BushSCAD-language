@@ -1,4 +1,4 @@
-/**
+﻿/**
  * @author Aidan Boissonneault
  * @file parse-component-statement.ts
  * @purpose Parses component statement for the statements in parser package.
@@ -8,13 +8,11 @@
 import type { ComponentStatement } from '@bushscad/ir';
 import type { Parser } from '../core/parser.js';
 import type { Token, TokenKind } from '../core/token-types.js';
-import {
-  parseCallStatement,
-  parseFn,
-  parseFor,
-  parseIf,
-  parseReturn,
-} from './parse-control-flow.js';
+import { parseCallStatement } from './call/parse-call-statement.js';
+import { parseFn } from './fn/parse-fn.js';
+import { parseFor } from './for/parse-for.js';
+import { parseIf } from './if/parse-if.js';
+import { parseReturn } from './return/parse-return.js';
 import {
   isDefeatureStart,
   isHealStart,
@@ -22,7 +20,8 @@ import {
   parseHeal,
 } from './parse-declarations.js';
 import { isJointDeclStart, parseJointDecl } from '../objects/parse-joint.js';
-import { parseAnchor, parsePlane } from './parse-modifiers.js';
+import { parseAnchor } from './anchor/parse-anchor.js';
+import { parsePlane } from './plane/parse-plane.js';
 import {
   parseMetadataAssignment,
   rejectThisMetadataAssignment,
@@ -134,3 +133,4 @@ function parseIdentComponentStatement(
   if (p.peek(1).kind === 'LPAREN') return parseCallStatement(p);
   return p.fail(`Unexpected token '${token.value}'`, token.span);
 }
+

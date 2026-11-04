@@ -1,4 +1,4 @@
-/**
+﻿/**
  * @author Aidan Boissonneault
  * @file eval-body-stmts.ts
  * @purpose Evaluates body stmts for the statements in evaluator package.
@@ -15,16 +15,12 @@ import { collectBodyObjectNames } from './eval-body-object-names.js';
 
 import { evalPlace } from '../objects/eval-place.js';
 
-import {
-  evalForBodyControlFlow,
-  evalIfBodyControlFlow,
-} from './eval-body-control-flow.js';
+import { evalForBodyControlFlow } from './for/eval-for-body-control-flow.js';
+import { evalIfBodyControlFlow } from './if/eval-if-body-control-flow.js';
 
-import {
-  evalCallStatementImpl,
-  evalFunctionImpl,
-  functionCallNameSpan,
-} from './eval-body-functions.js';
+import { evalCallStatementImpl } from './call/eval-call-statement.js';
+import { functionCallNameSpan } from './call/function-call-name-span.js';
+import { evalFunctionImpl } from './fn/eval-function.js';
 
 import { evalSharedStmt } from './eval-shared-statements.js';
 import { evalBodySimpleStmt } from './eval-body-simple-stmts.js';
@@ -186,3 +182,4 @@ export function evalComponentBody(
   evalBodyStatements(body, ctx, deferred);
   for (const op of deferred) ctx.ops.push(op);
 }
+

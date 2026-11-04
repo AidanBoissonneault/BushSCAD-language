@@ -11,7 +11,7 @@ import { parseSketch } from '../sketch/parse-sketch.js';
 import { parseObj } from '../objects/parse-object-ops.js';
 import { parsePath } from '../paths/parse-paths.js';
 import { parseRef, parseUseDecl } from './parse-top-level.js';
-import { parseSpatialAnchor } from './parse-modifiers.js';
+import { parseSpatialAnchor } from './anchor/parse-anchor.js';
 import { parseSurfaceDecl } from '../geometry/parse-surface.js';
 import { parseEnv, parseVar } from './parse-declarations.js';
 

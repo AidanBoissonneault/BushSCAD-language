@@ -32,7 +32,7 @@ import {
   parseObjectOperation,
   parseWrapSuffix,
 } from '../objects/parse-object-ops.js';
-import { parseFn } from './parse-control-flow.js';
+import { parseFn } from './fn/parse-fn.js';
 import { parseObjectTargetName } from '../expressions/parse-names.js';
 
 /**
