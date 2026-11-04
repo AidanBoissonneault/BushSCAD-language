@@ -1,8 +1,8 @@
 import * as THREE from 'three';
 import { describe, expect, it, vi } from 'vitest';
-import { drawPrimitive } from '../../src/sketch-preview/sketch-preview-primitives.js';
+import { drawPrimitive } from '../../../../src/sketch-preview/sketch-preview-primitives.js';
 
-vi.mock('../../src/sketch-preview/sketch-preview-dimensions.js', () => ({
+vi.mock('../../../../src/sketch-preview/sketch-preview-dimensions.js', () => ({
   drawBoundsDimensions: vi.fn(),
 }));
 
