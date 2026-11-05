@@ -22,7 +22,7 @@ export function parseSurfaceDecl(p: Parser): SurfaceDecl {
   const name = nameToken.value;
   p.expect('ASSIGN');
   const operation = parseSurfaceOperation(p);
-  p.eatSemi();
+  p.requireSemi();
   return {
     kind: 'surface',
     name,

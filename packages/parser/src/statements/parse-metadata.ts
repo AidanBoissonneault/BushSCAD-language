@@ -44,7 +44,7 @@ export function parseMetadataAssignment(p: Parser): MetadataAssignment {
 
   p.expect('ASSIGN');
   const value = p.parseExpr();
-  p.eatSemi();
+  p.requireSemi();
   return {
     kind: 'metadata',
     target: isPartTarget

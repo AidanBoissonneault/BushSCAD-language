@@ -40,7 +40,7 @@ export function parseTransform(p: Parser): TransformStmt {
   p.expect('LPAREN', 'transform syntax is transform(target, operation)');
   const args = parseTransformCallArgs(p);
   p.expect('RPAREN');
-  p.eatSemi();
+  p.requireSemi();
   return finalizeTransform(p, args, start);
 }
 

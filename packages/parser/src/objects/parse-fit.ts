@@ -28,7 +28,7 @@ export function parseFitDecl(p: Parser): FitDecl {
   p.expect('LPAREN', 'fit syntax is fit(kind, name, through|into, target)');
   const args = parseFitCallArgs(p);
   p.expect('RPAREN');
-  p.eatSemi();
+  p.requireSemi();
   return finalizeFitDecl(p, args, start);
 }
 

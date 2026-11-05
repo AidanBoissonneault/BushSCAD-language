@@ -44,7 +44,7 @@ export function parsePlace(p: Parser): PlaceStatement {
   p.expect('RPAREN');
   const rotate = parsePlacementRotation(p);
   const as = p.eat('AS') ? p.expect('IDENT').value : null;
-  p.eatSemi();
+  p.requireSemi();
   return {
     kind: 'place',
     component,

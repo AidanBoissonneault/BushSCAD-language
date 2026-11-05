@@ -18,6 +18,6 @@ export function parsePattern(p: Parser): PatternLinearStmt | PatternRadialStmt {
   p.expect('LPAREN', 'pattern syntax is pattern(target, linear|radial, ...)');
   const args = parsePatternCallArgs(p, start);
   p.expect('RPAREN');
-  p.eatSemi();
+  p.requireSemi();
   return args;
 }

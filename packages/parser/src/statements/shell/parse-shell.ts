@@ -28,7 +28,7 @@ export function parseShell(p: Parser): ShellDetail {
     args.thickness = { kind: 'number', value: 0, span: p.peek().span };
   }
   p.expect('RPAREN');
-  p.eatSemi();
+  p.requireSemi();
   return {
     kind: 'shell',
     target: args.target,

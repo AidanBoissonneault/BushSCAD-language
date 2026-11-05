@@ -1,6 +1,6 @@
 # BushSCAD Language Reference
 
-**Version 0.4.0 - November 2026**
+**Version 0.5.0 - November 2026**
 
 This reference describes BushSCAD syntax and what each language feature does.
 
@@ -3294,6 +3294,25 @@ Build a model by defining profiles, creating solids, placing features, and
 refining geometry. A `.bscd` file stores these steps as editable source.
 References name faces, edges, and anchors so later features can follow the
 model's geometry. Use `part` to keep solids separate and assign materials.
+
+### Statement Terminators
+
+Statements that end in a declaration value or operation call require a
+semicolon, both at file scope and inside component bodies:
+
+```bushscad
+var thickness = 2;
+part bracket {
+  sketch profile = rect(20, 12);
+  obj body = extrude(profile, thickness);
+  shell(body, 1);
+}
+```
+
+Block forms such as `part`, `ref`, `fn`, `if`, `for`, `drawing`, and joint
+declarations end at their closing brace. Each statement inside those blocks
+still uses its own required terminator. A `return { ... }` body separates its
+entries with commas; semicolons are not allowed between return entries.
 
 ### Units & Global Settings
 

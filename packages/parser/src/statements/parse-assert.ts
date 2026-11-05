@@ -18,7 +18,7 @@ export function parseAssert(p: Parser): AssertStatement {
   p.expect('LPAREN', 'assert syntax is assert(condition)');
   const args = parseAssertCallArgs(p);
   p.expect('RPAREN');
-  p.eatSemi();
+  p.requireSemi();
   return {
     kind: 'assert',
     condition: args.condition ?? missingCondition(p),

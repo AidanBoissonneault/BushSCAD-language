@@ -29,6 +29,6 @@ export function parseSpatialAnchor(p: Parser): AnchorDecl {
   }
   p.expect('ASSIGN');
   const point = p.parseSpatialRef();
-  p.eatSemi();
+  p.requireSemi();
   return { kind: 'anchor', name, point, span: p.spanFrom(start) };
 }

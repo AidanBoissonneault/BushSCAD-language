@@ -27,7 +27,7 @@ export function parseSketch(p: Parser): SketchDecl {
     'placement' in primitive ? primitive.placement : undefined;
   if ('placement' in primitive) delete primitive.placement;
 
-  p.eatSemi();
+  p.requireSemi();
   parseCompactSketchDimensions(p, name, primitive);
   return {
     kind: 'sketch',

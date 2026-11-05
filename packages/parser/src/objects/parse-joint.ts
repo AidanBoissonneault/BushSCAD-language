@@ -75,19 +75,19 @@ export function parseJointDecl(p: Parser): JointDecl {
         p.expect('DOT');
         p.expect('DOT');
         limitMax = p.parseExpr();
-        p.eatSemi();
+        p.requireSemi();
         break;
       }
       case 'default': {
         defaultValue = p.parseExpr();
-        p.eatSemi();
+        p.requireSemi();
         break;
       }
       default:
         p.addError(`Unknown ${jointType} property '${key.value}'`, key.span);
         // skip to semicolon or closing brace
         while (!p.check('SEMICOLON', 'RBRACE', 'EOF')) p.advance();
-        p.eatSemi();
+        p.requireSemi();
     }
   }
 

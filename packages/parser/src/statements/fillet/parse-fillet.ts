@@ -15,6 +15,6 @@ export function parseFillet(p: Parser): FilletDetail {
   p.expect('LPAREN', 'Use fillet(@target, radius)');
   const { target, value: radius } = parseDetailCallArgs(p, 'fillet', 'radius');
   p.expect('RPAREN');
-  p.eatSemi();
+  p.requireSemi();
   return { kind: 'fillet', target, radius, span: p.spanFrom(start) };
 }

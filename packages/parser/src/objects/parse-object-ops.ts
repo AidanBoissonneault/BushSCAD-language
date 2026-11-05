@@ -137,7 +137,7 @@ export function parseObj(p: Parser): ObjDecl | ObjFromCallDecl {
   ) {
     const fnTok = p.advance();
     const call = p.parseFnCallFromIdent(fnTok);
-    p.eatSemi();
+    p.requireSemi();
     return {
       kind: 'objCall',
       name,
@@ -153,8 +153,10 @@ export function parseObj(p: Parser): ObjDecl | ObjFromCallDecl {
     operation.wrap = operation.wrap || suffixWrap;
   }
 
-  const anchors = p.check('LBRACE') ? parseObjectAnchorBlock(p) : [];
-  p.eatSemi();
+  const hasAnchorBlock = p.check('LBRACE');
+  const anchors = hasAnchorBlock ? parseObjectAnchorBlock(p) : [];
+  if (hasAnchorBlock) p.eatSemi();
+  else p.requireSemi();
   return {
     kind: 'obj',
     name,

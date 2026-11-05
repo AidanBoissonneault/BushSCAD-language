@@ -10,6 +10,6 @@ export function parseCallStatement(p: Parser): CallStatement {
   const start = p.peek().span;
   const name = p.expect('IDENT');
   const call = p.parseFnCallFromIdent(name);
-  p.eatSemi();
+  p.requireSemi();
   return { kind: 'callStmt', call, span: p.spanFrom(start) };
 }

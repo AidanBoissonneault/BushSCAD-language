@@ -54,7 +54,7 @@ function parseView(p: Parser): DrawingViewDecl {
     scale = parseFloat(p.advance().value);
   }
 
-  p.eatSemi();
+  p.requireSemi();
   return {
     objName: viewObj,
     face: viewFace as ViewFace,
@@ -111,7 +111,7 @@ function parseDimension(p: Parser): DimensionDecl {
     };
   }
 
-  p.eatSemi();
+  p.requireSemi();
   return { kind: 'dimension', ref, span: p.spanFrom(start) };
 }
 
@@ -156,7 +156,7 @@ export function parseDrawingDecl(p: Parser): DrawingDecl {
           fmtTok.span,
         );
       }
-      p.eatSemi();
+      p.requireSemi();
     } else {
       p.addError(`Unexpected token in drawing block: '${t.value}'`, t.span);
       p.advance();

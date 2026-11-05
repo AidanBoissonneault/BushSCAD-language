@@ -42,7 +42,7 @@ export function parseBaseUnit(p: Parser): Program['baseUnit'] {
   p.advance(); // BASE_UNIT
   p.expect('ASSIGN');
   const t = p.advance();
-  p.eatSemi();
+  p.requireSemi();
   const v = t.value;
   if (v === 'mm' || v === 'cm' || v === 'm' || v === 'in' || v === 'ft')
     return v;
@@ -57,7 +57,7 @@ export function parseWorkplane(p: Parser): Program['workplane'] {
   p.advance(); // WORKPLANE
   p.expect('ASSIGN');
   const t = p.advance();
-  p.eatSemi();
+  p.requireSemi();
   const v = t.value;
   if (v === 'XY' || v === 'XZ' || v === 'YZ') return v;
   p.addError(`Unknown workplane '${v}'`, t.span);
@@ -76,7 +76,7 @@ export function parseImport(p: Parser): ImportDecl {
     const ns = p.expect('IDENT').value;
     p.expect('FROM');
     const path = p.expect('STRING').value;
-    p.eatSemi();
+    p.requireSemi();
     return {
       kind: 'import',
       path,
@@ -98,7 +98,7 @@ export function parseImport(p: Parser): ImportDecl {
     p.expect('RBRACE');
     p.expect('FROM');
     const path = p.expect('STRING').value;
-    p.eatSemi();
+    p.requireSemi();
     return {
       kind: 'import',
       path,
@@ -109,7 +109,7 @@ export function parseImport(p: Parser): ImportDecl {
   }
 
   const path = p.expect('STRING').value;
-  p.eatSemi();
+  p.requireSemi();
   return {
     kind: 'import',
     path,
@@ -151,7 +151,7 @@ export function parseRotate(p: Parser): RotateStatement {
   const angle = p.parseExpr();
   p.expect('AROUND');
   const around = parseAxisRef(p);
-  p.eatSemi();
+  p.requireSemi();
   return { kind: 'rotate', target, angle, around, span: p.spanFrom(start) };
 }
 
@@ -240,7 +240,7 @@ export function parseRef(p: Parser): RefPartDecl | RefObjDecl {
       const suffixWrap = parseWrapSuffix(p);
       operation.wrap = operation.wrap || suffixWrap;
     }
-    p.eatSemi();
+    p.requireSemi();
     return {
       kind: 'refObj',
       name,
@@ -263,6 +263,6 @@ export function parseUseDecl(p: Parser): UseDecl {
     p.advance(); // DOT
     library += '.' + p.advance().value;
   }
-  p.eatSemi();
+  p.requireSemi();
   return { kind: 'use', library, span: p.spanFrom(start) };
 }

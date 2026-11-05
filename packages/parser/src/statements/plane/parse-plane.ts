@@ -18,6 +18,6 @@ export function parsePlane(p: Parser): PlaneDecl {
   p.expect('COMMA');
   const from = p.parseSpatialRef();
   p.expect('RPAREN');
-  p.eatSemi();
+  p.requireSemi();
   return { kind: 'plane', name, offset, from, span: p.spanFrom(start) };
 }

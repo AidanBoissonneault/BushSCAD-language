@@ -34,7 +34,7 @@ export function parseMirror(p: Parser): MirrorStmt {
   p.expect('LPAREN', 'mirror syntax is mirror(target, across)');
   const args = parseMirrorCallArgs(p);
   p.expect('RPAREN');
-  p.eatSemi();
+  p.requireSemi();
   return finalizeMirror(p, args, start);
 }
 

@@ -120,7 +120,7 @@ function parseDimension(
   const value = p.parseExpr();
   const offset = p.eat('AT') ? p.parseExpr() : undefined;
   const name = p.eat('AS') ? p.expect('IDENT').value : undefined;
-  p.eatSemi();
+  p.requireSemi();
   const property = terminalReferencePart(target);
   return {
     kind: 'compactDimension',

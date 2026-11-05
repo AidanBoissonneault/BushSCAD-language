@@ -28,7 +28,7 @@ export function parseVar(p: Parser): VarDecl {
   const name = p.expect('IDENT').value;
   p.expect('ASSIGN');
   const value = p.parseExpr();
-  p.eatSemi();
+  p.requireSemi();
   return { kind: 'var', name, value, span: p.spanFrom(start) };
 }
 
@@ -41,7 +41,7 @@ export function parseEnv(p: Parser): EnvDecl {
   const name = p.expect('IDENT').value;
   p.expect('FALLBACK');
   const fallback = parseLiteral(p);
-  p.eatSemi();
+  p.requireSemi();
   return { kind: 'env', name, fallback, span: p.spanFrom(start) };
 }
 
@@ -68,7 +68,7 @@ export function parseFontImport(p: Parser): FontImportDecl {
   p.expect('ASSIGN');
   p.expect('IMPORT');
   const path = p.expect('STRING').value;
-  p.eatSemi();
+  p.requireSemi();
   return { kind: 'fontImport', name, path, span: p.spanFrom(start) };
 }
 
@@ -97,7 +97,7 @@ export function parseShapeImport(p: Parser): ShapeImportDecl {
   const name = nameToken.value;
   p.expect('ASSIGN');
   const path = p.expect('STRING').value;
-  p.eatSemi();
+  p.requireSemi();
   return {
     kind: 'shapeImport',
     name,
@@ -134,7 +134,7 @@ export function parseHeal(p: Parser): HealDecl {
     p.addError(`Expected 'tolerance'`, tolTok.span);
   p.expect('COLON');
   const tolerance = p.parseExpr();
-  p.eatSemi();
+  p.requireSemi();
   return { kind: 'heal', target, tolerance, span: p.spanFrom(start) };
 }
 
@@ -171,7 +171,7 @@ export function parseDefeature(p: Parser): DefeatureDecl {
   }
   p.expect('COLON');
   const threshold = p.parseExpr();
-  p.eatSemi();
+  p.requireSemi();
   return {
     kind: 'defeature',
     target,

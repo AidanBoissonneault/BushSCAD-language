@@ -180,12 +180,16 @@ export class Parser {
     };
   }
 
-  /**
-   * Handles eat semi in the core flow.
-   */
+  /** Consumes a semicolon when one is present after a block-terminated form. */
   eatSemi(): void {
     if (!this.allowStatementSemicolons && this.check('SEMICOLON')) return;
     this.eat('SEMICOLON');
+  }
+
+  /** Requires a semicolon after a statement that has no block terminator. */
+  requireSemi(): void {
+    if (!this.allowStatementSemicolons || this.eat('SEMICOLON')) return;
+    this.addError("Expected ';' after statement", this.peek().span);
   }
 
   /**

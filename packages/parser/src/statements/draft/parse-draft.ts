@@ -15,6 +15,6 @@ export function parseDraft(p: Parser): DraftDetail {
   p.expect('LPAREN', 'Use draft(@target.face, angle)');
   const { target, value: angle } = parseDetailCallArgs(p, 'draft', 'angle');
   p.expect('RPAREN');
-  p.eatSemi();
+  p.requireSemi();
   return { kind: 'draft', target, angle, span: p.spanFrom(start) };
 }

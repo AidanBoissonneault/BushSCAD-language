@@ -63,7 +63,7 @@ export function parseThread(p: Parser): ThreadDetail {
   p.expect('RPAREN');
 
   finalizeThreadParams(p, params, start);
-  p.eatSemi();
+  p.requireSemi();
   return {
     kind: 'thread',
     target: params.target!,

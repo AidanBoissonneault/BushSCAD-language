@@ -15,6 +15,6 @@ export function parseChamfer(p: Parser): ChamferDetail {
   p.expect('LPAREN', 'Use chamfer(@target, offset)');
   const { target, value: offset } = parseDetailCallArgs(p, 'chamfer', 'offset');
   p.expect('RPAREN');
-  p.eatSemi();
+  p.requireSemi();
   return { kind: 'chamfer', target, offset, span: p.spanFrom(start) };
 }

@@ -18,7 +18,7 @@ export function parsePath(p: Parser): PathDecl {
   const name = expectName(p).value;
   p.expect('ASSIGN');
   const primitive = parsePathPrimitive(p);
-  p.eatSemi();
+  p.requireSemi();
   return { kind: 'path', name, primitive, span: p.spanFrom(start) };
 }
 
