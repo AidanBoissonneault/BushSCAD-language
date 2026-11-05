@@ -9,6 +9,18 @@ import { describe, expect, it } from 'vitest';
 import { resolveErrors } from '../core/test-support.js';
 
 describe('anchor-centric reference resolution', () => {
+  it('accepts work-origin directions as placement references', () => {
+    const errors = resolveErrors(`
+part p {
+  sketch profile = rect(10, 10);
+  obj body = extrude(profile, 2);
+  obj raised = extrude(profile, 1, @origin.top);
+}
+`);
+
+    expect(errors).toHaveLength(0);
+  });
+
   it('accepts dot-style named faces declared by path segments', () => {
     const errors = resolveErrors(`
 part p {

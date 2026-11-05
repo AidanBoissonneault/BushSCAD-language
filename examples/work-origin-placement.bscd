@@ -1,0 +1,10 @@
+base_unit = mm;
+workplane = XY;
+
+part pin {
+  obj shaft = cylinder(8, d: 3);
+}
+
+part assembly {
+  place(pin, @origin.top);
+}

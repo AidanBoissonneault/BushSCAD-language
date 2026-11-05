@@ -78,6 +78,7 @@ export interface SourceShapeEntry {
 export type AxisBaseResolution = {
   ax2: unknown;
   entry: ShapeEntry | null;
+  frame?: FaceFrame;
   faceDir: FaceDir | null;
   parsed: ParsedFaceRef;
   applyTransforms: boolean;

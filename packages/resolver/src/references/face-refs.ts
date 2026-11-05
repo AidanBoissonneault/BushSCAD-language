@@ -141,6 +141,7 @@ function isKnownFaceRoot(
   state: State,
 ): boolean {
   return (
+    rootName === 'origin' ||
     scope.lookup(rootName) !== null ||
     state.globalParts.has(rootName) ||
     state.globalAnchors.has(rootName)

@@ -5,6 +5,7 @@ import type { FaceDir, ParsedFaceRef } from '../../../core/program-utils.js';
 import { type Vec3 } from '../../../core/geometry-utils.js';
 import {
   applyPlacementAnchor,
+  dirToOffsetAxes,
   placementOffsetAxes,
   rotateAxisAroundLocalAxes,
   rotateAxisAroundNormal,
@@ -22,10 +23,20 @@ export function applyPlanarPlacementOffset(
   placement: IRPlacement,
 ): unknown {
   const { entry, faceDir, parsed } = base;
-  if (!entry || !faceDir) return base.ax2;
+  const frame = entry?.frame ?? base.frame;
+  if (!frame || !faceDir) return base.ax2;
   const { dx, dy } = planarPlacementOffset(placement);
   return dx !== 0 || dy !== 0
-    ? translateAxis(oc, base.ax2, faceDir, parsed, dx, dy, entry.frame)
+    ? translateAxis(
+        oc,
+        base.ax2,
+        faceDir,
+        parsed,
+        dx,
+        dy,
+        frame,
+        base.frame !== undefined,
+      )
     : base.ax2;
 }
 
@@ -110,10 +121,14 @@ function translateAxis(
   dx: number,
   dy: number,
   frame: FaceFrame,
+  useWorkplaneAxes: boolean,
 ): unknown /* gp_Ax2 */ {
   const a = ax2 as Record<string, () => unknown>;
   const loc = a.Location() as Record<string, () => number>;
-  const [[ux, uy, uz], [vx, vy, vz]] = placementOffsetAxes(dir, ref).map(
+  const axes = useWorkplaneAxes
+    ? dirToOffsetAxes(dir)
+    : placementOffsetAxes(dir, ref);
+  const [[ux, uy, uz], [vx, vy, vz]] = axes.map(
     (axis) => toWorldVector(axis, frame),
   ) as [Vec3, Vec3];
   const zd = a.Direction() as unknown;

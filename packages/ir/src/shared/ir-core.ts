@@ -150,6 +150,7 @@ export type CompileAssets = {
  */
 export type IRPlacement = {
   faceRef: IRFaceLabel; // e.g. "base.top.center", "base.top.corner.front_left"
+  workplane?: Workplane; // frame for built-in @origin placements
   selection?: import('../references/resolved-selection.js').ResolvedSelection;
   anchorRef?: IRFaceLabel; // component anchor snapped to faceRef, e.g. "bracket_0.bottom.center"
   anchor?: {

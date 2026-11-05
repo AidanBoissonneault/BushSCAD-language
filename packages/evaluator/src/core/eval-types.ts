@@ -22,6 +22,7 @@ import type {
   ComponentBody,
   FnDecl,
   AutoExpr,
+  Workplane,
 } from '@bushscad/ir';
 
 /**
@@ -138,6 +139,7 @@ export type BodyNameFacts = {
 
 /** Execution context threaded through all evaluator functions. Mutable per-scope. */
 export interface EvalCtx {
+  workplane: Workplane;
   bodyNameFacts: WeakMap<ComponentBody, BodyNameFacts>;
   values: Map<string, EvalValue>;
   names: Map<string, string>; // AST sketch/obj name → IR name (mangled in loops)

@@ -30,7 +30,38 @@ function placeTarget(part: PartDecl, index = 0): PosRef {
   return target;
 }
 
+function anchorFace(target: PosRef): FaceRef {
+  if (Array.isArray(target.anchor)) throw new Error('expected face anchor');
+  return target.anchor;
+}
+
 describe('spatial reference offsets', () => {
+  it('parses Cartesian and polar offsets on work-origin directions', () => {
+    const part = parseOk(`
+part p {
+  place(child, @origin.top(x: 3, y: -4));
+  place(child, @origin.left(5, 45deg));
+}`);
+
+    const cartesian = placeTarget(part, 0);
+    const polar = placeTarget(part, 1);
+
+    expect(
+      anchorFace(cartesian).chain.map((segment) =>
+        segment.kind === 'name' ? segment.value : '',
+      ),
+    ).toEqual(['origin', 'top']);
+    expect(cartesian.x?.kind).toBe('number');
+    expect(cartesian.y?.kind).toBe('unary');
+    expect(
+      anchorFace(polar).chain.map((segment) =>
+        segment.kind === 'name' ? segment.value : '',
+      ),
+    ).toEqual(['origin', 'left']);
+    expect(polar.radius?.kind).toBe('number');
+    expect(polar.angle?.kind).toBe('unit');
+  });
+
   it('parses center alias positional arguments as x and y', () => {
     const part = parseOk(`
 part p {

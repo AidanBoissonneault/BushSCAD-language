@@ -5702,11 +5702,25 @@ place(bracket, @base.top.back_right(x: -5, y: -5), @mount);
 
 ```
 place(bracket);
+place(bracket, @origin.top);
+place(bracket, @origin.front(x: 12, y: -4));
+place(bracket, @origin.left(20, 45deg));
 ```
 
 When the target argument is omitted, `place` evaluates the component, function,
 or ref at the world origin. Placement-time modifiers such as `rotate(...)` and
 display features such as explode still apply.
+
+Use `@origin.direction` to choose a work-origin orientation explicitly. The
+direction may be `top`, `bottom`, `front`, `back`, `left`, or `right`. The
+file-level `workplane = XY|XZ|YZ;` setting selects the frame for these
+directions. Add optional Cartesian `x`/`y` offsets or polar `radius`/`angle`
+offsets in that frame.
+
+Polar spatial offsets also accept an unlabeled length and degree-marked angle,
+such as `@origin.top(20, 45deg)` or `@base.top.center(20, 45deg)`. The `deg`
+unit distinguishes this polar pair from the existing two-number Cartesian
+form; ordinary `@target(x, y)` remains Cartesian.
 
 `place(...)` is valid at top level and inside component, `part`, `ref`, and
 function bodies. A top-level `place(name)` emits ungrouped output geometry.

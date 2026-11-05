@@ -47,6 +47,17 @@ describe('rich language help in protocol providers', () => {
     expect(
       refs.find((spec) => spec.label === 'perimeter')?.documentation,
     ).toContain('inner');
+    const origin = completionSpecs('', '', 'default', []).find(
+      (spec) => spec.label === 'origin',
+    );
+    expect(origin?.documentation).toContain('workplane');
+    const originDirections = completionSpecs(
+      '@origin.',
+      '@origin.',
+      'surfaceRef',
+      [],
+    );
+    expect(originDirections.map((spec) => spec.label)).toContain('top');
   });
 
   it('offers compact type-led joint declarations with @ spatial arguments', () => {

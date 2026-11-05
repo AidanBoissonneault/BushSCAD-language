@@ -43,7 +43,7 @@ export function parseSpatialArgs(
  * Parses planar spatial args from the supplied source into the geometry representation.
  */
 function parsePlanarSpatialArgs(p: Parser): SpatialArgs {
-  return parseOrderedExprArgs(p, 'spatial reference', [
+  const args = parseOrderedExprArgs(p, 'spatial reference', [
     { name: 'x' },
     { name: 'y' },
     { name: 'radius' },
@@ -51,16 +51,17 @@ function parsePlanarSpatialArgs(p: Parser): SpatialArgs {
     { name: 'offset' },
     { name: 'surfaceAngle' },
   ]);
+  return promoteDegreeMarkedPolarPair(args);
 }
 
 /**
  * Parses center-anchor offsets, where two bare values are local x/y offsets.
  * The unified reference model treats every callable spatial reference as a
- * local offset. Polar placement remains available through named radius/angle
- * arguments without making `.center(...)` a special positional case.
+ * local offset. A second positional value with a degree unit selects polar
+ * radius/angle input without making `.center(...)` a special case.
  */
 function parseCenterSpatialArgs(p: Parser): SpatialArgs {
-  return parseOrderedExprArgs(p, 'spatial reference', [
+  const args = parseOrderedExprArgs(p, 'spatial reference', [
     { name: 'x' },
     { name: 'y' },
     { name: 'radius' },
@@ -68,6 +69,35 @@ function parseCenterSpatialArgs(p: Parser): SpatialArgs {
     { name: 'offset' },
     { name: 'surfaceAngle' },
   ]);
+  return promoteDegreeMarkedPolarPair(args);
+}
+
+/**
+ * Interprets an unlabeled length + degree pair as radius and angle.
+ *
+ * Why: a degree unit disambiguates polar input from the established two-value
+ * Cartesian form, so callers can omit `radius:` and `angle:` without changing
+ * the meaning of ordinary `x, y` pairs.
+ */
+function promoteDegreeMarkedPolarPair(args: SpatialArgs): SpatialArgs {
+  if (
+    args.x === undefined ||
+    args.y?.kind !== 'unit' ||
+    args.y.unit !== 'deg' ||
+    args.radius !== undefined ||
+    args.angle !== undefined ||
+    args.offset !== undefined ||
+    args.surfaceAngle !== undefined
+  ) {
+    return args;
+  }
+  return {
+    ...args,
+    x: undefined,
+    y: undefined,
+    radius: args.x,
+    angle: args.y,
+  };
 }
 
 /**

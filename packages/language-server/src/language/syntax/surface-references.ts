@@ -1,5 +1,6 @@
 // Language-server bushscad surface refs facts.
 export const BUSHSCAD_SURFACE_REFS = [
+  'origin',
   'top',
   'bottom',
   'front',

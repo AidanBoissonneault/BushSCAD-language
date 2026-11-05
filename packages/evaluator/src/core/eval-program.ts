@@ -42,6 +42,7 @@ export function evaluate(
   );
 
   const ctx: EvalCtx = {
+    workplane: ast.workplane ?? 'XY',
     bodyNameFacts: new WeakMap(),
     values: new Map(),
     names: new Map(),

@@ -45,6 +45,7 @@ export function resolvePlacement(
     faceRef: serializeFaceRef(ref, ctx),
     selection,
   };
+  if (faceRefRoot(ref) === 'origin') placement.workplane = ctx.workplane;
   if (ref.surfaceAngle !== undefined) {
     placement.surfaceAngleDeg = evalNumber(ref.surfaceAngle, ctx);
   }
@@ -76,6 +77,9 @@ export function resolvePositionPlacement(
         selection: evalResolvedSelection(ref.anchor, ctx, selectionContext),
       });
   const p: IRPlacement = { ...base };
+  if (!Array.isArray(ref.anchor) && faceRefRoot(ref.anchor) === 'origin') {
+    p.workplane = ctx.workplane;
+  }
   if (!Array.isArray(ref.anchor) && ref.anchor.surfaceAngle !== undefined) {
     p.surfaceAngleDeg = evalNumber(ref.anchor.surfaceAngle, ctx);
   }
@@ -87,6 +91,12 @@ export function resolvePositionPlacement(
   if (ref.angle !== undefined) p.angleDeg = evalNumber(ref.angle, ctx);
   if (ref.offset !== undefined) p.offsetZ = evalNumber(ref.offset, ctx);
   return p;
+}
+
+/** Returns the first named segment, which identifies built-in placement roots. */
+function faceRefRoot(ref: FaceRef): string | null {
+  const first = ref.chain.find((segment) => segment.kind === 'name');
+  return first?.kind === 'name' ? first.value : null;
 }
 
 /**

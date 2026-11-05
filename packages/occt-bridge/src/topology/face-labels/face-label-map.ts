@@ -34,6 +34,8 @@ import {
   applyLocalAxisPlacementRotation,
   applyPlacementAnchorTransform,
 } from './placement/placement-transforms.js';
+import { makeWorkOriginAxis } from './placement/work-origin-axis.js';
+import { workplaneFrame } from '../frame-utils.js';
 import type { IRPlacement } from '@bushscad/ir';
 import { parseFaceRef } from '../../core/program-utils.js';
 import type { FaceDir, ParsedFaceRef } from '../../core/program-utils.js';
@@ -328,7 +330,13 @@ export class FaceLabelMap {
     const parsed = parseFaceRef(placement.faceRef);
     const entry = this.getEntry(parsed.objName);
     const base = this.resolveAxisBase(oc, placement, parsed, entry);
-    if (!base.applyTransforms || !base.entry || !base.faceDir) return base.ax2;
+    if (
+      !base.applyTransforms ||
+      (!base.entry && !base.frame) ||
+      !base.faceDir
+    ) {
+      return base.ax2;
+    }
     return this.applyAxisPlacementTransforms(oc, base, placement);
   }
 
@@ -351,6 +359,18 @@ export class FaceLabelMap {
       parsed,
       applyTransforms: false,
     });
+    if (parsed.objName === 'origin') {
+      const workplane = placement.workplane ?? 'XY';
+      const faceDir = parsed.face ?? 'top';
+      return {
+        ax2: makeWorkOriginAxis(oc, workplane, faceDir),
+        entry: null,
+        frame: workplaneFrame(workplane),
+        faceDir,
+        parsed,
+        applyTransforms: true,
+      };
+    }
     if (!entry) return defaultAxis();
     if (parsed.curved) {
       return {
@@ -441,7 +461,7 @@ export class FaceLabelMap {
     placement: IRPlacement,
   ): unknown {
     const { entry, faceDir } = base;
-    if (!entry || !faceDir) return base.ax2;
+    if ((!entry && !base.frame) || !faceDir) return base.ax2;
     let ax2 = applyPlanarPlacementOffset(oc, base, placement);
     ax2 = applyNormalPlacementOffset(oc, ax2, placement);
     ax2 = applyNormalPlacementRotation(oc, ax2, placement);

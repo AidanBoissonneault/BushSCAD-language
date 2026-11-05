@@ -1,5 +1,6 @@
 // Language-server surface refs facts.
 export const SURFACE_REFS = [
+  'origin',
   '*',
   'top',
   'bottom',

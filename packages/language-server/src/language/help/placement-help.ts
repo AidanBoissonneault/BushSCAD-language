@@ -9,6 +9,34 @@ import type { LanguageHelpEntry } from './types.js';
 
 /** Spatial placement separates local sketch coordinates from solid face frames. */
 export const placementHelp: Record<string, LanguageHelpEntry> = {
+  origin: {
+    summary:
+      'Selects a side of the active XY, XZ, or YZ workplane at the world origin.',
+    signatures: [
+      '@origin.direction',
+      '@origin.direction(x: dx, y: dy)',
+      '@origin.direction(radius: r, angle: a)',
+      '@origin.direction(r, angle_deg)',
+    ],
+    parameters: [
+      {
+        name: 'direction',
+        description: 'One of top, bottom, front, back, left, or right.',
+      },
+      {
+        name: 'offset',
+        description:
+          'Optional Cartesian x/y or polar radius/angle offset measured in the workplane frame.',
+      },
+    ],
+    behavior: [
+      'The file-level workplane setting selects the coordinate frame. Work-origin placement is useful when a solid face is not the intended reference.',
+    ],
+    examples: [
+      'workplane = XZ;\nplace(bracket, @origin.top(x: 12, y: -4));\nplace(bracket, @origin.front(20, 45deg));',
+    ],
+    related: ['place', 'pos', 'workplane'],
+  },
   place: {
     summary:
       'Evaluates a component, function, or ref and aligns its source anchor with a target placement.',
@@ -111,6 +139,7 @@ export const placementHelp: Record<string, LanguageHelpEntry> = {
       '@target.ref(x, y)',
       '@target(x: dx, y: dy)',
       '@target.center(radius: r, angle: a)',
+      '@target(20, 45deg)',
       '@target.edge(offset: d)',
     ],
     parameters: [
@@ -122,7 +151,7 @@ export const placementHelp: Record<string, LanguageHelpEntry> = {
       {
         name: 'radius, angle',
         description:
-          'Polar offset from the chosen origin; angle is in degrees.',
+          'Polar offset from the chosen origin; angle is in degrees. You can omit the labels when the angle has a deg unit, for example @target(20, 45deg).',
       },
     ],
     behavior: [
