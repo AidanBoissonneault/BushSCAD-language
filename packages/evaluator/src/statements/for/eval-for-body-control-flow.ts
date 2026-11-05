@@ -5,7 +5,10 @@ import type { ForStatement } from '@bushscad/ir';
 import { childCtx, fresh } from '../../core/eval-context.js';
 import type { Deferred, EvalCtx, EvalValue } from '../../core/eval-types.js';
 import { evalBool, evalNum } from '../../expressions/eval-expressions.js';
-import { getIterations } from '../../expressions/eval-iterators.js';
+import {
+  forEachIteration,
+  getIterations,
+} from '../../expressions/eval-iterators.js';
 import { collectBodyLocalNames } from '../eval-body-local-names.js';
 import {
   collectAutoOccurrences,
@@ -27,16 +30,23 @@ export function evalForBodyControlFlow(
   deferred: Deferred,
   evalBodyStatements: BodyStatementsEvaluator,
 ): void {
+  if (!stmt.within) {
+    const localNames = collectBodyLocalNames(stmt.body, ctx.bodyNameFacts);
+    forEachIteration(stmt, ctx, ({ bindings, whereBindings }) => {
+      if (!shouldEvalLoopBody(stmt, ctx, bindings, whereBindings)) return;
+      const iterCtx = loopIterationContext(ctx, localNames, bindings);
+      evalBodyStatements(stmt.body, iterCtx, deferred);
+    });
+    return;
+  }
+
   const iterations = getIterations(stmt, ctx);
-  const localNames = collectBodyLocalNames(stmt.body);
-  const plan = stmt.within ? resolveForWithinPlan(stmt, ctx, iterations) : null;
-  if (stmt.within && !plan) return;
+  const localNames = collectBodyLocalNames(stmt.body, ctx.bodyNameFacts);
+  const plan = resolveForWithinPlan(stmt, ctx, iterations);
+  if (!plan) return;
 
-  let ordinal = 0;
-  for (const { bindings, whereBindings } of iterations) {
-    const idx = ordinal++;
+  for (const [idx, { bindings, whereBindings }] of iterations.entries()) {
     if (!shouldEvalLoopBody(stmt, ctx, bindings, whereBindings)) continue;
-
     const iterCtx = loopIterationContext(ctx, localNames, bindings);
     applyWithinPlan(iterCtx, plan, idx);
     evalBodyStatements(stmt.body, iterCtx, deferred);
@@ -130,18 +140,15 @@ function shouldEvalLoopBody(
  */
 function loopIterationContext(
   ctx: EvalCtx,
-  localNames: string[],
+  localNames: readonly string[],
   bindings: Map<string, EvalValue>,
 ): EvalCtx {
-  const iterNames = new Map(ctx.names);
-  for (const n of localNames) iterNames.set(n, fresh(ctx, n));
-
   const iterCtx: EvalCtx = {
     ...childCtx(ctx),
-    names: iterNames,
     plantAnchors: ctx.plantAnchors,
     refBases: ctx.refBases,
   };
+  for (const name of localNames) iterCtx.names.set(name, fresh(ctx, name));
   bindings.forEach((v, k) => iterCtx.values.set(k, v));
   return iterCtx;
 }

@@ -6,13 +6,17 @@
  */
 
 import type { ComponentBody } from '@bushscad/ir';
-import { collectBodyNames } from './eval-body-name-walk.js';
+import type { BodyNameFacts } from '../core/eval-types.js';
+import { analyzeBodyNames } from './eval-body-name-walk.js';
 
 /**
  * Collects all sketch/object-style names declared in a body for loop renaming.
  * Generated loop placements need deterministic suffixing for every named body
  * declaration that can appear inside nested control-flow statements.
  */
-export function collectBodyLocalNames(body: ComponentBody): string[] {
-  return collectBodyNames(body, () => true);
+export function collectBodyLocalNames(
+  body: ComponentBody,
+  cache: WeakMap<ComponentBody, BodyNameFacts>,
+): readonly string[] {
+  return analyzeBodyNames(body, cache).localNames;
 }

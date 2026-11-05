@@ -99,16 +99,42 @@ export class Parser {
 
   /**
    * Handles check in the core flow.
+   * Fixed parameters avoid allocating a rest array for each token predicate;
+   * the current grammar needs at most six alternatives.
    */
-  check(...kinds: TokenKind[]): boolean {
-    return (kinds as string[]).includes(this.peek().kind);
+  check(
+    kind1: TokenKind,
+    kind2?: TokenKind,
+    kind3?: TokenKind,
+    kind4?: TokenKind,
+    kind5?: TokenKind,
+    kind6?: TokenKind,
+  ): boolean {
+    const actual = this.peek().kind;
+    return (
+      actual === kind1 ||
+      actual === kind2 ||
+      actual === kind3 ||
+      actual === kind4 ||
+      actual === kind5 ||
+      actual === kind6
+    );
   }
 
   /**
    * Handles eat in the core flow.
    */
-  eat(...kinds: TokenKind[]): Token | null {
-    if (this.check(...kinds)) return this.advance();
+  eat(
+    kind1: TokenKind,
+    kind2?: TokenKind,
+    kind3?: TokenKind,
+    kind4?: TokenKind,
+    kind5?: TokenKind,
+    kind6?: TokenKind,
+  ): Token | null {
+    if (this.check(kind1, kind2, kind3, kind4, kind5, kind6)) {
+      return this.advance();
+    }
     return null;
   }
 

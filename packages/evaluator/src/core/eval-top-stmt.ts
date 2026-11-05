@@ -238,7 +238,7 @@ function evalTopObjCall(
     functionCallNameSpan(stmt.call),
   );
   for (const op of localDeferred) ctx.ops.push(op);
-  const objNames = collectBodyObjectNames(fn.body);
+  const objNames = collectBodyObjectNames(fn.body, ctx.bodyNameFacts);
   if (objNames.length > 0) {
     ctx.names.set(stmt.name, fnCtx.names.get(objNames[0]) ?? objNames[0]);
   }

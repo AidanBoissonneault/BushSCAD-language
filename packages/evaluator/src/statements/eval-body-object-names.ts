@@ -6,16 +6,17 @@
  */
 
 import type { ComponentBody } from '@bushscad/ir';
-import { collectBodyNames } from './eval-body-name-walk.js';
+import type { BodyNameFacts } from '../core/eval-types.js';
+import { analyzeBodyNames } from './eval-body-name-walk.js';
 
 /**
  * Collects only object names declared in a body for anchor resolution.
  * Anchor resolution only needs concrete object-producing declarations, not
  * sketch, path, or surface names used by loop suffixing.
  */
-export function collectBodyObjectNames(body: ComponentBody): string[] {
-  return collectBodyNames(
-    body,
-    (kind) => kind === 'obj' || kind === 'objCall' || kind === 'refObj',
-  );
+export function collectBodyObjectNames(
+  body: ComponentBody,
+  cache: WeakMap<ComponentBody, BodyNameFacts>,
+): readonly string[] {
+  return analyzeBodyNames(body, cache).objectNames;
 }

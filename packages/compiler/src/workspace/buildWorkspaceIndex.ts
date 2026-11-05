@@ -39,9 +39,11 @@ export function buildWorkspaceIndex(
   const rootPath = normalizeWorkspacePath(
     input.rootPath ?? dirname(activeFilePath),
   );
+  const normalizedOverlays = normalizeFileMap(input.overlays);
+  const overlayPaths = new Set(Object.keys(normalizedOverlays));
   const fileMap = {
     ...normalizeFileMap(input.fileMap),
-    ...normalizeFileMap(input.overlays),
+    ...normalizedOverlays,
   };
   const manifestPath = joinPath(rootPath, MANIFEST_NAME);
   const manifestSource = readWorkspaceFile(input, fileMap, manifestPath);
@@ -87,6 +89,7 @@ export function buildWorkspaceIndex(
   const crawl = crawlWorkspaceFiles({
     input,
     fileMap,
+    overlayPaths,
     rootPath,
     entrypointPaths: entrypoints.map((entry) => entry.path),
     discoveryPaths: (input.discoveryPaths ?? []).map(normalizeWorkspacePath),
@@ -157,6 +160,7 @@ function emptyWorkspaceIndex(args: {
 type WorkspaceCrawlArgs = {
   input: WorkspaceIndexInput;
   fileMap: Record<string, string>;
+  overlayPaths: Set<string>;
   rootPath: string;
   entrypointPaths: string[];
   discoveryPaths: string[];
@@ -185,9 +189,10 @@ function crawlWorkspaceFiles(args: WorkspaceCrawlArgs): {
   const dependents = new Map<string, Set<string>>();
   const files = new Map<string, WorkspaceFile>();
   const assets = new Set(args.manifestAssets);
+  let queueHead = 0;
 
-  while (queue.length > 0) {
-    const filePath = normalizeWorkspacePath(queue.shift() ?? '');
+  while (queueHead < queue.length) {
+    const filePath = normalizeWorkspacePath(queue[queueHead++]);
     if (!filePath || visited.has(filePath)) continue;
     visited.add(filePath);
     crawlWorkspaceFile(args, {
@@ -241,7 +246,13 @@ function crawlWorkspaceFile(
   addReverseEdges(state.dependents, state.filePath, allDeps);
   state.files.set(
     state.filePath,
-    workspaceFile(state.filePath, graphDeps.imports, graphDeps.assets, args),
+    workspaceFile(
+      state.filePath,
+      graphDeps.imports,
+      graphDeps.assets,
+      allDeps,
+      args,
+    ),
   );
   state.queue.push(...graphDeps.imports);
 }
@@ -265,7 +276,10 @@ function recordMissingWorkspaceFile(
       ),
     );
   }
-  state.files.set(state.filePath, workspaceFile(state.filePath, [], [], args));
+  state.files.set(
+    state.filePath,
+    workspaceFile(state.filePath, [], [], [], args),
+  );
 }
 
 /**
@@ -275,19 +289,16 @@ function workspaceFile(
   path: string,
   imports: string[],
   assets: string[],
+  dependencies: string[],
   args: WorkspaceCrawlArgs,
 ): WorkspaceFile {
-  const dependencies = unique([...imports, ...assets]);
   return {
     path,
     imports,
     assets,
     dependencies,
     dependents: [],
-    isOverlay: Object.prototype.hasOwnProperty.call(
-      normalizeFileMap(args.input.overlays),
-      path,
-    ),
+    isOverlay: args.overlayPaths.has(path),
   };
 }
 

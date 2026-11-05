@@ -5,8 +5,7 @@ import type { ASTSourceSpan, Expr, FnDecl, IRPlacement } from '@bushscad/ir';
 import { addError, childCtx, fresh, toSpan } from '../../core/eval-context.js';
 import type { Deferred, EvalCtx, FaceMetrics } from '../../core/eval-types.js';
 import { evalVarValue } from '../../references/eval-selector-vars.js';
-import { collectBodyLocalNames } from '../eval-body-local-names.js';
-import { collectBodyObjectNames } from '../eval-body-object-names.js';
+import { analyzeBodyNames } from '../eval-body-name-walk.js';
 import { bindFunctionArguments } from '../function-arguments.js';
 import type { FunctionBodyEvaluators } from '../function-body-evaluators.js';
 /**
@@ -48,8 +47,10 @@ export function evalFunctionImpl(
     }
   });
 
-  const localNames = collectBodyLocalNames(fn.body);
-  for (const n of localNames) fnCtx.names.set(n, fresh(ctx, n));
+  const bodyNames = analyzeBodyNames(fn.body, ctx.bodyNameFacts);
+  for (const name of bodyNames.localNames) {
+    fnCtx.names.set(name, fresh(ctx, name));
+  }
 
   const fnDeferred: Deferred = [];
   for (const s of fn.body.statements) {
@@ -60,7 +61,14 @@ export function evalFunctionImpl(
     evaluators.evalBodyStmt(s, fnCtx, fnDeferred);
   }
   deferred.push(...fnDeferred);
-  recordFunctionInvocation(fn, fnCtx, ctx, span, linkSpan);
+  recordFunctionInvocation(
+    fn,
+    fnCtx,
+    ctx,
+    span,
+    linkSpan,
+    bodyNames.objectNames,
+  );
   return fnCtx;
 }
 /** Records concrete object outputs without changing emitted geometry IR. */
@@ -70,13 +78,10 @@ function recordFunctionInvocation(
   parentCtx: EvalCtx,
   span: ASTSourceSpan,
   linkSpan: ASTSourceSpan,
+  objectNames: readonly string[],
 ): void {
   const outputNames = [
-    ...new Set(
-      collectBodyObjectNames(fn.body).map(
-        (name) => fnCtx.names.get(name) ?? name,
-      ),
-    ),
+    ...new Set(objectNames.map((name) => fnCtx.names.get(name) ?? name)),
   ];
   if (outputNames.length === 0) return;
   parentCtx.interactionInvocations.push({

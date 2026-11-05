@@ -21,6 +21,14 @@ import {
   readSource,
 } from '../platform/node/nodePaths.js';
 import { resolveNodeFonts } from '../platform/node/fonts/resolve-node-fonts.js';
+import {
+  fingerprintOverlays,
+  WorkspaceIndexCache,
+} from '../platform/node/workspace-index-cache.js';
+import { MANIFEST_NAME } from '../workspace/types.js';
+import { normalizeWorkspacePath } from '../workspace/workspace-path-names.js';
+
+const workspaceIndexCache = new WorkspaceIndexCache();
 
 /**
  * Compiles a source file from disk or editor overlays into IR.
@@ -56,12 +64,7 @@ export function compileFileToIr(
     };
   }
   const overlays = normalizeOverlayMap(options.overlays);
-  const workspace = buildWorkspaceIndex({
-    rootPath,
-    activeFilePath: requestedFilePath,
-    overlays,
-    loadFile: (path) => readSource(path, overlays),
-  });
+  const workspace = workspaceForCompile(rootPath, requestedFilePath, overlays);
   if (!workspace.manifest && !isBushScadFile(requestedFilePath)) {
     return {
       ok: false,
@@ -109,4 +112,48 @@ export function compileFileToIr(
   });
   if (result.ok) resolveNodeFonts(result.program, result.assets, rootPath);
   return result;
+}
+
+/** Reuses an unchanged workspace graph while validating disk and overlay inputs. */
+function workspaceForCompile(
+  rootPath: string,
+  activeFilePath: string,
+  overlays: ReturnType<typeof normalizeOverlayMap>,
+): ReturnType<typeof buildWorkspaceIndex> {
+  const key = `${rootPath}\0${activeFilePath}`;
+  const manifestPath = join(rootPath, MANIFEST_NAME);
+  const overlayFingerprint = fingerprintOverlays(overlays);
+  const cached = workspaceIndexCache.get({
+    key,
+    overlayFingerprint,
+    manifestPath,
+    readSource: (path) => readSource(path, overlays),
+  });
+  if (cached) return cached;
+
+  const loadedSources = new Map<string, string | null>();
+  const loadFile = (path: string): string | null => {
+    const source = readSource(path, overlays);
+    loadedSources.set(normalizeWorkspacePath(path), source);
+    return source;
+  };
+  const workspace = buildWorkspaceIndex({
+    rootPath,
+    activeFilePath,
+    overlays,
+    loadFile,
+  });
+  workspaceIndexCache.set({
+    key,
+    overlayFingerprint,
+    manifestPath,
+    index: workspace,
+    readSource: (path) => {
+      const normalizedPath = normalizeWorkspacePath(path);
+      return loadedSources.has(normalizedPath)
+        ? (loadedSources.get(normalizedPath) ?? null)
+        : readSource(path, overlays);
+    },
+  });
+  return workspace;
 }

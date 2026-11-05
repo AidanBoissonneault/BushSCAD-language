@@ -5,6 +5,9 @@
  * @last-edited October 6, 2026
  */
 
+import { mkdtemp, rm, writeFile } from 'node:fs/promises';
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { describe, expect, it } from 'vitest';
 import {
@@ -49,6 +52,71 @@ part body {
     if (!result.ok) return;
     expect(result.workspace.dependencies[mainPath]).toContain(libraryPath);
     expect(result.program.ops.some((op) => op.kind === 'extrude')).toBe(true);
+  });
+
+  it('marks only normalized overlay paths in the workspace graph', () => {
+    const root = '/workspace';
+    const mainPath = `${root}/main.bscd`;
+    const libraryPath = `${root}/library.bscd`;
+    const index = buildWorkspaceIndex({
+      rootPath: root,
+      activeFilePath: mainPath,
+      fileMap: {
+        [mainPath]: "import { width } from './library.bscd';",
+        [libraryPath]: 'export var width = 10;',
+      },
+      overlays: { [libraryPath]: 'export var width = 12;' },
+    });
+
+    expect(index.files[mainPath]?.isOverlay).toBe(false);
+    expect(index.files[libraryPath]?.isOverlay).toBe(true);
+  });
+
+  it('reuses unchanged Node workspace graphs and refreshes changed imports', async () => {
+    const root = await mkdtemp(join(tmpdir(), 'bushscad-workspace-cache-'));
+    const mainPath = join(root, 'main.bscd');
+    const libraryPath = join(root, 'library.bscd');
+    const extraPath = join(root, 'extra.bscd');
+    const initialSource = `
+import { width } from './library.bscd';
+part p {
+  sketch profile = rect(width, 5);
+  obj solid = extrude(profile, 2);
+}
+`;
+
+    try {
+      await writeFile(mainPath, initialSource, 'utf8');
+      await writeFile(libraryPath, 'export var width = 10;', 'utf8');
+      const first = compileFileToIr({ filePath: mainPath });
+      const repeated = compileFileToIr({ filePath: mainPath });
+      expect(first.ok).toBe(true);
+      expect(repeated.ok).toBe(true);
+      if (!first.ok || !repeated.ok) return;
+      expect(repeated.program).toEqual(first.program);
+      expect(repeated.workspace).toEqual(first.workspace);
+
+      const changedSource = `
+import { width } from './library.bscd';
+import { depth } from './extra.bscd';
+part p {
+  sketch profile = rect(width, depth);
+  obj solid = extrude(profile, 2);
+}
+`;
+      await writeFile(mainPath, changedSource, 'utf8');
+      await writeFile(extraPath, 'export var depth = 7;', 'utf8');
+      const changed = compileFileToIr({ filePath: mainPath });
+      expect(changed.ok).toBe(true);
+      if (!changed.ok) return;
+
+      expect(changed.workspace.dependencies[normalizePath(mainPath)]).toContain(
+        normalizePath(extraPath),
+      );
+      expect(changed.program).not.toEqual(first.program);
+    } finally {
+      await rm(root, { recursive: true, force: true });
+    }
   });
 
   it('treats a folder without a manifest as an implicit active-file project', () => {

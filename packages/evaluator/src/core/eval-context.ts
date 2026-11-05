@@ -72,6 +72,15 @@ export function fresh(ctx: EvalCtx, base: string): string {
 
 // Face label normalization
 
+const DIRECT_FACES = new Set([
+  'top',
+  'bottom',
+  'front',
+  'back',
+  'left',
+  'right',
+]);
+
 /**
  * Reduce a face label like "box.inner.top.center" to its canonical "box.top" form
  * for lookup in the faceMetrics map. Handles outer/inner and side prefixes.
@@ -80,29 +89,21 @@ export function normalizeFaceLabel(label: string): string {
   const parts = label.split('.');
   if (parts.length < 2) return label;
 
-  const directFaces = new Set([
-    'top',
-    'bottom',
-    'front',
-    'back',
-    'left',
-    'right',
-  ]);
   let face: string | null = null;
 
-  if (directFaces.has(parts[1])) {
+  if (DIRECT_FACES.has(parts[1])) {
     face = parts[1];
-  } else if (parts[1] === 'side' && directFaces.has(parts[2])) {
+  } else if (parts[1] === 'side' && DIRECT_FACES.has(parts[2])) {
     face = parts[2];
   } else if (
     (parts[1] === 'outer' || parts[1] === 'inner') &&
-    directFaces.has(parts[2])
+    DIRECT_FACES.has(parts[2])
   ) {
     face = parts[2];
   } else if (
     (parts[1] === 'outer' || parts[1] === 'inner') &&
     parts[2] === 'side' &&
-    directFaces.has(parts[3])
+    DIRECT_FACES.has(parts[3])
   ) {
     face = parts[3];
   }

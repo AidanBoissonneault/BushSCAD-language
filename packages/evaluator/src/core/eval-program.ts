@@ -41,6 +41,7 @@ export function evaluate(
   );
 
   const ctx: EvalCtx = {
+    bodyNameFacts: new WeakMap(),
     values: new Map(),
     names: new Map(),
     components: new Map(),

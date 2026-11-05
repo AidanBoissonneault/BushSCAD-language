@@ -98,7 +98,7 @@ function placeComponentBody(
     return;
   }
 
-  const objectNames = collectBodyObjectNames(compBody);
+  const objectNames = collectBodyObjectNames(compBody, ctx.bodyNameFacts);
   const rootObjectName = objectNames[0] ?? null;
   const placeCtx = createComponentPlaceContext(compBody, stmt, ctx);
   let anchorRef = initialComponentAnchorRef(
@@ -138,7 +138,7 @@ function createComponentPlaceContext(
   placeCtx.activeColor = metadata.color ?? ctx.activeColor;
   placeCtx.activeMaterial = metadata.material ?? ctx.activeMaterial;
   placeCtx.materialScopes.push(stmt.component);
-  for (const n of collectBodyLocalNames(compBody)) {
+  for (const n of collectBodyLocalNames(compBody, ctx.bodyNameFacts)) {
     placeCtx.names.set(n, fresh(ctx, n));
   }
   return placeCtx;
@@ -229,7 +229,7 @@ function registerPlacedComponentRoot(
   stmt: PlaceStatement,
   ctx: EvalCtx,
   placeCtx: EvalCtx,
-  objectNames: string[],
+  objectNames: readonly string[],
 ): void {
   if (objectNames.length === 0) return;
   const rootName = placeCtx.names.get(objectNames[0]) ?? objectNames[0];
@@ -279,7 +279,7 @@ function registerPlacedFunctionAlias(
   fnCtx: EvalCtx,
 ): void {
   if (!stmt.as) return;
-  const objNames = collectBodyObjectNames(fn.body);
+  const objNames = collectBodyObjectNames(fn.body, ctx.bodyNameFacts);
   if (objNames.length === 0) return;
   const irName = fnCtx.names.get(objNames[0]) ?? objNames[0];
   ctx.placedInstanceRoots.set(stmt.as, irName);

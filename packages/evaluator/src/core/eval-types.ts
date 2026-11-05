@@ -94,12 +94,7 @@ export interface FaceMetrics {
  * Accepted values for anchor face dir are 'top', 'bottom', 'front', 'back', 'left', and 'right'.
  */
 export type AnchorFaceDir =
-  | 'top'
-  | 'bottom'
-  | 'front'
-  | 'back'
-  | 'left'
-  | 'right';
+  'top' | 'bottom' | 'front' | 'back' | 'left' | 'right';
 
 /**
  * Measurements for solid, including width, height, and depth.
@@ -131,10 +126,17 @@ export type PartSnapshot = {
   tags: Map<string, FaceRefValue>;
 };
 
+/** Static declaration-name facts memoized for the lifetime of one evaluation. */
+export type BodyNameFacts = {
+  localNames: readonly string[];
+  objectNames: readonly string[];
+};
+
 // Eval context
 
 /** Execution context threaded through all evaluator functions. Mutable per-scope. */
 export interface EvalCtx {
+  bodyNameFacts: WeakMap<ComponentBody, BodyNameFacts>;
   values: Map<string, EvalValue>;
   names: Map<string, string>; // AST sketch/obj name → IR name (mangled in loops)
   components: Map<string, ComponentBody>;

@@ -138,7 +138,7 @@ export function evalBodyStmt(
         stmt.span,
         functionCallNameSpan(stmt.call),
       );
-      const objNames = collectBodyObjectNames(fn.body);
+      const objNames = collectBodyObjectNames(fn.body, ctx.bodyNameFacts);
       if (objNames.length > 0) {
         const irName = fnCtx.names.get(objNames[0]) ?? objNames[0];
         ctx.names.set(stmt.name, irName);
@@ -182,4 +182,3 @@ export function evalComponentBody(
   evalBodyStatements(body, ctx, deferred);
   for (const op of deferred) ctx.ops.push(op);
 }
-
