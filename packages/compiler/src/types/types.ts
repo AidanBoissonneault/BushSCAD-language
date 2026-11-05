@@ -29,6 +29,13 @@ export type EnvValueType = 'number' | 'string' | 'boolean' | 'list';
  */
 export type RawEnvOverrides = Record<string, string>;
 
+/** One VS Code source breakpoint that requests a reusable compiler checkpoint. */
+export type CacheBreakpoint = Readonly<{
+  filePath: string;
+  line: number;
+  condition?: string;
+}>;
+
 /**
  * Entry in env manifest, including name, value kind, fallback, and span.
  */
@@ -50,6 +57,7 @@ export type CompileSourceInput = {
   loadFile: FileLoader;
   loadAsset?: (path: string) => Uint8Array | null;
   env?: RawEnvOverrides;
+  cacheBreakpoints?: readonly CacheBreakpoint[];
   workspaceIndex?: WorkspaceIndex;
 };
 
@@ -64,6 +72,7 @@ export type CompileDocumentInput = {
   fileMap: Record<string, string>;
   assetMap?: Record<string, Uint8Array>;
   env?: RawEnvOverrides;
+  cacheBreakpoints?: readonly CacheBreakpoint[];
   workspaceIndex?: WorkspaceIndex;
 };
 

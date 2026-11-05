@@ -40,6 +40,22 @@ export function childCtx(ctx: EvalCtx): EvalCtx {
   };
 }
 
+/** Copies scalar lexical values for the opt-in conditional cache metadata. */
+export function captureScalarCacheContext(
+  values: ReadonlyMap<string, unknown>,
+): Record<string, number | string | boolean> {
+  const result: Record<string, number | string | boolean> = {};
+  for (const [name, value] of values) {
+    if (
+      typeof value === 'number' ||
+      typeof value === 'string' ||
+      typeof value === 'boolean'
+    )
+      result[name] = value;
+  }
+  return result;
+}
+
 /** Record a compile error onto the context's error list. */
 export function addError(ctx: EvalCtx, msg: string, span: ASTSourceSpan): void {
   ctx.errors.push({

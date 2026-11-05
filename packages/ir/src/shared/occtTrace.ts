@@ -8,9 +8,8 @@
 import type { SourceSpan } from './ir.js';
 
 /**
- * Accepted values for occt trace event kind are 'build-start', 'part-start', 'op-start',
- * 'op-success', 'op-error', 'selector-resolution', 'native-boolean-batch',
- * 'native-boolean-batch-rejected', 'part-success', 'build-success', and 'build-error'.
+ * Accepted values for occt trace event kind include build/part/operation lifecycle events,
+ * cache-breakpoint, selector-resolution, and native boolean batch events.
  */
 export type OcctTraceEventKind =
   | 'build-start'
@@ -18,6 +17,7 @@ export type OcctTraceEventKind =
   | 'op-start'
   | 'op-success'
   | 'op-error'
+  | 'cache-breakpoint'
   | 'selector-resolution'
   | 'native-boolean-batch'
   | 'native-boolean-batch-rejected'
@@ -35,11 +35,7 @@ export type OcctTraceEngine = 'classic' | 'parallel';
  * 'native-boolean'.
  */
 export type OcctTracePhase =
-  | 'build'
-  | 'part'
-  | 'operation'
-  | 'selection'
-  | 'native-boolean';
+  'build' | 'part' | 'operation' | 'selection' | 'native-boolean';
 
 /**
  * Accepted values for state for occt trace are 'queued', 'waiting', 'running', 'succeeded',
@@ -89,6 +85,8 @@ export type OcctTraceEvent = {
   removedBodies?: string[];
   modifiedBodies?: string[];
   message?: string;
+  cacheBreakpoint?: 'automatic' | 'manual';
+  cacheHit?: 'component' | 'completed-build';
   requestedSelectorKind?: string;
   resolvedTopologyKind?: string;
   selectorLabel?: string;

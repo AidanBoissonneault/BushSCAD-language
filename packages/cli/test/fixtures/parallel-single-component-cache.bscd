@@ -1,0 +1,3 @@
+part assembly {
+  obj pin = cylinder(8, r: 2);
+}

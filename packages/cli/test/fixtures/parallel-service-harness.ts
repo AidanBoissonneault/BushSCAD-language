@@ -13,10 +13,7 @@ import type { ServiceResponse } from '../../src/dto/types.js';
 import type { ParallelPoolStatus } from '../../src/service/parallel/worker-protocol.js';
 
 const fixtureDir = dirname(fileURLToPath(import.meta.url));
-const defaultFixture = resolve(
-  fixtureDir,
-  'parallel-independent-parts.bscd',
-);
+const defaultFixture = resolve(fixtureDir, 'parallel-independent-parts.bscd');
 
 export const parallelCliEntry = resolve(fixtureDir, '../../dist/index.js');
 
@@ -55,6 +52,7 @@ export async function requestPreview(
   engine?: 'classic',
   occtTrace = false,
   filePath = defaultFixture,
+  componentCacheDirectory?: string,
 ): Promise<ServiceResponse> {
   child.stdin.write(
     `${JSON.stringify({
@@ -64,6 +62,7 @@ export async function requestPreview(
       rootPath: resolve(fixtureDir, '../../../..'),
       entrypointMode: 'requested-file',
       ...(engine ? { engine } : {}),
+      ...(componentCacheDirectory ? { componentCacheDirectory } : {}),
       ...(occtTrace ? { occtTrace: true } : {}),
     })}\n`,
   );

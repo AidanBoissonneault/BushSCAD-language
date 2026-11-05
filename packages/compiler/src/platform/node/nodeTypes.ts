@@ -15,7 +15,11 @@ import type {
   DrawingResult,
   ResolvedJointData,
 } from '@bushscad/ir';
-import type { EnvManifestEntry, RawEnvOverrides } from '../../types/types.js';
+import type {
+  CacheBreakpoint,
+  EnvManifestEntry,
+  RawEnvOverrides,
+} from '../../types/types.js';
 
 /**
  * Lookup from string keys to string values.
@@ -37,6 +41,10 @@ export type CompileFileOptions = {
   entrypointMode?: CompileEntrypointMode;
   overlays?: FileOverlayMap;
   env?: RawEnvOverrides;
+  /** VS Code supplied source cache breakpoints; absent for CLI builds. */
+  cacheBreakpoints?: readonly CacheBreakpoint[];
+  /** Enables automatic disk-cache breakpoint assignment for persistent callers. */
+  automaticallyAssignCacheBreakpoints?: boolean;
   cursorOpIndex?: number;
   /** Op indices excluded from the geometry build (timeline suppression). */
   suppressedOpIndices?: number[];

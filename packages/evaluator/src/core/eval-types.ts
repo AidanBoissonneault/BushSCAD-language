@@ -45,6 +45,8 @@ export type EvaluateOptions = {
   env?: Record<string, EnvOverrideValue>;
   materials?: MaterialContext;
   showHardwareVisuals?: boolean;
+  /** Source locations whose loop bindings are needed by conditional cache breakpoints. */
+  cacheContextSpans?: readonly Pick<SourceSpan, 'file' | 'line'>[];
 };
 
 /**
@@ -179,6 +181,7 @@ export interface EvalCtx {
   activeProcessProfile: string | null; // e.g. 'std.printing.fdm', set by 'use' eval
   fitDecls: Map<string, IRFit>; // fitName → resolved IRFit, for fit_ok() lookup
   emitHardwareVisuals: boolean; // controlled by EvaluateOptions.showHardwareVisuals
+  cacheContextSpans: ReadonlySet<string>;
 }
 
 /** Deferred modifier ops (fillets, chamfers, drafts) collected during body evaluation. */

@@ -16,6 +16,7 @@ import type { EvaluateOptions, EvaluateResult } from './eval-types.js';
 import { unitToMm } from '../expressions/eval-expressions.js';
 
 import { evalTopStmt } from './eval-top-stmt.js';
+import { captureScalarCacheContext } from './eval-context.js';
 
 import {
   collectEnvNamesFromTopLevel,
@@ -84,6 +85,11 @@ export function evaluate(
     activeProcessProfile: null,
     fitDecls: new Map(),
     emitHardwareVisuals: options.showHardwareVisuals ?? true,
+    cacheContextSpans: new Set(
+      (options.cacheContextSpans ?? []).map(({ file, line }) =>
+        cacheContextKey(file, line),
+      ),
+    ),
   };
 
   const envNames = collectEnvNamesFromTopLevel(ast.statements);
@@ -106,6 +112,7 @@ export function evaluate(
     evalTopStmt(stmt, ctx, drawingOutputs, topLevelDeferred);
   }
   for (const op of topLevelDeferred) ctx.ops.push(op);
+  attachTopLevelCacheContext(ctx);
 
   const parts = ctx.ops
     .filter((op): op is IRPartBoundary => op.kind === 'part')
@@ -127,4 +134,26 @@ export function evaluate(
     drawings: { drawings: drawingOutputs },
     errors: ctx.errors,
   };
+}
+
+/** Creates the stable source-location key shared by loop capture and breakpoints. */
+function cacheContextKey(file: string, line: number): string {
+  return `${file}\0${line}`;
+}
+
+/** Adds visible scalar top-level values to conditional cache breakpoint operations. */
+function attachTopLevelCacheContext(ctx: EvalCtx): void {
+  if (ctx.cacheContextSpans.size === 0) return;
+  for (let index = 0; index < ctx.ops.length; index++) {
+    const operation = ctx.ops[index];
+    if (
+      !operation ||
+      operation.cacheContext ||
+      !ctx.cacheContextSpans.has(cacheContextKey(operation.span.file, operation.span.line))
+    )
+      continue;
+    const cacheContext = captureScalarCacheContext(ctx.values);
+    if (Object.keys(cacheContext).length > 0)
+      ctx.ops[index] = { ...operation, cacheContext };
+  }
 }

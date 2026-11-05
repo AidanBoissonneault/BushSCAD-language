@@ -106,6 +106,7 @@ export function compileFileToIr(
     filePath,
     rootPath,
     env: options.env,
+    cacheBreakpoints: options.cacheBreakpoints,
     loadFile: (path) => readSource(path, overlays),
     loadAsset: readAsset,
     workspaceIndex: workspace,

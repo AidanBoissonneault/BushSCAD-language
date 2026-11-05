@@ -5,11 +5,15 @@
  * @last-edited October 6, 2026
  */
 
-import type { ComponentBody, ComponentStatement } from '@bushscad/ir';
+import type { ComponentBody, ComponentStatement, IROp } from '@bushscad/ir';
 
 import type { Deferred, EvalCtx } from '../core/eval-types.js';
 
-import { addError, childCtx } from '../core/eval-context.js';
+import {
+  addError,
+  captureScalarCacheContext,
+  childCtx,
+} from '../core/eval-context.js';
 
 import { collectBodyObjectNames } from './eval-body-object-names.js';
 
@@ -117,10 +121,13 @@ export function evalBodyStmt(
   ctx: EvalCtx,
   deferred: Deferred,
 ): void {
-  if (evalSharedStmt(stmt, ctx)) return;
-  if (evalBodySimpleStmt(stmt, ctx)) return;
-  if (evalBodyModifierStmt(stmt, ctx, deferred)) return;
-  switch (stmt.kind) {
+  const opStart = ctx.ops.length;
+  const deferredStart = deferred.length;
+  try {
+    if (evalSharedStmt(stmt, ctx)) return;
+    if (evalBodySimpleStmt(stmt, ctx)) return;
+    if (evalBodyModifierStmt(stmt, ctx, deferred)) return;
+    switch (stmt.kind) {
     case 'objCall': {
       const fn = ctx.functions.get(stmt.call.name);
       if (!fn) {
@@ -161,6 +168,31 @@ export function evalBodyStmt(
     case 'place':
       evalPlace(stmt, ctx, deferred, { evalBodyStatements, evalFunction });
       break;
+    }
+  } finally {
+    annotateConditionalCacheContext(ctx.ops, opStart, ctx);
+    annotateConditionalCacheContext(deferred, deferredStart, ctx);
+  }
+}
+
+/** Captures the current scalar scope only for conditional cache breakpoint source lines. */
+function annotateConditionalCacheContext(
+  operations: IROp[],
+  startIndex: number,
+  ctx: EvalCtx,
+): void {
+  if (ctx.cacheContextSpans.size === 0) return;
+  for (let index = startIndex; index < operations.length; index++) {
+    const operation = operations[index];
+    if (
+      !operation ||
+      operation.cacheContext ||
+      !ctx.cacheContextSpans.has(`${operation.span.file}\0${operation.span.line}`)
+    )
+      continue;
+    const cacheContext = captureScalarCacheContext(ctx.values);
+    if (Object.keys(cacheContext).length > 0)
+      operations[index] = { ...operation, cacheContext };
   }
 }
 

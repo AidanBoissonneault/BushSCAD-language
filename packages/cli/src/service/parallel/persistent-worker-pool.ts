@@ -67,9 +67,12 @@ export class PersistentOcctWorkerPool {
   async prepareComponents(
     tasks: readonly Omit<ParallelComponentTask, 'taskId'>[],
     onTrace?: (event: OcctTraceEvent) => void,
+    onComplete?: (output: ParallelComponentOutput) => Promise<void> | void,
   ): Promise<ParallelComponentOutput[]> {
-    return this.runAcrossReadySlots(tasks, (slot, task) =>
-      this.runComponentTask(slot, task, onTrace),
+    return this.runAcrossReadySlots(
+      tasks,
+      (slot, task) => this.runComponentTask(slot, task, onTrace),
+      onComplete,
     );
   }
 
@@ -296,11 +299,13 @@ export class PersistentOcctWorkerPool {
   private async runAcrossReadySlots<TTask, TOutput extends PoolTaskOutput>(
     tasks: readonly TTask[],
     runTask: (slot: WorkerSlot, task: TTask) => Promise<TOutput>,
+    onComplete?: (output: TOutput) => Promise<void> | void,
   ): Promise<TOutput[]> {
     const slots = await this.waitForReadyWorkers();
     if (slots.length === 0)
       throw new Error('No parallel OCCT worker is ready.');
     const outputs: TOutput[] = [];
+    const completionWork: Promise<void>[] = [];
     const recorder = new PoolExecutionRecorder();
     let nextIndex = 0;
     /**
@@ -313,10 +318,14 @@ export class PersistentOcctWorkerPool {
         const output = await runTask(slot, tasks[index]);
         recorder.complete(dispatchedAt, output);
         outputs[index] = output;
+        if (onComplete) {
+          completionWork.push(Promise.resolve(onComplete(output)));
+        }
       }
     };
     try {
       await Promise.all(slots.map(runSlot));
+      await Promise.all(completionWork);
       return outputs;
     } finally {
       this.execution = recorder.finish(slots.length);

@@ -17,10 +17,8 @@ import type {
   ValidationResult,
 } from '@bushscad/ir';
 import type { EnvManifestEntry } from '@bushscad/compiler';
-import type {
-  CompileEntrypointMode,
-  FileOverlayMap,
-} from '@bushscad/compiler/node';
+import type { CacheBreakpoint } from '@bushscad/compiler';
+import type { CompileEntrypointMode, FileOverlayMap } from '@bushscad/compiler/node';
 
 /**
  * Mesh dto, including part name, body name, color, uses default color, and material.
@@ -83,6 +81,8 @@ export type CompilerMetrics = {
   preparedComponentCount?: number;
   componentRecipeCount?: number;
   componentCacheHitCount?: number;
+  persistentComponentCacheHitCount?: number;
+  persistentCompletedBuildCacheHitCount?: number;
   nativeBooleanBatchCount?: number;
   nativeBooleanAvoidedBuildCount?: number;
   nativeBooleanRejectionCount?: number;
@@ -93,10 +93,7 @@ export type CompilerMetrics = {
  * 'exportDrawings'.
  */
 export type CompilerRequestKind =
-  | 'check'
-  | 'preview'
-  | 'export'
-  | 'exportDrawings';
+  'check' | 'preview' | 'export' | 'exportDrawings';
 
 /**
  * Request to compiler, including operation kind, source file path, workspace root, entrypoint
@@ -115,6 +112,9 @@ export type CompilerRequest = {
   occtTrace?: boolean;
   engine?: CompilerEngine;
   drawingOutputMode?: DrawingOutputMode;
+  componentCacheDirectory?: string;
+  automaticallyAssignCacheBreakpoints?: boolean;
+  cacheBreakpoints?: readonly CacheBreakpoint[];
 };
 
 /**
@@ -190,6 +190,4 @@ export type CompilerPoolStatus =
  * Message for service accepts ServiceResponse, ServiceTraceMessage, and ServicePoolMessage.
  */
 export type ServiceMessage =
-  | ServiceResponse
-  | ServiceTraceMessage
-  | ServicePoolMessage;
+  ServiceResponse | ServiceTraceMessage | ServicePoolMessage;

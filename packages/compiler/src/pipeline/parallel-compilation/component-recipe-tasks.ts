@@ -32,6 +32,7 @@ export type IndependentComponentConsumer = Readonly<{
   name: string;
   operation: ComponentOp;
   semanticConsumerIds: readonly string[];
+  cacheBreakpoint?: 'automatic' | 'manual';
 }>;
 
 /**
@@ -40,6 +41,8 @@ export type IndependentComponentConsumer = Readonly<{
 export type IndependentComponentTask = Readonly<{
   id: string;
   recipeDigest: string;
+  recipeCanonical: string;
+  cacheSafe: boolean;
   partName: string;
   sourceIndex: number;
   name: string;
@@ -51,12 +54,14 @@ export type IndependentComponentTask = Readonly<{
 
 /**
  * Derives `ComponentTaskCandidate` from `IndependentComponentConsumer & Readonly<{ recipeDigest:
- * string; program: IRProgram; }>` to preserve its type relationship in the pipeline parallel
+ * string; recipeCanonical: string; cacheSafe: boolean; program: IRProgram; }>` to preserve its type relationship in the pipeline parallel
  * compilation layer.
  */
 export type ComponentTaskCandidate = IndependentComponentConsumer &
   Readonly<{
     recipeDigest: string;
+    recipeCanonical: string;
+    cacheSafe: boolean;
     program: IRProgram;
   }>;
 
@@ -107,6 +112,22 @@ export function materializePreparedComponentArtifact(
   }));
 }
 
+/** Rebuilds the current semantic sidecar around a cached lossless BRep. */
+export function cachedPreparedComponentArtifact(
+  task: IndependentComponentTask,
+  brep: Uint8Array,
+): PreparedComponentArtifact {
+  return {
+    format: 'occt-brep-v1',
+    partName: task.partName,
+    name: task.name,
+    operationKind: task.operation.kind,
+    span: task.operation.span,
+    semanticConsumerIds: [...task.semanticConsumerIds],
+    brep,
+  };
+}
+
 /**
  * Derives `MutableComponentTask` from `Omit< IndependentComponentTask, 'semanticConsumerIds' |
  * 'consumers' > & { semanticConsumerIds: string[]; consumers: IndependentComponentConsumer[]; }` to
@@ -134,6 +155,8 @@ function taskFromCandidate(
       ? `component-recipe:${candidate.recipeDigest}`
       : `component-instance:${candidate.recipeDigest}:${identity}`,
     recipeDigest: candidate.recipeDigest,
+    recipeCanonical: candidate.recipeCanonical,
+    cacheSafe: candidate.cacheSafe,
     partName: candidate.partName,
     sourceIndex: candidate.sourceIndex,
     name: candidate.name,
@@ -156,6 +179,9 @@ function consumer(
     name: candidate.name,
     operation: candidate.operation,
     semanticConsumerIds: [...candidate.semanticConsumerIds],
+    ...(candidate.cacheBreakpoint
+      ? { cacheBreakpoint: candidate.cacheBreakpoint }
+      : {}),
   };
 }
 

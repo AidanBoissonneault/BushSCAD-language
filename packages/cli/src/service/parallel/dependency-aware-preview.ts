@@ -5,7 +5,9 @@
  * @last-edited October 6, 2026
  */
 
+import type { PreparedComponentBrepCache } from '@bushscad/compiler';
 import type { CompileFileOptions } from '@bushscad/compiler/node';
+import type { CompletedBuildOutputCache } from './build-output-cache.js';
 import { previewClassicInPool } from './classic-pool-preview.js';
 import { previewIndependentParts } from './parallel-preview.js';
 import type { PersistentOcctWorkerPool } from './persistent-worker-pool.js';
@@ -19,8 +21,15 @@ import type { PersistentOcctWorkerPool } from './persistent-worker-pool.js';
 export async function previewWithDependencyAwareCompiler(
   options: CompileFileOptions,
   pool: PersistentOcctWorkerPool,
+  componentCache?: PreparedComponentBrepCache,
+  buildOutputCache?: CompletedBuildOutputCache,
 ): Promise<Awaited<ReturnType<typeof previewClassicInPool>>> {
-  const outcome = await previewIndependentParts(options, pool);
+  const outcome = await previewIndependentParts(
+    options,
+    pool,
+    componentCache,
+    buildOutputCache,
+  );
   if (outcome.kind === 'complete') {
     return { result: outcome.result, metrics: outcome.metrics };
   }

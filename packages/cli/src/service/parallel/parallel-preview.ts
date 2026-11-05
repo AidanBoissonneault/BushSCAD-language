@@ -6,11 +6,12 @@
  */
 
 import {
+  type PreparedComponentBrepCache,
   planIndependentComponentCompilation,
   planIndependentPartCompilation,
   planNativeBooleanBatches,
 } from '@bushscad/compiler';
-import type { NativeBooleanBatchPlan } from '@bushscad/ir';
+import type { IRProgram, NativeBooleanBatchPlan } from '@bushscad/ir';
 import {
   compileFileToIr,
   selectBuildOps,
@@ -20,9 +21,14 @@ import {
 import type { ParallelBuildOutput } from './worker-protocol.js';
 import { assembleInteractionSnapshots } from './interaction-assembly.js';
 import type { PersistentOcctWorkerPool } from './persistent-worker-pool.js';
+import {
+  buildTasksWithOutputCache,
+  type CompletedBuildOutputCache,
+} from './build-output-cache.js';
 import type { CompilerMetrics } from '../../dto/types.js';
 import type { CompiledPreviewInput } from './preview-types.js';
 import { previewIndependentComponents } from './component-preview.js';
+import { completedPartCacheBreakpoint } from './completed-part-cache-breakpoint.js';
 import {
   EMPTY_NATIVE_STATS,
   nativeBooleanBatchesEnabled,
@@ -53,6 +59,8 @@ export type ParallelPreviewOutcome =
 export async function previewIndependentParts(
   options: CompileFileOptions,
   pool: PersistentOcctWorkerPool,
+  componentCache?: PreparedComponentBrepCache,
+  buildOutputCache?: CompletedBuildOutputCache,
 ): Promise<ParallelPreviewOutcome> {
   const startedAt = Date.now();
   const compiled = compileFileToIr(options);
@@ -99,12 +107,20 @@ export async function previewIndependentParts(
         pool,
         compileIrMs,
         startedAt,
+        buildOutputCache,
       );
     }
     const componentPlan = planIndependentComponentCompilation(
       program,
       options.filePath,
-      { reuseRecipes: process.env.BUSHSCAD_PARALLEL_RECIPE_REUSE !== '0' },
+      {
+        reuseRecipes: process.env.BUSHSCAD_PARALLEL_RECIPE_REUSE !== '0',
+        allowSingleComponent: componentCache !== undefined,
+        automaticallyAssignCacheBreakpoints:
+          options.automaticallyAssignCacheBreakpoints ??
+          componentCache !== undefined,
+        cacheBreakpoints: options.cacheBreakpoints,
+      },
     );
     if (!componentPlan.eligible) {
       return {
@@ -121,6 +137,8 @@ export async function previewIndependentParts(
       pool,
       compileIrMs,
       startedAt,
+      componentCache,
+      buildOutputCache,
     );
     return {
       kind: 'complete',
@@ -139,7 +157,7 @@ export async function previewIndependentParts(
     const nativeOwner = batchPlans.findIndex(
       (candidate) => (candidate?.batches.length ?? 0) > 0,
     );
-    const outputs = await pool.build(
+    const buildBatch = await buildTasksWithOutputCache(
       plan.batches.map((batch, index) => ({
         partName: batch.partName,
         sourceIndex: batch.sourceIndex,
@@ -156,7 +174,15 @@ export async function previewIndependentParts(
             }
           : {}),
       })),
+      pool,
+      buildOutputCache,
       options.occtTrace ? options.onOcctTraceEvent : undefined,
+    );
+    const outputs = withAutomaticPartCachePoints(
+      plan.batches,
+      buildBatch.outputs,
+      options,
+      buildOutputCache,
     );
     return assembleParallelOutcome(
       compiled,
@@ -167,6 +193,8 @@ export async function previewIndependentParts(
       Date.now() - geometryStartedAt,
       startedAt,
       nativeStats(outputs.flatMap((output) => output.traceEvents)),
+      buildBatch.execution,
+      buildBatch.cacheHitCount,
     );
   } catch (error) {
     return parallelPreviewFailure(
@@ -188,10 +216,11 @@ async function previewOneNativeBooleanPlan(
   pool: PersistentOcctWorkerPool,
   compileIrMs: number,
   startedAt: number,
+  buildOutputCache?: CompletedBuildOutputCache,
 ): Promise<ParallelPreviewOutcome> {
   const geometryStartedAt = Date.now();
   try {
-    const [output] = await pool.build(
+    const buildBatch = await buildTasksWithOutputCache(
       [
         {
           partName: plan.batches[0]?.partName ?? '__default__',
@@ -204,8 +233,23 @@ async function previewOneNativeBooleanPlan(
           nativeBooleanConcurrencyLimit: 1,
         },
       ],
+      pool,
+      buildOutputCache,
       options.occtTrace ? options.onOcctTraceEvent : undefined,
     );
+    const outputs = withAutomaticPartCachePoints(
+      [
+        {
+          partName: plan.batches[0]?.partName ?? '__default__',
+          sourceIndex: 0,
+          program,
+        },
+      ],
+      buildBatch.outputs,
+      options,
+      buildOutputCache,
+    );
+    const [output] = outputs;
     if (!output) throw new Error('Native boolean worker returned no output.');
     return assembleParallelOutcome(
       compiled,
@@ -216,6 +260,8 @@ async function previewOneNativeBooleanPlan(
       Date.now() - geometryStartedAt,
       startedAt,
       nativeStats(output.traceEvents),
+      buildBatch.execution,
+      buildBatch.cacheHitCount,
     );
   } catch (error) {
     return parallelPreviewFailure(
@@ -228,6 +274,46 @@ async function previewOneNativeBooleanPlan(
   }
 }
 
+/** Adds visible source markers for automatic whole-part disk cache boundaries. */
+function withAutomaticPartCachePoints(
+  batches: readonly {
+    partName: string;
+    sourceIndex: number;
+    program: IRProgram;
+  }[],
+  outputs: readonly ParallelBuildOutput[],
+  options: CompileFileOptions,
+  cache: CompletedBuildOutputCache | undefined,
+): ParallelBuildOutput[] {
+  if (
+    !options.occtTrace ||
+    !cache ||
+    options.automaticallyAssignCacheBreakpoints === false
+  )
+    return [...outputs];
+  return outputs.map((output, index) => {
+    const batch = batches[index];
+    if (!batch) return output;
+    const event = completedPartCacheBreakpoint(
+      batch.program.ops,
+      batch.partName,
+      batch.sourceIndex,
+      output.traceEvents.reduce(
+        (earliest, traceEvent) => Math.min(earliest, traceEvent.timestampMs),
+        Date.now(),
+      ),
+    );
+    if (!event) return output;
+    options.onOcctTraceEvent?.(event);
+    return {
+      ...output,
+      traceEvents: [...output.traceEvents, event].sort(
+        (left, right) => left.timestampMs - right.timestampMs,
+      ),
+    };
+  });
+}
+
 /** Reassembles source-ordered worker outputs into the established preview DTO. */
 function assembleParallelOutcome(
   compiled: CompiledPreviewInput,
@@ -238,6 +324,8 @@ function assembleParallelOutcome(
   geometryMs: number,
   startedAt: number,
   booleanStats: NativeBooleanStats = EMPTY_NATIVE_STATS,
+  execution: PoolExecutionMetrics = pool.executionMetrics(),
+  completedBuildCacheHitCount = 0,
 ): ParallelPreviewOutcome {
   const assemblyStartedAt = Date.now();
   const interactionSource = compiled.program.interaction;
@@ -281,6 +369,8 @@ function assembleParallelOutcome(
       geometryMs,
       Date.now() - assemblyStartedAt,
       booleanStats,
+      execution,
+      completedBuildCacheHitCount,
     ),
   };
 }
@@ -295,6 +385,7 @@ function metrics(
   assemblyMs: number,
   booleanStats: NativeBooleanStats = EMPTY_NATIVE_STATS,
   execution: PoolExecutionMetrics = pool.executionMetrics(),
+  persistentCompletedBuildCacheHitCount = 0,
 ): CompilerMetrics {
   const status = pool.snapshot();
   return {
@@ -309,6 +400,9 @@ function metrics(
     nativeBooleanBatchCount: booleanStats.batchCount,
     nativeBooleanAvoidedBuildCount: booleanStats.avoidedBuildCount,
     nativeBooleanRejectionCount: booleanStats.rejectionCount,
+    ...(persistentCompletedBuildCacheHitCount > 0
+      ? { persistentCompletedBuildCacheHitCount }
+      : {}),
     ...compilerExecutionMetrics(pool, execution),
   };
 }

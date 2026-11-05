@@ -62,6 +62,8 @@ export type CompilationGraphNode = Readonly<{
   cacheSafe: boolean;
   estimatedCost: CompilationCostClass;
   recipeDigest?: string;
+  /** Canonical recipe used to verify a compact digest before persistent reuse. */
+  recipeCanonical?: string;
   semanticConsumerIds: readonly string[];
   dependencies: readonly string[];
   reads: readonly string[];

@@ -6,6 +6,7 @@
  */
 
 import type { IROp, IRPartBoundary, IRProgram } from '@bushscad/ir';
+import type { CacheBreakpoint } from '../../types/types.js';
 import { operationAccess } from '@bushscad/evaluator';
 import { buildCompilationGraph } from './build-compilation-graph.js';
 import {
@@ -20,12 +21,17 @@ import {
   semanticKey,
   type IndexedOp,
 } from './graph-lowering-support.js';
+import { matchesCacheCondition } from './cache-breakpoint-condition.js';
+import { normalizePath } from '../../core/paths.js';
 
 /**
  * Type used for options for independent component plan.
  */
 export type IndependentComponentPlanOptions = Readonly<{
   reuseRecipes?: boolean;
+  allowSingleComponent?: boolean;
+  automaticallyAssignCacheBreakpoints?: boolean;
+  cacheBreakpoints?: readonly CacheBreakpoint[];
 }>;
 
 /**
@@ -64,35 +70,19 @@ export function planIndependentComponentCompilation(
 
   const group = groups[0];
   const producersByName = outputProducers(group.ops);
-  const candidates = group.ops.flatMap((indexed): ComponentTaskCandidate[] => {
-    if (!isSafeComponent(indexed, producersByName)) return [];
-    const dependencies = dependencyClosure(indexed, producersByName);
-    if (!dependencies) return [];
-    const operation = indexed.op as ComponentOp;
-    const name = operation.objName;
-    const graphNode = graph.graph.nodes.find(
-      (node) =>
-        node.id === componentGraphNodeId(entrypoint, group.name, indexed),
-    );
-    if (!graphNode?.recipeDigest) return [];
-    return [
-      {
-        recipeDigest: graphNode.recipeDigest,
-        partName: group.name,
-        sourceIndex: indexed.index,
-        name,
-        operation,
-        semanticConsumerIds: [graphNode?.id ?? componentIdentity(operation)],
-        program: componentProgram(
-          program,
-          group.boundary as IRPartBoundary,
-          dependencies,
-          operation,
-        ),
-      },
-    ];
+  const candidates = group.ops.flatMap((indexed) => {
+    const candidate = componentCandidate(indexed, {
+      entrypoint,
+      groupName: group.name,
+      boundary: group.boundary as IRPartBoundary,
+      producersByName,
+      graph,
+      options,
+      program,
+    });
+    return candidate ? [candidate] : [];
   });
-  if (candidates.length < 2)
+  if (candidates.length < (options.allowSingleComponent ? 1 : 2))
     return ineligible('fewer than two transferable positive components');
   if (new Set(candidates.map((task) => task.name)).size !== candidates.length)
     return ineligible('component output names are not unique');
@@ -107,6 +97,77 @@ export function planIndependentComponentCompilation(
     avoidedBuildCount: candidates.length - tasks.length,
     recipeReuseEnabled,
   };
+}
+
+type ComponentCandidateContext = {
+  entrypoint: string;
+  groupName: string;
+  boundary: IRPartBoundary;
+  producersByName: ProducerMap;
+  graph: ReturnType<typeof buildCompilationGraph>;
+  options: IndependentComponentPlanOptions;
+  program: IRProgram;
+};
+
+/** Builds a task only when its source operation and recipe graph are reusable. */
+function componentCandidate(
+  indexed: IndexedOp,
+  context: ComponentCandidateContext,
+): ComponentTaskCandidate | undefined {
+  if (!isSafeComponent(indexed, context.producersByName)) return undefined;
+  const dependencies = dependencyClosure(indexed, context.producersByName);
+  if (!dependencies) return undefined;
+  const operation = indexed.op as ComponentOp;
+  const graphNode = context.graph.graph.nodes.find(
+    (node) =>
+      node.id ===
+      componentGraphNodeId(context.entrypoint, context.groupName, indexed),
+  );
+  const recipeNode = context.graph.graph.nodes.find(
+    (node) =>
+      node.kind === 'recipe' && node.recipeDigest === graphNode?.recipeDigest,
+  );
+  if (!graphNode?.recipeDigest || !recipeNode?.recipeCanonical) {
+    return undefined;
+  }
+  const cacheBreakpoint = selectedCacheBreakpoint(indexed.op, context.options);
+  return {
+    recipeDigest: graphNode.recipeDigest,
+    recipeCanonical: recipeNode.recipeCanonical,
+    cacheSafe: graphNode.cacheSafe,
+    partName: context.groupName,
+    sourceIndex: indexed.index,
+    name: operation.objName,
+    operation,
+    semanticConsumerIds: [graphNode.id ?? componentIdentity(operation)],
+    ...(cacheBreakpoint ? { cacheBreakpoint } : {}),
+    program: componentProgram(
+      context.program,
+      context.boundary,
+      dependencies,
+      operation,
+    ),
+  };
+}
+
+/** Selects automatic or explicitly marked source operations for BRep reuse. */
+function selectedCacheBreakpoint(
+  operation: IROp,
+  options: IndependentComponentPlanOptions,
+): 'automatic' | 'manual' | undefined {
+  const manual = options.cacheBreakpoints?.find(
+    (breakpoint) =>
+      normalizePath(breakpoint.filePath) === operation.span.file &&
+      breakpoint.line === operation.span.line,
+  );
+  if (manual)
+    return !manual.condition ||
+      matchesCacheCondition(manual.condition, operation.cacheContext)
+      ? 'manual'
+      : undefined;
+  return options.automaticallyAssignCacheBreakpoints === true
+    ? 'automatic'
+    : undefined;
 }
 
 /** Encodes the first proven-safe P4 operation rule table. */

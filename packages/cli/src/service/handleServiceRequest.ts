@@ -73,6 +73,9 @@ function serviceCompileOptions(
     entrypointMode: request.entrypointMode,
     overlays: request.overlays,
     env: request.env,
+    automaticallyAssignCacheBreakpoints:
+      request.automaticallyAssignCacheBreakpoints,
+    cacheBreakpoints: request.cacheBreakpoints,
     cursorOpIndex: request.cursorOpIndex,
     suppressedOpIndices: request.suppressedOpIndices,
     occtTrace: request.occtTrace,

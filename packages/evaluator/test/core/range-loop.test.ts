@@ -75,4 +75,34 @@ part p {
     const xs = cuts.map((c) => c.from.offsetX);
     expect(xs).toEqual([0, 1, 2]);
   });
+
+  it('preserves scalar bindings only at conditional cache breakpoint lines', () => {
+    const result = evalOk(
+      `part p {
+  for i in range(3) {
+    obj pin = cylinder(8, r: 2);
+  }
+}`,
+      { cacheContextSpans: [{ file: 'test.bscd', line: 3 }] },
+    );
+    const pins = opsOfKind(result.program.ops, 'solidPrimitive');
+    expect(pins.map((op) => op.cacheContext)).toEqual([
+      { i: 0 },
+      { i: 1 },
+      { i: 2 },
+    ]);
+  });
+
+  it('captures visible scalar values for a conditional non-loop breakpoint', () => {
+    const result = evalOk(
+      `var width = 10;
+part p {
+  obj pin = cylinder(width, r: 2);
+}`,
+      { cacheContextSpans: [{ file: 'test.bscd', line: 3 }] },
+    );
+    expect(opsOfKind(result.program.ops, 'solidPrimitive')[0]?.cacheContext).toMatchObject({
+      width: 10,
+    });
+  });
 });

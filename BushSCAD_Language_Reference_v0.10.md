@@ -16,6 +16,7 @@ This reference describes BushSCAD syntax and what each language feature does.
 - [Parts and Assemblies](#parts-and-assemblies)
 - [Validation and Fits](#validation-and-fits)
 - [Import and Export](#import-and-export)
+- [VS Code Parallel and Cached Compilation](#vs-code-parallel-and-cached-compilation)
 - [Examples](#examples)
 
 ## Keyword Reference
@@ -6065,6 +6066,52 @@ dimension base.top.front_left to base.top.back_right;  // diagonal
 | `svg`  | Preview, documentation |
 
 Drawing outputs can also be driven from `bushscad.json` defaults via the `export` key.
+
+## VS Code Parallel and Cached Compilation
+
+The VS Code extension can compile independent model parts and safe component
+recipes in parallel. BushSCAD first parses and resolves the source, evaluates
+loops and conditionals into concrete operations, then builds a dependency graph
+to find work that can run independently. A bounded worker pool builds those
+tasks concurrently and assembles their results in source order. Operations with
+dependencies that cannot be transferred safely remain in the ordered build.
+
+### Cache Breakpoints
+
+Cache breakpoints are a VS Code editor feature; they do not add syntax to a
+`.bscd` file and are not a CLI option. Right-click a source line and choose
+**BushSCAD: Toggle Cache Breakpoint** to add or remove a manual point. The
+gutter marker and the line's code lens show assigned points. Choose **BushSCAD:
+Set Cache Breakpoint Condition** to attach an optional condition.
+
+Conditions support scalar values visible at the operation, including loop
+bindings, with numeric arithmetic, comparisons, Boolean `&&` and `||`, `!`, and
+parentheses. For example, `i == 2 && width > 5` selects the third unrolled
+iteration when `i` starts at zero. The compiler evaluates the condition against
+each concrete loop operation. Missing values, unsupported syntax, and invalid
+conditions do not select a manual component cache point.
+
+When **Automatically assign cache breakpoints** is enabled in the model settings
+drawer or VS Code settings, the compiler marks safe component recipes and
+completed independent parts automatically. The extension displays those points
+in the source gutter. A manual point takes precedence on its line, so its
+condition selects which unrolled loop instances receive that component cache
+point. With automatic assignment disabled, manual points can still select safe
+component recipes. An unchanged completed part can also be reused as a whole
+build result when its exact compilation inputs match.
+
+Automatic markers distinguish these cache states by location. A component
+recipe marker sits on the source operation that produces that component. A
+completed-part marker sits at the end of the part block, after all of its
+operations, including geometry placed later through an imported function. This
+keeps the marker aligned with the complete cached result rather than an earlier
+component inside it.
+
+The extension stores BRep checkpoints and completed mesh results as temporary
+files in its local session cache. It reads them from disk on demand and removes
+the session cache when VS Code shuts down. A cache hit changes compilation time
+only: source semantics, operation order, and output geometry remain the same.
+The classic engine and ordinary CLI use do not receive the VS Code cache.
 
 ## Examples
 

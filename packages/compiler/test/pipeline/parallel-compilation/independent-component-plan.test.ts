@@ -7,21 +7,26 @@
 
 import { describe, expect, it } from 'vitest';
 import {
+  cachedPreparedComponentArtifact,
   materializePreparedComponentArtifact,
   planIndependentComponentCompilation,
 } from '../../../src/index.js';
-import { compile } from '../test-support.js';
+import { compile, workspacePath } from '../test-support.js';
 
 /**
  * Handles plan in the pipeline parallel compilation flow.
  */
-function plan(source: string) {
+function plan(
+  source: string,
+  options: Parameters<typeof planIndependentComponentCompilation>[2] = {},
+) {
   const compiled = compile(source);
   expect(compiled.ok).toBe(true);
   if (!compiled.ok) throw new Error(compiled.errors[0]?.message);
   return planIndependentComponentCompilation(
     compiled.program,
     'components.bscd',
+    options,
   );
 }
 
@@ -105,6 +110,25 @@ part assembly {
     });
   });
 
+  it('allows one transferable component when persistent caching is available', () => {
+    const source = `
+part assembly {
+  obj pin = cylinder(8, r: 2);
+}
+`;
+    const withoutPersistentCache = plan(source);
+    const withPersistentCache = plan(source, { allowSingleComponent: true });
+
+    expect(withoutPersistentCache).toEqual({
+      eligible: false,
+      reason: 'fewer than two transferable positive components',
+    });
+    expect(withPersistentCache.eligible).toBe(true);
+    if (!withPersistentCache.eligible) return;
+    expect(withPersistentCache.componentCount).toBe(1);
+    expect(withPersistentCache.tasks.map((task) => task.name)).toEqual(['pin']);
+  });
+
   it('leaves cuts and modifiers in the ordered reduction program', () => {
     const result = plan(`
 part assembly {
@@ -160,6 +184,77 @@ part assembly {
     ]);
     expect(first.tasks[0]?.id).toBe(second.tasks[0]?.id);
     expect(new Set(first.tasks[0]?.semanticConsumerIds)).toHaveLength(4);
+  });
+
+  it('selects conditional manual cache breakpoints per loop iteration', () => {
+    const source = `part assembly {
+  for i in range(4) {
+    obj pin = cylinder(8, r: 2);
+    transform(pin, translate(x: i * 12));
+  }
+  obj other = cuboid([2, 2, 2]);
+}`;
+    const compiled = compile(source, {}, undefined, [
+      {
+        filePath: workspacePath('main.bscd'),
+        line: 3,
+        condition: 'i == 2',
+      },
+    ]);
+    expect(compiled.ok).toBe(true);
+    if (!compiled.ok) return;
+    const result = planIndependentComponentCompilation(
+      compiled.program,
+      'components.bscd',
+      {
+        allowSingleComponent: true,
+        automaticallyAssignCacheBreakpoints: false,
+        cacheBreakpoints: [
+          {
+            filePath: workspacePath('main.bscd'),
+            line: 3,
+            condition: 'i == 2',
+          },
+        ],
+      },
+    );
+    expect(result.eligible).toBe(true);
+    if (!result.eligible) return;
+    const pins = result.tasks.flatMap((task) => task.consumers);
+    expect(pins.filter((item) => item.cacheBreakpoint === 'manual')).toHaveLength(1);
+    expect(pins.find((item) => item.cacheBreakpoint)?.operation.cacheContext).toEqual({ i: 2 });
+  });
+
+  it('does not fall back to automatic assignment on an unmatched manual condition', () => {
+    const source = `part assembly {
+  for i in range(3) {
+    obj pin = cylinder(8, r: 2);
+  }
+}`;
+    const breakpoint = {
+      filePath: workspacePath('main.bscd'),
+      line: 3,
+      condition: 'i == 9',
+    };
+    const compiled = compile(source, {}, undefined, [breakpoint]);
+    expect(compiled.ok).toBe(true);
+    if (!compiled.ok) return;
+    const result = planIndependentComponentCompilation(
+      compiled.program,
+      'components.bscd',
+      {
+        allowSingleComponent: true,
+        automaticallyAssignCacheBreakpoints: true,
+        cacheBreakpoints: [breakpoint],
+      },
+    );
+    expect(result.eligible).toBe(true);
+    if (!result.eligible) return;
+    expect(
+      result.tasks
+        .flatMap((task) => task.consumers)
+        .every((item) => item.cacheBreakpoint === undefined),
+    ).toBe(true);
   });
 
   it('can disable compile-local reuse for equivalence diagnostics', () => {
@@ -248,5 +343,44 @@ part assembly {
       'second',
     ]);
     expect(new Set(result.tasks[0]?.semanticConsumerIds)).toHaveLength(2);
+  });
+
+  it('rematerializes current tree metadata when a recipe digest is reused', () => {
+    const previous = plan(`
+part assembly {
+  obj previous_pin = cylinder(8, r: 2);
+  obj other = cuboid([2, 2, 2]);
+}
+`);
+    const current = plan(`
+part assembly {
+  obj renamed_pin = cylinder(8, r: 2);
+  obj other = cuboid([2, 2, 2]);
+}
+`);
+    expect(previous.eligible).toBe(true);
+    expect(current.eligible).toBe(true);
+    if (!previous.eligible || !current.eligible) return;
+    const previousTask = previous.tasks[0];
+    const currentTask = current.tasks[0];
+    expect(previousTask).toBeDefined();
+    expect(currentTask).toBeDefined();
+    if (!previousTask || !currentTask) return;
+    expect(currentTask.recipeDigest).toBe(previousTask.recipeDigest);
+    const artifact = cachedPreparedComponentArtifact(
+      currentTask,
+      new Uint8Array([1, 2, 3]),
+    );
+
+    expect(artifact.name).toBe('renamed_pin');
+    expect(artifact.semanticConsumerIds).toEqual(
+      currentTask.semanticConsumerIds,
+    );
+    expect(artifact.span).toEqual(currentTask.operation.span);
+    expect(
+      materializePreparedComponentArtifact(currentTask, artifact).map(
+        (consumer) => consumer.name,
+      ),
+    ).toEqual(['renamed_pin']);
   });
 });

@@ -32,7 +32,11 @@ export type {
   IndependentComponentPlan,
   IndependentComponentPlanOptions,
 } from './independent-component-plan.js';
-export { materializePreparedComponentArtifact } from './component-recipe-tasks.js';
+export {
+  cachedPreparedComponentArtifact,
+  materializePreparedComponentArtifact,
+} from './component-recipe-tasks.js';
+export type { PreparedComponentBrepCache } from './prepared-component-cache.js';
 export type {
   IndependentComponentConsumer,
   IndependentComponentTask,

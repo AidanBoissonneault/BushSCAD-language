@@ -110,7 +110,12 @@ import type {
  * IRDeclareShape, IRAlignShape, IRSolidPrimitive, and
  * import('../geometry/surface.js').IRSurfaceOp.
  */
-export type IROp =
+export type IRCacheContextValue = number | string | boolean;
+
+/** Scalar lexical values preserved only when a cache breakpoint has a condition. */
+export type IRCacheContext = Readonly<Record<string, IRCacheContextValue>>;
+
+export type IROp = (
   | IRSketch
   | IRExtrude
   | IRCut
@@ -145,7 +150,11 @@ export type IROp =
   | IRDeclareShape
   | IRAlignShape
   | IRSolidPrimitive
-  | import('../geometry/surface.js').IRSurfaceOp;
+  | import('../geometry/surface.js').IRSurfaceOp
+) & {
+  /** Non-geometric loop values used by VS Code conditional cache breakpoints. */
+  cacheContext?: IRCacheContext;
+};
 
 /**
  * Ir program, including ops, parts, base unit mm, workplane, and interaction.

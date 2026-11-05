@@ -22,6 +22,7 @@ import type {
   CompilerRequestKind,
   ServiceRequest,
 } from './types.js';
+import { parseCacheRequestOptions } from './request-cache-options.js';
 
 const REQUEST_KEYS = new Set([
   'id',
@@ -37,6 +38,9 @@ const REQUEST_KEYS = new Set([
   'occtTrace',
   'engine',
   'drawingOutputMode',
+  'componentCacheDirectory',
+  'automaticallyAssignCacheBreakpoints',
+  'cacheBreakpoints',
 ]);
 const REQUEST_KINDS = new Set<unknown>([
   'check',
@@ -97,6 +101,16 @@ export function parseCompilerRequest(
   const occtTrace = parseOptionalBoolean(raw.occtTrace, 'OCCT trace flag');
   const engine = parseEngine(raw.engine);
   const drawingOutputMode = parseDrawingOutputMode(raw.drawingOutputMode, kind);
+  const cacheOptions = parseCacheRequestOptions(
+    raw,
+    kind,
+    engine,
+    (value, label) => absolutePath(value, label, policy),
+    (path, label) => {
+      assertWithin(rootPath, path, label, policy);
+      policy.assertPathAllowed?.(path);
+    },
+  );
   assertPreviewControls(kind, [cursorOpIndex, suppressedOpIndices, occtTrace]);
 
   return {
@@ -112,6 +126,7 @@ export function parseCompilerRequest(
     ...(occtTrace !== undefined ? { occtTrace } : {}),
     ...(engine ? { engine } : {}),
     ...(drawingOutputMode ? { drawingOutputMode } : {}),
+    ...cacheOptions,
   };
 }
 

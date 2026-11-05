@@ -1,8 +1,17 @@
 ﻿/**
  * Evaluates a for-loop body for each iterator binding.
  */
-import type { ForStatement } from '@bushscad/ir';
-import { childCtx, fresh } from '../../core/eval-context.js';
+import type {
+  ComponentBody,
+  ForStatement,
+  IROp,
+  SourceSpan,
+} from '@bushscad/ir';
+import {
+  captureScalarCacheContext,
+  childCtx,
+  fresh,
+} from '../../core/eval-context.js';
 import type { Deferred, EvalCtx, EvalValue } from '../../core/eval-types.js';
 import { evalBool, evalNum } from '../../expressions/eval-expressions.js';
 import {
@@ -35,7 +44,13 @@ export function evalForBodyControlFlow(
     forEachIteration(stmt, ctx, ({ bindings, whereBindings }) => {
       if (!shouldEvalLoopBody(stmt, ctx, bindings, whereBindings)) return;
       const iterCtx = loopIterationContext(ctx, localNames, bindings);
-      evalBodyStatements(stmt.body, iterCtx, deferred);
+      evaluateLoopIterationBody(
+        stmt.body,
+        ctx,
+        iterCtx,
+        deferred,
+        evalBodyStatements,
+      );
     });
     return;
   }
@@ -49,8 +64,29 @@ export function evalForBodyControlFlow(
     if (!shouldEvalLoopBody(stmt, ctx, bindings, whereBindings)) continue;
     const iterCtx = loopIterationContext(ctx, localNames, bindings);
     applyWithinPlan(iterCtx, plan, idx);
-    evalBodyStatements(stmt.body, iterCtx, deferred);
+    evaluateLoopIterationBody(
+      stmt.body,
+      ctx,
+      iterCtx,
+      deferred,
+      evalBodyStatements,
+    );
   }
+}
+
+/** Evaluates one iteration and preserves its conditional breakpoint bindings. */
+function evaluateLoopIterationBody(
+  body: ComponentBody,
+  parentCtx: EvalCtx,
+  iterCtx: EvalCtx,
+  deferred: Deferred,
+  evalBodyStatements: BodyStatementsEvaluator,
+): void {
+  const opStart = parentCtx.ops.length;
+  const deferredStart = deferred.length;
+  evalBodyStatements(body, iterCtx, deferred);
+  annotateCacheContext(parentCtx.ops, opStart, iterCtx);
+  annotateCacheContext(deferred, deferredStart, iterCtx);
 }
 
 /**
@@ -151,6 +187,35 @@ function loopIterationContext(
   for (const name of localNames) iterCtx.names.set(name, fresh(ctx, name));
   bindings.forEach((v, k) => iterCtx.values.set(k, v));
   return iterCtx;
+}
+
+/** Adds loop bindings only to operations explicitly named by a conditional breakpoint. */
+function annotateCacheContext(
+  operations: IROp[],
+  startIndex: number,
+  iterCtx: EvalCtx,
+): void {
+  if (iterCtx.cacheContextSpans.size === 0) return;
+  for (let index = startIndex; index < operations.length; index++) {
+    const operation = operations[index];
+    if (
+      !operation ||
+      operation.cacheContext ||
+      !hasConditionalBreakpoint(iterCtx, operation.span)
+    )
+      continue;
+    const cacheContext = captureScalarCacheContext(iterCtx.values);
+    if (Object.keys(cacheContext).length === 0) continue;
+    operations[index] = {
+      ...operation,
+      cacheContext,
+    };
+  }
+}
+
+/** Checks whether an operation source span needs loop values for a breakpoint condition. */
+function hasConditionalBreakpoint(ctx: EvalCtx, span: SourceSpan): boolean {
+  return ctx.cacheContextSpans.has(`${span.file}\0${span.line}`);
 }
 
 /**

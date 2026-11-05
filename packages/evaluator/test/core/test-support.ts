@@ -38,7 +38,10 @@ function resolveTestSource(src: string, loadAsset?: () => Uint8Array) {
  */
 export function evalOk(
   src: string,
-  options: { materials?: MaterialContext } = {},
+  options: {
+    materials?: MaterialContext;
+    cacheContextSpans?: readonly { file: string; line: number }[];
+  } = {},
 ) {
   const result = evaluate(resolveTestSource(src), options);
   expect(

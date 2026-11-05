@@ -283,6 +283,7 @@ function addRecipeNode(
     cacheSafe: recipe.cacheSafe,
     estimatedCost,
     recipeDigest: recipe.digest,
+    recipeCanonical: recipe.canonical,
     writes: [`recipe:${recipe.digest}`],
   });
 }

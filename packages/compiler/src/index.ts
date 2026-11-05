@@ -18,6 +18,7 @@ export {
   planIndependentPartCompilation,
   planIndependentComponentCompilation,
   planNativeBooleanBatches,
+  cachedPreparedComponentArtifact,
   materializePreparedComponentArtifact,
   SimulatedWorkerPool,
   validateSchedulerCapacity,
@@ -50,6 +51,7 @@ export type {
   IndependentComponentPlanOptions,
   IndependentComponentConsumer,
   IndependentComponentTask,
+  PreparedComponentBrepCache,
 } from './pipeline/parallel-compilation/index.js';
 export { collectEnvManifest, coerceEnvOverrides } from './core/env.js';
 export {
@@ -65,6 +67,7 @@ export type {
   EnvValue,
   EnvValueType,
   RawEnvOverrides,
+  CacheBreakpoint,
 } from './types/types.js';
 export { buildWorkspaceIndex } from './workspace/buildWorkspaceIndex.js';
 export { entrypointsAffectedByPath } from './workspace/entrypointsAffectedByPath.js';

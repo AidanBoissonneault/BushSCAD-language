@@ -18,6 +18,8 @@ import { PersistentOcctWorkerPool } from './parallel/persistent-worker-pool.js';
 import { previewClassicInPool } from './parallel/classic-pool-preview.js';
 import { exportInPool } from './parallel/pool-export.js';
 import { previewWithDependencyAwareCompiler } from './parallel/dependency-aware-preview.js';
+import { DiskComponentBrepCache } from './parallel/disk-component-brep-cache.js';
+import { DiskCompletedBuildCache } from './parallel/disk-completed-build-cache.js';
 import { createVersionedTraceStream } from './tracing/versioned-trace-stream.js';
 
 /**
@@ -60,60 +62,71 @@ export async function handleServiceLine(
   line: string,
   pool: PersistentOcctWorkerPool,
 ): Promise<void> {
-      let request: ServiceRequest;
+  let request: ServiceRequest;
 
-      try {
-        request = parseServiceRequest(JSON.parse(line));
-      } catch (error) {
-        const detail = error instanceof Error ? error.message : String(error);
-        process.stderr.write(`Invalid request: ${detail}\n`);
-        return;
-      }
+  try {
+    request = parseServiceRequest(JSON.parse(line));
+  } catch (error) {
+    const detail = error instanceof Error ? error.message : String(error);
+    process.stderr.write(`Invalid request: ${detail}\n`);
+    return;
+  }
 
-      try {
-        const trace = createVersionedTraceStream(request);
-        const traceEvents: ServiceTraceMessage['event'][] = [];
-        const response = await handleServiceRequest(request, {
-          onOcctTraceEvent: (event) => {
-            const versionedEvent = trace.next(event);
-            traceEvents.push(versionedEvent);
-            const message: ServiceTraceMessage = {
-              id: request.id,
-              kind: 'occt-trace',
-              event: versionedEvent,
-            };
-            process.stdout.write(`${JSON.stringify(message)}\n`);
-          },
-          preview: async (options) => {
-            if (request.engine === 'classic') {
-              return previewClassicInPool(options, pool);
-            }
-            return previewWithDependencyAwareCompiler(options, pool);
-          },
-          export: (options) =>
-            exportInPool(options, pool, request.engine ?? 'parallel'),
-        });
-        const tracedResponse = request.occtTrace
-          ? { ...response, occtTraceEvents: traceEvents }
-          : response;
-        process.stdout.write(`${stringifyCliResult(tracedResponse)}\n`);
-      } catch (error) {
-        const response: ServiceResponse = {
+  try {
+    const trace = createVersionedTraceStream(request);
+    const traceEvents: ServiceTraceMessage['event'][] = [];
+    const response = await handleServiceRequest(request, {
+      onOcctTraceEvent: (event) => {
+        const versionedEvent = trace.next(event);
+        traceEvents.push(versionedEvent);
+        const message: ServiceTraceMessage = {
           id: request.id,
-          kind: request.kind,
-          ok: false,
-          errors: [
-            {
-              message: String(error),
-              span: { file: request.filePath, line: 1, col: 1 },
-            },
-          ],
-          env: [],
-          elapsedMs: 0,
+          kind: 'occt-trace',
+          event: versionedEvent,
         };
+        process.stdout.write(`${JSON.stringify(message)}\n`);
+      },
+      preview: async (options) => {
+        if (request.engine === 'classic') {
+          return previewClassicInPool(options, pool);
+        }
+        const componentCache = request.componentCacheDirectory
+          ? new DiskComponentBrepCache(request.componentCacheDirectory)
+          : undefined;
+        const buildOutputCache = request.componentCacheDirectory
+          ? new DiskCompletedBuildCache(request.componentCacheDirectory)
+          : undefined;
+        return previewWithDependencyAwareCompiler(
+          options,
+          pool,
+          componentCache,
+          buildOutputCache,
+        );
+      },
+      export: (options) =>
+        exportInPool(options, pool, request.engine ?? 'parallel'),
+    });
+    const tracedResponse = request.occtTrace
+      ? { ...response, occtTraceEvents: traceEvents }
+      : response;
+    process.stdout.write(`${stringifyCliResult(tracedResponse)}\n`);
+  } catch (error) {
+    const response: ServiceResponse = {
+      id: request.id,
+      kind: request.kind,
+      ok: false,
+      errors: [
+        {
+          message: String(error),
+          span: { file: request.filePath, line: 1, col: 1 },
+        },
+      ],
+      env: [],
+      elapsedMs: 0,
+    };
 
-        process.stdout.write(`${stringifyCliResult(response)}\n`);
-      }
+    process.stdout.write(`${stringifyCliResult(response)}\n`);
+  }
 }
 
 /**

@@ -66,6 +66,7 @@ export function compileDocument(
     filePath: entrypoint,
     rootPath,
     env: input.env,
+    cacheBreakpoints: input.cacheBreakpoints,
     loadFile: (path) => readFromFileMap(input.fileMap, path),
     loadAsset: (path) => readAssetFromMap(input.assetMap, path),
     workspaceIndex: workspace,

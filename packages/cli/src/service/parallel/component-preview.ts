@@ -5,9 +5,9 @@
  * @last-edited October 6, 2026
  */
 
-import {
-  materializePreparedComponentArtifact,
-  type IndependentComponentPlan,
+import type {
+  IndependentComponentPlan,
+  PreparedComponentBrepCache,
 } from '@bushscad/compiler';
 import type {
   CompileFileOptions,
@@ -15,13 +15,19 @@ import type {
 } from '@bushscad/compiler/node';
 import type { CompilerMetrics } from '../../dto/types.js';
 import type { PersistentOcctWorkerPool } from './persistent-worker-pool.js';
+import {
+  buildTasksWithOutputCache,
+  type CompletedBuildOutputCache,
+} from './build-output-cache.js';
 import type { CompiledPreviewInput } from './preview-types.js';
+import { prepareIndependentComponents } from './component-preparation.js';
 import { compilerExecutionMetrics } from './compiler-execution-metrics.js';
 import {
   mergePoolExecutionMetrics,
   type PoolExecutionMetrics,
 } from './pool-execution-metrics.js';
 import { compileErrorFromWorker } from './worker-errors.js';
+import { completedPartCacheBreakpoint } from './completed-part-cache-breakpoint.js';
 
 /** Prepares independent components, then replays ordered reduction in one worker. */
 export async function previewIndependentComponents(
@@ -31,33 +37,22 @@ export async function previewIndependentComponents(
   pool: PersistentOcctWorkerPool,
   compileIrMs: number,
   startedAt: number,
+  componentCache?: PreparedComponentBrepCache,
+  buildOutputCache?: CompletedBuildOutputCache,
 ): Promise<{ result: PreviewResult; metrics: CompilerMetrics }> {
   const preparationStartedAt = Date.now();
+  let persistentCacheHitCount = 0;
   try {
-    const prepared = await pool.prepareComponents(
-      plan.tasks.map((task) => ({
-        partName: task.partName,
-        sourceIndex: task.sourceIndex,
-        name: task.name,
-        recipeDigest: task.recipeDigest,
-        program: task.program,
-        assets: compiled.assets,
-        semanticConsumerIds: [...task.semanticConsumerIds],
-        trace: options.occtTrace === true,
-      })),
-      options.onOcctTraceEvent,
+    const preparation = await prepareIndependentComponents(
+      compiled,
+      plan,
+      options,
+      pool,
+      componentCache,
     );
-    const preparationExecution = pool.executionMetrics();
-    const componentPreparationMs = Date.now() - preparationStartedAt;
-    const preparedArtifacts = prepared.flatMap((output, index) => {
-      const task = plan.tasks[index];
-      if (!task || output.recipeDigest !== task.recipeDigest) {
-        throw new Error('Parallel component recipe output order changed.');
-      }
-      return materializePreparedComponentArtifact(task, output.artifact);
-    });
+    persistentCacheHitCount = preparation.cacheHitCount;
     const reductionStartedAt = Date.now();
-    const [output] = await pool.build(
+    const buildBatch = await buildTasksWithOutputCache(
       [
         {
           partName: plan.partName,
@@ -66,14 +61,18 @@ export async function previewIndependentComponents(
           program: plan.reductionProgram,
           assets: compiled.assets,
           trace: options.occtTrace === true,
-          preparedComponents: preparedArtifacts,
+          preparedComponents: preparation.artifacts,
         },
       ],
+      pool,
+      buildOutputCache,
       options.onOcctTraceEvent,
     );
+    const [output] = buildBatch.outputs;
+    if (!output) throw new Error('Parallel reduction returned no output.');
     const execution = mergePoolExecutionMetrics([
-      preparationExecution,
-      pool.executionMetrics(),
+      preparation.execution,
+      buildBatch.execution,
     ]);
     const componentReductionMs = Date.now() - reductionStartedAt;
     const interaction = output.interaction ?? compiled.program.interaction;
@@ -81,9 +80,25 @@ export async function previewIndependentComponents(
       throw new Error(
         'Parallel component preview has no interaction provenance.',
       );
+    const completedPartPoint =
+      options.occtTrace &&
+      buildOutputCache &&
+      options.automaticallyAssignCacheBreakpoints !== false
+        ? completedPartCacheBreakpoint(
+            plan.reductionProgram.ops,
+            plan.partName,
+            0,
+            output.traceEvents.reduce(
+              (earliest, event) => Math.min(earliest, event.timestampMs),
+              Date.now(),
+            ),
+          )
+        : undefined;
+    if (completedPartPoint) options.onOcctTraceEvent?.(completedPartPoint);
     const traceEvents = [
-      ...prepared.flatMap((component) => component.traceEvents),
+      ...preparation.traceEvents,
       ...output.traceEvents,
+      ...(completedPartPoint ? [completedPartPoint] : []),
     ].sort((left, right) => left.timestampMs - right.timestampMs);
     return {
       result: {
@@ -102,12 +117,14 @@ export async function previewIndependentComponents(
       metrics: componentMetrics(
         pool,
         compileIrMs,
-        componentPreparationMs,
+        preparation.elapsedMs,
         componentReductionMs,
         plan.componentCount,
         plan.tasks.length,
         plan.avoidedBuildCount,
         execution,
+        componentCache ? persistentCacheHitCount : undefined,
+        buildBatch.cacheHitCount,
       ),
     };
   } catch (error) {
@@ -133,6 +150,8 @@ export async function previewIndependentComponents(
         plan.tasks.length,
         plan.avoidedBuildCount,
         pool.executionMetrics(),
+        componentCache ? persistentCacheHitCount : undefined,
+        0,
       ),
     };
   }
@@ -150,6 +169,8 @@ function componentMetrics(
   componentRecipeCount: number,
   componentCacheHitCount: number,
   execution: PoolExecutionMetrics,
+  persistentComponentCacheHitCount?: number,
+  persistentCompletedBuildCacheHitCount = 0,
 ): CompilerMetrics {
   const status = pool.snapshot();
   return {
@@ -166,6 +187,12 @@ function componentMetrics(
     preparedComponentCount,
     componentRecipeCount,
     componentCacheHitCount,
+    ...(persistentComponentCacheHitCount !== undefined
+      ? { persistentComponentCacheHitCount }
+      : {}),
+    ...(persistentCompletedBuildCacheHitCount > 0
+      ? { persistentCompletedBuildCacheHitCount }
+      : {}),
     ...compilerExecutionMetrics(pool, execution),
   };
 }

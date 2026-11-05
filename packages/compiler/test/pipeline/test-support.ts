@@ -28,6 +28,7 @@ export function compile(
   source: string,
   env: Record<string, string> = {},
   fileMap?: Record<string, string>,
+  cacheBreakpoints?: readonly import('../../src/index.js').CacheBreakpoint[],
 ) {
   const filePath = workspacePath('main.bscd');
   return compileDocument({
@@ -35,6 +36,7 @@ export function compile(
     filePath,
     fileMap: fileMap ?? { [filePath]: source },
     env,
+    cacheBreakpoints,
   });
 }
 

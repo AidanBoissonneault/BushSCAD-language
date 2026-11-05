@@ -140,6 +140,12 @@ export function compileSource(
     } = evaluate(resolved, {
       env: coercedEnv.env,
       materials: materialContext.context,
+      cacheContextSpans: (input.cacheBreakpoints ?? [])
+        .filter((breakpoint) => Boolean(breakpoint.condition?.trim()))
+        .map((breakpoint) => ({
+          file: normalizePath(breakpoint.filePath),
+          line: breakpoint.line,
+        })),
     });
     if (evalErrors.length > 0) {
       return {
