@@ -82,6 +82,28 @@ describe('BushScadLanguageServer', () => {
     expect(symbols.map((symbol) => symbol.name)).toContain('mount_hole');
   });
 
+  it('exposes refs to document symbols, hover, and place completion', async () => {
+    const server = new BushScadLanguageServer();
+    const source = 'ref pin { obj shaft = cylinder(12, d: 4); }\nplace(';
+    server.updateWorkspace({ fileMap: { '/project/main.bscd': source } });
+    server.updateDocument(mainUri, source);
+
+    const symbols = await server.getDocumentSymbols(mainUri);
+    const completions = await server.getCompletions(mainUri, {
+      line: 2,
+      col: 7,
+    });
+    const hover = await server.getHover(mainUri, { line: 1, col: 6 });
+
+    expect(symbols).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ name: 'pin', kind: 'ref' }),
+      ]),
+    );
+    expect(completions.map((item) => item.label)).toContain('pin');
+    expect(hover?.contents.join('\n')).toContain('ref pin');
+  });
+
   it('returns hover and definition for project symbols', async () => {
     const server = await makeServer();
 

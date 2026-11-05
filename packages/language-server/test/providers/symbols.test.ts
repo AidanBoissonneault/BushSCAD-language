@@ -35,4 +35,20 @@ export fn mount_hole(d = 3) {
       kind: 'fn',
     });
   });
+
+  it('collects local and explicitly exported reusable refs', () => {
+    const symbols = collectSymbolsForSource(
+      `ref pin { obj shaft = cylinder(12, d: 4); }\nexport ref adapter extends imported { @mount = @largest_planar; }`,
+      '/project/main.bscd',
+    );
+
+    expect(
+      symbols
+        .filter(({ kind }) => kind === 'ref')
+        .map(({ name, detail }) => [name, detail]),
+    ).toEqual([
+      ['pin', 'ref pin'],
+      ['adapter', 'ref adapter'],
+    ]);
+  });
 });

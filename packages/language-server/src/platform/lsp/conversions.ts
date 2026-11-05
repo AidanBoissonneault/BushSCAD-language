@@ -178,6 +178,7 @@ function symbolKind(kind: LanguageSymbol['kind']): SymbolKind {
     sketch: SymbolKind.Struct,
     obj: SymbolKind.Object,
     part: SymbolKind.Class,
+    ref: SymbolKind.Class,
     fn: SymbolKind.Function,
     plane: SymbolKind.Field,
     anchor: SymbolKind.Field,

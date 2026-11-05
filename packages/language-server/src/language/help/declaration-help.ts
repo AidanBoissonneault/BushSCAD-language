@@ -152,7 +152,7 @@ export const declarationHelp: Record<string, LanguageHelpEntry> = {
       'ref name extends source { statements };',
     ],
     behavior: [
-      'Useful for tools, reusable library shapes, and imported geometry adapters. A generated ref uses its planted side or bottom.center as its default placement anchor.',
+      'A ref is private to its defining file unless explicitly exported. Its declaration emits no geometry; it can be used by later statements and becomes visible only when consumed or placed. A generated ref uses its planted side or bottom.center as its default placement anchor.',
     ],
     examples: ['ref pin {\n  obj shaft = cylinder(12, d: 4);\n}\nplace(pin);'],
     related: ['place', 'extends', 'plant'],

@@ -87,6 +87,7 @@ export type LanguageSymbol = {
     | 'sketch'
     | 'obj'
     | 'part'
+    | 'ref'
     | 'fn'
     | 'plane'
     | 'anchor';

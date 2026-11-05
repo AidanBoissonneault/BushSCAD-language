@@ -60,7 +60,11 @@ export function completionContextAt(
   if (/\b(?:extrude|cut|revolve|loft)\(\s*[A-Za-z_]*$/.test(text))
     return 'sketchName';
   if (/\bfrom\s+(?:[A-Za-z_][\w.]*)?$/.test(text)) return 'fromTarget';
-  if (/\bplace\s+[A-Za-z_]\w*$/.test(text) || /\bplace\s*$/.test(text))
+  if (
+    /\bplace\s+[A-Za-z_]\w*$/.test(text) ||
+    /\bplace\s*$/.test(text) ||
+    /\bplace\s*\(\s*[A-Za-z_]*$/.test(text)
+  )
     return 'placeTarget';
   if (/\bin\s+[A-Za-z_]*$/.test(text)) return 'loopIterator';
   return /^\s*[A-Za-z_]*$/.test(linePrefix) ? 'statement' : 'default';
@@ -148,7 +152,7 @@ export function contextualCompletionSpecs(
       ]);
     case 'placeTarget':
       return symbolSpecs(
-        symbols.filter((symbol) => ['fn', 'part'].includes(symbol.kind)),
+        symbols.filter((symbol) => ['fn', 'part', 'ref'].includes(symbol.kind)),
       );
     case 'loopIterator':
       return BUSHSCAD_HELPER_SNIPPETS.filter((spec) =>

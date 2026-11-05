@@ -1,7 +1,15 @@
 import { describe, expect, it } from 'vitest';
-import { contextualCompletionSpecs } from '../../src/providers/completion-specs.js';
+import {
+  completionContextAt,
+  contextualCompletionSpecs,
+} from '../../src/providers/completion-specs.js';
 
 describe('contextual completion specs', () => {
+  it('recognizes ref targets inside place calls', () => {
+    expect(completionContextAt('place(', 'place(')).toBe('placeTarget');
+    expect(completionContextAt('place(pi', 'place(pi')).toBe('placeTarget');
+  });
+
   it('offers the loop iterator snippets for loop contexts', () => {
     const labels = contextualCompletionSpecs('', '', 'loopIterator', []).map(
       (spec) => spec.label,
@@ -32,6 +40,16 @@ describe('contextual completion specs', () => {
           end: { line: 0, col: 12 },
         },
       },
+      {
+        name: 'pin',
+        kind: 'ref' as const,
+        detail: 'ref pin',
+        uri: 'file:///main.bscd',
+        range: {
+          start: { line: 0, col: 0 },
+          end: { line: 0, col: 3 },
+        },
+      },
     ];
 
     expect(
@@ -44,5 +62,10 @@ describe('contextual completion specs', () => {
         (spec) => spec.label,
       ),
     ).not.toContain('profile');
+    expect(
+      contextualCompletionSpecs('', 'place(', 'placeTarget', symbols).map(
+        (spec) => spec.label,
+      ),
+    ).toEqual(['gear', 'pin']);
   });
 });

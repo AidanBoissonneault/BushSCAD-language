@@ -65,6 +65,14 @@ const PATTERNS: SymbolPattern[] = [
     detail: (match) => `part ${match[1]}`,
   },
   {
+    kind: 'ref',
+    regex: new RegExp(
+      `\\bref\\s+(${IDENT})(?:\\s+extends\\s+${IDENT})?\\s*(?=\\{|=)`,
+      'g',
+    ),
+    detail: (match) => `ref ${match[1]}`,
+  },
+  {
     kind: 'fn',
     regex: new RegExp(`\\b(?:export\\s+)?fn\\s+(${IDENT})\\s*\\(([^)]*)`, 'g'),
     detail: (match) => `fn ${match[1]}(${cleanValue(match[2]) ?? ''})`,
