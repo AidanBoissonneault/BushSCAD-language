@@ -340,10 +340,30 @@ export class FaceLabelMap {
     return this.applyAxisPlacementTransforms(oc, base, placement);
   }
 
-  /**
-   * Resolves axis base against the current shape and its topology labels.
-   */
+  /** Selects an axis base for the work origin or a registered shape. */
   private resolveAxisBase(
+    oc: OC,
+    placement: IRPlacement,
+    parsed: ParsedFaceRef,
+    entry: ShapeEntry | undefined,
+  ): AxisBaseResolution {
+    if (parsed.objName === 'origin') {
+      const workplane = placement.workplane ?? 'XY';
+      const faceDir = parsed.face ?? 'top';
+      return {
+        ax2: makeWorkOriginAxis(oc, workplane, faceDir),
+        entry: null,
+        frame: workplaneFrame(workplane),
+        faceDir,
+        parsed,
+        applyTransforms: true,
+      };
+    }
+    return this.resolveShapeAxisBase(oc, placement, parsed, entry);
+  }
+
+  /** Resolves an axis backed by a registered shape entry. */
+  private resolveShapeAxisBase(
     oc: OC,
     placement: IRPlacement,
     parsed: ParsedFaceRef,
@@ -359,18 +379,6 @@ export class FaceLabelMap {
       parsed,
       applyTransforms: false,
     });
-    if (parsed.objName === 'origin') {
-      const workplane = placement.workplane ?? 'XY';
-      const faceDir = parsed.face ?? 'top';
-      return {
-        ax2: makeWorkOriginAxis(oc, workplane, faceDir),
-        entry: null,
-        frame: workplaneFrame(workplane),
-        faceDir,
-        parsed,
-        applyTransforms: true,
-      };
-    }
     if (!entry) return defaultAxis();
     if (parsed.curved) {
       return {
