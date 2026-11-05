@@ -125,6 +125,21 @@ part p {
     expect(target.y).toBeUndefined();
   });
 
+  it('accepts unlabeled polar offsets on center anchors', () => {
+    const part = parseOk(`
+part p {
+  sketch base = rect(1, 1);
+  obj base = extrude(base, 1);
+  place(child, @base.top.center(20, 45deg));
+}`);
+
+    const target = placeTarget(part);
+    expect(target.radius?.kind).toBe('number');
+    expect(target.angle?.kind).toBe('unit');
+    expect(target.x).toBeUndefined();
+    expect(target.y).toBeUndefined();
+  });
+
   it('accepts positional polar and surface offsets without labels', () => {
     const part = parseOk(`
 part p {

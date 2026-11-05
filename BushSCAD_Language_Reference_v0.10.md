@@ -2662,6 +2662,7 @@ mirror(block, plane(center));
 @target.ref(x, y)
 @target(x: dx, y: dy)
 @target.center(radius: r, angle: a)
+@target.center(r, a_deg)
 @target.edge(offset: d)
 ```
 
@@ -2669,6 +2670,9 @@ mirror(block, plane(center));
 
 - `x, y`: Signed local length offsets. A rectangular top/bottom face starts at back_left; x points right and y points front.
 - `radius, angle`: Polar offset from the chosen origin; angle is in degrees.
+  Their labels are optional when supplied as a length and degree-marked angle,
+  such as `@target.center(10, 45deg)`. The `deg` unit distinguishes this pair
+  from the two-value Cartesian form.
 
 **Syntax guide.** [Positional placement](/docs/references-and-placement#positional-placement).
 
@@ -2677,6 +2681,7 @@ mirror(block, plane(center));
 ```bushscad
 obj base = cube([40, 30, 6]);
 obj hole = cut(circle(4), through, @base.top.center(radius: 10, angle: 45deg));
+obj second_hole = cut(circle(4), through, @base.top.center(10, 45deg));
 ```
 
 **Related:** [`plane`](#plane).
