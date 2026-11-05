@@ -111,6 +111,25 @@ part frame {
     expect(result.errors).toHaveLength(0);
   });
 
+  it('keeps local refs private to their declaring file', () => {
+    const fileMap: Record<string, string> = {
+      'hw.bscd': 'ref bracket { obj body = cube([10, 10, 5]); }',
+    };
+    const loader: FileLoader = (p) => fileMap[p] ?? null;
+    const parsed = parse(
+      "import { bracket } from './hw.bscd';",
+      'main.bscd',
+    );
+
+    const result = resolve(parsed.ast, 'main.bscd', loader);
+
+    expect(
+      result.errors.some((error) =>
+        error.message.includes("'bracket' not found in './hw.bscd'"),
+      ),
+    ).toBe(true);
+  });
+
   it('named import cannot access non-exported symbols', () => {
     const fileMap: Record<string, string> = {
       'hw.bscd':

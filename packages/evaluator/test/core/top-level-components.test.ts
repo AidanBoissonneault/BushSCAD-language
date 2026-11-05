@@ -73,6 +73,19 @@ export part cover {
     ]);
   });
 
+  it('keeps reusable ref bodies hidden until used without adding a part boundary', () => {
+    const ref = `ref pin {
+  obj shaft = cylinder(12, d: 4);
+}`;
+    const unused = evalOk(ref);
+    const used = evalOk(`${ref}\npart assembly { place(pin); }`);
+
+    expect(unused.program.parts).toEqual([]);
+    expect(unused.program.ops).toEqual([]);
+    expect(used.program.parts).toEqual(['assembly']);
+    expect(opsOfKind(used.program.ops, 'solidPrimitive')).toHaveLength(1);
+  });
+
   it('emits top-level fillets after their target geometry', () => {
     const { program } = evalOk(`
 sketch base = rect(10, 10);
