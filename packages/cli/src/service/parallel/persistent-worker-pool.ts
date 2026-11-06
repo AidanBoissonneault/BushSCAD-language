@@ -36,6 +36,7 @@ export class PersistentOcctWorkerPool {
   private execution: PoolExecutionMetrics = new PoolExecutionRecorder().finish(
     0,
   );
+  private idleTimer: ReturnType<typeof setTimeout> | undefined;
 
   /**
    * Initializes the `PersistentOcctWorkerPool` instance with the values supplied by its caller.
@@ -44,11 +45,13 @@ export class PersistentOcctWorkerPool {
     private readonly desiredWorkers: number,
     private readonly onStatus?: (status: ParallelPoolStatus) => void,
     private readonly workerEntryPath = process.argv[1],
+    private readonly idleTimeoutMs = 300_000,
   ) {}
 
   /** Starts every configured worker without waiting for the first compile. */
   warm(): void {
     if (this.disposed || this.slots.length > 0) return;
+    this.clearIdleTimer();
     for (let index = 0; index < this.desiredWorkers; index++) this.spawnSlot();
     this.publishStatus();
   }
@@ -82,6 +85,7 @@ export class PersistentOcctWorkerPool {
   ): Promise<ParallelExportOutput> {
     const [slot] = await this.waitForReadyWorkers();
     if (!slot) throw new Error('No parallel OCCT worker is ready.');
+    this.clearIdleTimer();
     const taskId = this.nextTaskId++;
     slot.state = 'busy';
     this.publishStatus();
@@ -127,6 +131,7 @@ export class PersistentOcctWorkerPool {
    */
   dispose(): void {
     this.disposed = true;
+    this.clearIdleTimer();
     for (const slot of this.slots) {
       if (slot.process.connected) {
         try {
@@ -204,6 +209,7 @@ export class PersistentOcctWorkerPool {
         );
     }
     this.publishStatus();
+    if (message.kind === 'ready') this.scheduleIdleShutdown();
   }
 
   /**
@@ -214,7 +220,7 @@ export class PersistentOcctWorkerPool {
     slot.pending = undefined;
     slot.state = 'failed';
     this.publishStatus();
-    if (!this.disposed) this.spawnSlot();
+    if (!this.disposed && !slot.intentionalStop) this.spawnSlot();
   }
 
   /**
@@ -224,6 +230,7 @@ export class PersistentOcctWorkerPool {
     settle();
     slot.pending = undefined;
     slot.state = 'ready';
+    this.scheduleIdleShutdown();
   }
 
   /**
@@ -280,6 +287,7 @@ export class PersistentOcctWorkerPool {
     onTrace: ((event: OcctTraceEvent) => void) | undefined,
     send: (taskId: number) => void,
   ): Promise<TOutput> {
+    this.clearIdleTimer();
     const taskId = this.nextTaskId++;
     slot.state = 'busy';
     this.publishStatus();
@@ -355,5 +363,55 @@ export class PersistentOcctWorkerPool {
    */
   private publishStatus(): void {
     this.onStatus?.(this.snapshot());
+  }
+
+  /** Starts the idle countdown only while every warm worker is ready. */
+  private scheduleIdleShutdown(): void {
+    this.clearIdleTimer();
+    if (
+      this.disposed ||
+      this.idleTimeoutMs <= 0 ||
+      this.slots.length === 0 ||
+      this.slots.some((slot) => slot.state !== 'ready')
+    ) {
+      return;
+    }
+    this.idleTimer = setTimeout(
+      () => this.stopIdleWorkers(),
+      this.idleTimeoutMs,
+    );
+  }
+
+  /** Releases every worker after the configured idle window; later work warms a new pool. */
+  private stopIdleWorkers(): void {
+    this.idleTimer = undefined;
+    if (
+      this.disposed ||
+      this.slots.length === 0 ||
+      this.slots.some((slot) => slot.state !== 'ready')
+    ) {
+      return;
+    }
+    const idleSlots = this.slots.splice(0);
+    for (const slot of idleSlots) {
+      slot.intentionalStop = true;
+      if (slot.process.connected) {
+        try {
+          slot.process.send?.({ kind: 'shutdown' }, () => undefined);
+        } catch {
+          // A worker may already be exiting after its idle timer fired.
+        }
+      }
+      if (!slot.process.killed) slot.process.kill();
+      slot.pending?.reject(new Error('Parallel OCCT worker idled out.'));
+    }
+    this.publishStatus();
+  }
+
+  /** Cancels a pending countdown when new work or disposal takes ownership. */
+  private clearIdleTimer(): void {
+    if (this.idleTimer === undefined) return;
+    clearTimeout(this.idleTimer);
+    this.idleTimer = undefined;
   }
 }

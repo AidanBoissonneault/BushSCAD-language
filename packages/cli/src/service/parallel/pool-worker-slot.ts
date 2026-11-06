@@ -19,9 +19,7 @@ import type {
  * ParallelExportOutput.
  */
 export type PoolTaskOutput =
-  | ParallelBuildOutput
-  | ParallelComponentOutput
-  | ParallelExportOutput;
+  ParallelBuildOutput | ParallelComponentOutput | ParallelExportOutput;
 
 /**
  * Pending pool task, including task id, source index, promise resolution callback, promise
@@ -45,6 +43,7 @@ export type WorkerSlot = {
   state: 'warming' | 'ready' | 'busy' | 'failed';
   startupMs: number;
   rssBytes: number;
+  intentionalStop?: boolean;
   pending?: PendingPoolTask;
 };
 
@@ -60,6 +59,7 @@ export function poolState(
   if (disposed) return 'stopped';
   if (busy > 0) return 'busy';
   if (warming > 0) return 'warming';
+  if (ready === 0 && failed === 0) return 'stopped';
   if (ready === desired) return 'ready';
   if (ready > 0 || failed > 0) return 'degraded';
   return 'failed';

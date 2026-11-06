@@ -137,9 +137,20 @@ function createParallelPool(): PersistentOcctWorkerPool {
   const workerCount = Number.isInteger(rawCount)
     ? Math.max(1, Math.min(4, rawCount))
     : 1;
-  return new PersistentOcctWorkerPool(workerCount, (status) => {
-    process.stdout.write(
-      `${JSON.stringify({ kind: 'pool-status', status })}\n`,
-    );
-  });
+  const rawIdleTimeout = Number(
+    process.env['BUSHSCAD_OCCT_WORKER_IDLE_TIMEOUT_MS'] ?? 300_000,
+  );
+  const idleTimeoutMs = Number.isFinite(rawIdleTimeout)
+    ? Math.max(0, Math.min(3_600_000, Math.trunc(rawIdleTimeout)))
+    : 300_000;
+  return new PersistentOcctWorkerPool(
+    workerCount,
+    (status) => {
+      process.stdout.write(
+        `${JSON.stringify({ kind: 'pool-status', status })}\n`,
+      );
+    },
+    undefined,
+    idleTimeoutMs,
+  );
 }
