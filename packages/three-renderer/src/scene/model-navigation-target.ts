@@ -57,6 +57,51 @@ export function resolveModelNavigationTarget(
   const entities = new Map(
     snapshot.entities.map((entity) => [entity.id, entity]),
   );
+  const semanticTarget = resolveSemanticTopologyTarget(snapshot, hit, entities);
+  if (semanticTarget) return semanticTarget;
+  return (
+    resolveOwningEntityTarget(snapshot, hit, editor, entities) ??
+    generatedTarget(hit)
+  );
+}
+
+/** Resolves an authored face, edge, or corner selector before its owning object. */
+function resolveSemanticTopologyTarget(
+  snapshot: InteractionSnapshot,
+  hit: ModelHit,
+  entities: ReadonlyMap<string, InteractionEntity>,
+): ModelNavigationTarget | null {
+  const semanticKind = hit.topologyKind;
+  if (
+    semanticKind !== 'face' &&
+    semanticKind !== 'edge' &&
+    semanticKind !== 'corner'
+  )
+    return null;
+  const semanticTopology = hit.semanticTargetIds
+    .map((id) => entities.get(id))
+    .find((entity) => entity?.kind === semanticKind);
+  if (!semanticTopology) return null;
+  const owner =
+    (semanticTopology.ownerId
+      ? entities.get(semanticTopology.ownerId)
+      : undefined) ??
+    (hit.objectEntityId ? entities.get(hit.objectEntityId) : undefined);
+  return entityTarget(
+    snapshot,
+    hit.topologyId,
+    semanticTopology,
+    selectorDisplayName(semanticTopology, owner),
+  );
+}
+
+/** Resolves the source entity that owns an unselected topology hit. */
+function resolveOwningEntityTarget(
+  snapshot: InteractionSnapshot,
+  hit: ModelHit,
+  editor: EditorSourceContext,
+  entities: ReadonlyMap<string, InteractionEntity>,
+): ModelNavigationTarget | null {
   const part = entities.get(hit.partEntityId);
   const insidePart = Boolean(
     part && sourcePositionInSpan(editor, part.declarationSpan),
@@ -66,9 +111,29 @@ export function resolveModelNavigationTarget(
     entities,
   );
   const chosen = insidePart ? (object ?? part) : (part ?? object);
-  return chosen
-    ? entityTarget(snapshot, hit.topologyId, chosen)
-    : generatedTarget(hit);
+  if (!chosen) return null;
+  return targetForUnselectedTopology(snapshot, hit, chosen, object);
+}
+
+/** Names an unselected face direction or retains an edge/corner's owning object. */
+function targetForUnselectedTopology(
+  snapshot: InteractionSnapshot,
+  hit: ModelHit,
+  chosen: InteractionEntity,
+  object: InteractionEntity | undefined,
+): ModelNavigationTarget {
+  const semanticKind = hit.topologyKind;
+  const direction =
+    semanticKind === 'face' ? faceDirection(hit.normal) : undefined;
+  const target = entityTarget(
+    snapshot,
+    hit.topologyId,
+    direction ? (object ?? chosen) : chosen,
+  );
+  if (semanticKind === 'edge' || semanticKind === 'corner') {
+    return { ...target, kind: semanticKind };
+  }
+  return direction ? { ...target, name: direction, kind: 'face' } : target;
 }
 
 /** Formats the concise entity label shown by viewport hover UI. */
@@ -138,6 +203,7 @@ function entityTarget(
   snapshot: InteractionSnapshot,
   topologyId: string,
   entity: InteractionEntity,
+  displayName = entity.name,
 ): ModelNavigationTarget {
   const sourceSpan = navigableSpan(entity.declarationSpan);
   const generatedIndex =
@@ -147,12 +213,36 @@ function entityTarget(
   return {
     entityId: entity.id,
     topologyId,
-    name: entity.name,
+    name: displayName,
     kind: entity.kind,
     sourceSpan,
     navigable: sourceSpan !== null,
     ...(generatedIndex !== undefined ? { generatedIndex } : {}),
   };
+}
+
+/** Removes the owning object prefix so selector hover reads as `top`, not `body.top`. */
+function selectorDisplayName(
+  entity: InteractionEntity,
+  owner: InteractionEntity | undefined,
+): string {
+  const prefix = owner ? `${owner.name}.` : '';
+  return prefix && entity.name.startsWith(prefix)
+    ? entity.name.slice(prefix.length)
+    : entity.name;
+}
+
+/** Names an unselected geometric face from its closest world-space axis direction. */
+function faceDirection(
+  normal: readonly [number, number, number] | undefined,
+): string | undefined {
+  if (!normal) return undefined;
+  const [x, y, z] = normal;
+  const axis = Math.max(Math.abs(x), Math.abs(y), Math.abs(z));
+  if (axis < Math.SQRT1_2) return 'angled surface';
+  if (axis === Math.abs(z)) return z > 0 ? 'top' : 'bottom';
+  if (axis === Math.abs(y)) return y > 0 ? 'back' : 'front';
+  return x > 0 ? 'right' : 'left';
 }
 
 /**
