@@ -23,6 +23,8 @@ export type ModelPointerCallbacks = {
     position: ModelPointerPosition | null,
   ) => void;
   readonly onActivate?: (hit: ModelHit) => void;
+  /** Called when an eligible click lands on empty viewport space. */
+  readonly onClear?: () => void;
 };
 
 /**
@@ -168,8 +170,10 @@ export class ModelPointerController {
     ) {
       return;
     }
-    const hit = this.hit(event.clientX, event.clientY);
-    if (hit) this.callbacks.onActivate?.(hit);
+    dispatchPointerActivation(
+      this.hit(event.clientX, event.clientY),
+      this.callbacks,
+    );
   };
 
   private readonly onPointerCancel = (): void => {
@@ -284,4 +288,13 @@ function isInteractionOverlay(target: EventTarget | null): boolean {
  */
 function preventContextMenu(event: Event): void {
   event.preventDefault();
+}
+
+/** Sends a valid viewport click to its hit or empty-space callback. */
+function dispatchPointerActivation(
+  hit: ModelHit | null,
+  callbacks: ModelPointerCallbacks,
+): void {
+  if (hit) callbacks.onActivate?.(hit);
+  else callbacks.onClear?.();
 }

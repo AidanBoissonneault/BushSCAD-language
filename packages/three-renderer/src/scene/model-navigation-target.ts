@@ -91,7 +91,10 @@ function resolveSemanticTopologyTarget(
     snapshot,
     hit.topologyId,
     semanticTopology,
-    selectorDisplayName(semanticTopology, owner),
+    topologyDisplayName(
+      selectorDisplayName(semanticTopology, owner),
+      owner,
+    ),
   );
 }
 
@@ -133,7 +136,13 @@ function targetForUnselectedTopology(
   if (semanticKind === 'edge' || semanticKind === 'corner') {
     return { ...target, kind: semanticKind };
   }
-  return direction ? { ...target, name: direction, kind: 'face' } : target;
+  return direction
+    ? {
+        ...target,
+        name: topologyDisplayName(direction, object ?? chosen),
+        kind: 'face',
+      }
+    : target;
 }
 
 /** Formats the concise entity label shown by viewport hover UI. */
@@ -230,6 +239,21 @@ function selectorDisplayName(
   return prefix && entity.name.startsWith(prefix)
     ? entity.name.slice(prefix.length)
     : entity.name;
+}
+
+/** Adds the owning object's authored name or source line to a topology label. */
+function topologyDisplayName(
+  topologyName: string,
+  owner: InteractionEntity | undefined,
+): string {
+  if (!owner) return topologyName;
+  return `${topologyName} on ${objectDisplayName(owner)}`;
+}
+
+/** Uses the object's source line when it has no authored name span. */
+function objectDisplayName(entity: InteractionEntity): string {
+  if (!entity.linkSpan) return `line ${entity.declarationSpan.line}`;
+  return entity.instancePath ?? entity.name;
 }
 
 /** Names an unselected geometric face from its closest world-space axis direction. */
