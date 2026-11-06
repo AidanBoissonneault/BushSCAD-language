@@ -5,9 +5,14 @@
  */
 
 import { createHash, randomUUID } from 'node:crypto';
-import { readFile, rename, rm, writeFile } from 'node:fs/promises';
+import { readFile, rename, rm, stat, writeFile } from 'node:fs/promises';
 import { join } from 'node:path';
 import type { PreparedComponentBrepCache } from '@bushscad/compiler';
+import {
+  type SessionCacheEntryIdentity,
+  type SessionCacheRetentionPriority,
+  SessionDiskCacheBudget,
+} from './session-disk-cache-budget.js';
 
 const CACHE_FORMAT_VERSION = 1;
 const LARGE_COMPONENT_DURATION_MS = 250;
@@ -26,12 +31,16 @@ type ComponentCacheMetadata = {
 
 /** Reads and writes recipe-keyed BRep payloads without retaining them in memory. */
 export class DiskComponentBrepCache implements PreparedComponentBrepCache {
-  constructor(private readonly directory: string) {}
+  constructor(
+    private readonly directory: string,
+    private readonly budget?: SessionDiskCacheBudget,
+  ) {}
 
   /** Loads and verifies one disk payload on demand. */
   async get(
     recipeDigest: string,
     recipeCanonical: string,
+    priority: 'automatic' | 'manual' = 'automatic',
   ): Promise<Uint8Array | undefined> {
     if (!validRecipeDigest(recipeDigest) || recipeCanonical.length === 0)
       return undefined;
@@ -55,6 +64,13 @@ export class DiskComponentBrepCache implements PreparedComponentBrepCache {
       ) {
         return undefined;
       }
+      if (this.budget) {
+        await this.budget
+          .touch(
+            componentCacheEntry(recipeDigest, recipeCanonicalSha256, priority),
+          )
+          .catch(() => undefined);
+      }
       return brep;
     } catch {
       return undefined;
@@ -67,6 +83,7 @@ export class DiskComponentBrepCache implements PreparedComponentBrepCache {
     recipeCanonical: string,
     brep: Uint8Array,
     operationDurationMs: number,
+    priority: 'automatic' | 'manual' = 'automatic',
   ): Promise<void> {
     if (
       !validRecipeDigest(recipeDigest) ||
@@ -81,6 +98,7 @@ export class DiskComponentBrepCache implements PreparedComponentBrepCache {
         recipeCanonical,
         brep,
         operationDurationMs,
+        priority,
       ),
     );
     pendingWrites = pending.catch(() => undefined);
@@ -93,9 +111,11 @@ export class DiskComponentBrepCache implements PreparedComponentBrepCache {
     recipeCanonical: string,
     brep: Uint8Array,
     operationDurationMs: number,
+    priority: 'automatic' | 'manual',
   ): Promise<void> {
     const now = Date.now();
     if (
+      priority !== 'manual' &&
       operationDurationMs < LARGE_COMPONENT_DURATION_MS &&
       now - lastSuccessfulWriteAt < CACHE_WRITE_INTERVAL_MS
     ) {
@@ -124,19 +144,52 @@ export class DiskComponentBrepCache implements PreparedComponentBrepCache {
     );
     const dataTemporaryPath = `${dataPath}.${suffix}.tmp`;
     const metadataTemporaryPath = `${metadataFilePath}.${suffix}.tmp`;
-    try {
-      await writeFile(dataTemporaryPath, brep);
-      await rename(dataTemporaryPath, dataPath);
-      await writeFile(metadataTemporaryPath, JSON.stringify(metadata));
-      await rename(metadataTemporaryPath, metadataFilePath);
-      lastSuccessfulWriteAt = now;
-    } finally {
-      await Promise.all([
-        rm(dataTemporaryPath, { force: true }),
-        rm(metadataTemporaryPath, { force: true }),
-      ]);
+    const metadataText = JSON.stringify(metadata);
+    const writeEntry = async (): Promise<number> => {
+      try {
+        await writeFile(dataTemporaryPath, brep);
+        await rename(dataTemporaryPath, dataPath);
+        await writeFile(metadataTemporaryPath, metadataText);
+        await rename(metadataTemporaryPath, metadataFilePath);
+        lastSuccessfulWriteAt = now;
+        const [dataStat, metadataStat] = await Promise.all([
+          stat(dataPath),
+          stat(metadataFilePath),
+        ]);
+        return dataStat.size + metadataStat.size;
+      } finally {
+        await Promise.all([
+          rm(dataTemporaryPath, { force: true }),
+          rm(metadataTemporaryPath, { force: true }),
+        ]);
+      }
+    };
+    if (this.budget) {
+      const estimatedBytes = brep.byteLength + Buffer.byteLength(metadataText);
+      await this.budget.store(
+        componentCacheEntry(recipeDigest, recipeCanonicalSha256, priority),
+        writeEntry,
+        estimatedBytes,
+      );
+      return;
     }
+    await writeEntry();
   }
+}
+
+/** Identifies one prepared recipe and its current manual or automatic retention tier. */
+function componentCacheEntry(
+  recipeDigest: string,
+  recipeCanonicalSha256: string,
+  priority: 'automatic' | 'manual',
+): SessionCacheEntryIdentity {
+  const prefix = `${recipeDigest}-${recipeCanonicalSha256}`;
+  return {
+    key: `component:${prefix}`,
+    dataFileName: `${prefix}.brep`,
+    metadataFileName: `${prefix}.json`,
+    priority: priority as SessionCacheRetentionPriority,
+  };
 }
 
 /** Restricts cache filenames to the compiler's deterministic hex digests. */

@@ -76,6 +76,27 @@ describe('canonical compiler request parser', () => {
     ).toThrow('only valid for preview');
   });
 
+  it('accepts a bounded maximum component cache size for parallel previews', () => {
+    expect(
+      parseCompilerRequest({
+        ...preview,
+        engine: 'parallel',
+        componentCacheDirectory: resolve(projectRoot, '.cache'),
+        componentCacheMaxSizeMb: 1024,
+      }),
+    ).toMatchObject({ componentCacheMaxSizeMb: 1024 });
+    expect(() =>
+      parseCompilerRequest({ ...preview, componentCacheMaxSizeMb: 127 }),
+    ).toThrow('128 to 4096 MB');
+    expect(() =>
+      parseCompilerRequest({
+        ...preview,
+        engine: 'classic',
+        componentCacheMaxSizeMb: 512,
+      }),
+    ).toThrow('parallel engine');
+  });
+
   it('validates cache breakpoints as bounded in-root preview data', () => {
     const cacheBreakpoints = [
       {
@@ -92,7 +113,10 @@ describe('canonical compiler request parser', () => {
         automaticallyAssignCacheBreakpoints: false,
         cacheBreakpoints,
       }),
-    ).toMatchObject({ cacheBreakpoints, automaticallyAssignCacheBreakpoints: false });
+    ).toMatchObject({
+      cacheBreakpoints,
+      automaticallyAssignCacheBreakpoints: false,
+    });
     expect(() =>
       parseCompilerRequest({
         ...preview,

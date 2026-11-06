@@ -9,6 +9,7 @@ export interface PreparedComponentBrepCache {
   get(
     recipeDigest: string,
     recipeCanonical: string,
+    priority?: 'automatic' | 'manual',
   ): Promise<Uint8Array | undefined>;
 
   /** Persists a completed BRep payload after the host's write policy allows it. */
@@ -17,5 +18,6 @@ export interface PreparedComponentBrepCache {
     recipeCanonical: string,
     brep: Uint8Array,
     operationDurationMs: number,
+    priority?: 'automatic' | 'manual',
   ): Promise<void>;
 }

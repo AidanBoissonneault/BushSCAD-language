@@ -18,7 +18,10 @@ import type {
 } from '@bushscad/ir';
 import type { EnvManifestEntry } from '@bushscad/compiler';
 import type { CacheBreakpoint } from '@bushscad/compiler';
-import type { CompileEntrypointMode, FileOverlayMap } from '@bushscad/compiler/node';
+import type {
+  CompileEntrypointMode,
+  FileOverlayMap,
+} from '@bushscad/compiler/node';
 
 /**
  * Mesh dto, including part name, body name, color, uses default color, and material.
@@ -113,6 +116,7 @@ export type CompilerRequest = {
   engine?: CompilerEngine;
   drawingOutputMode?: DrawingOutputMode;
   componentCacheDirectory?: string;
+  componentCacheMaxSizeMb?: number;
   automaticallyAssignCacheBreakpoints?: boolean;
   cacheBreakpoints?: readonly CacheBreakpoint[];
 };

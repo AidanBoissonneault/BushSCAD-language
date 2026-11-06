@@ -20,6 +20,7 @@ import { exportInPool } from './parallel/pool-export.js';
 import { previewWithDependencyAwareCompiler } from './parallel/dependency-aware-preview.js';
 import { DiskComponentBrepCache } from './parallel/disk-component-brep-cache.js';
 import { DiskCompletedBuildCache } from './parallel/disk-completed-build-cache.js';
+import { SessionDiskCacheBudget } from './parallel/session-disk-cache-budget.js';
 import { createVersionedTraceStream } from './tracing/versioned-trace-stream.js';
 
 /**
@@ -29,6 +30,7 @@ import { createVersionedTraceStream } from './tracing/versioned-trace-stream.js'
  */
 export function runService(): void {
   const pool = createParallelPool();
+  const cacheBudgets = new Map<string, SessionDiskCacheBudget>();
   process.on('uncaughtException', (err) => {
     process.stderr.write(`[BushSCAD service] ${err.stack ?? err.message}\n`);
   });
@@ -54,13 +56,14 @@ export function runService(): void {
 
   const rl = createInterface({ input: process.stdin });
 
-  rl.on('line', (line) => void handleServiceLine(line, pool));
+  rl.on('line', (line) => void handleServiceLine(line, pool, cacheBudgets));
 }
 
 /** Parses, serves, and serializes one newline-delimited service request. */
 export async function handleServiceLine(
   line: string,
   pool: PersistentOcctWorkerPool,
+  cacheBudgets = new Map<string, SessionDiskCacheBudget>(),
 ): Promise<void> {
   let request: ServiceRequest;
 
@@ -90,11 +93,24 @@ export async function handleServiceLine(
         if (request.engine === 'classic') {
           return previewClassicInPool(options, pool);
         }
+        const cacheBudget = request.componentCacheDirectory
+          ? await sessionCacheBudget(
+              cacheBudgets,
+              request.componentCacheDirectory,
+              (request.componentCacheMaxSizeMb ?? 512) * 1024 * 1024,
+            )
+          : undefined;
         const componentCache = request.componentCacheDirectory
-          ? new DiskComponentBrepCache(request.componentCacheDirectory)
+          ? new DiskComponentBrepCache(
+              request.componentCacheDirectory,
+              cacheBudget,
+            )
           : undefined;
         const buildOutputCache = request.componentCacheDirectory
-          ? new DiskCompletedBuildCache(request.componentCacheDirectory)
+          ? new DiskCompletedBuildCache(
+              request.componentCacheDirectory,
+              cacheBudget,
+            )
           : undefined;
         return previewWithDependencyAwareCompiler(
           options,
@@ -127,6 +143,21 @@ export async function handleServiceLine(
 
     process.stdout.write(`${stringifyCliResult(response)}\n`);
   }
+}
+
+/** Shares one cache limit and LRU index across both disk-backed cache adapters. */
+async function sessionCacheBudget(
+  budgets: Map<string, SessionDiskCacheBudget>,
+  directory: string,
+  maximumBytes: number,
+): Promise<SessionDiskCacheBudget> {
+  let budget = budgets.get(directory);
+  if (!budget) {
+    budget = new SessionDiskCacheBudget(directory, maximumBytes);
+    budgets.set(directory, budget);
+  }
+  await budget.setMaximumBytes(maximumBytes);
+  return budget;
 }
 
 /**

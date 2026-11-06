@@ -83,6 +83,19 @@ describe('DiskComponentBrepCache', () => {
     expect(
       await cache.get('fedcba9876543210', '{"kind":"small"}'),
     ).toBeUndefined();
+    await cache.put(
+      'fedcba9876543211',
+      '{"kind":"manual"}',
+      new Uint8Array([3]),
+      20,
+      'manual',
+    );
+    expect(
+      Array.from(
+        (await cache.get('fedcba9876543211', '{"kind":"manual"}', 'manual')) ??
+          [],
+      ),
+    ).toEqual([3]);
 
     now += 10_001;
     await cache.put(

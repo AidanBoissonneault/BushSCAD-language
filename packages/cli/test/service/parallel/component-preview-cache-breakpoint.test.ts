@@ -104,6 +104,60 @@ describe('component preview completed-part cache point', () => {
     expect(completedPartPoint?.span?.line).toBe(7);
     expect(traceEvents).toContainEqual(completedPartPoint);
   });
+
+  it('marks manually selected component cache reads with manual priority', async () => {
+    const compiled = compileDocument({
+      source,
+      filePath,
+      rootPath: 'C:/workspace',
+      fileMap: { [filePath]: source, [libraryPath]: library },
+    });
+    expect(compiled.ok, JSON.stringify(compiled)).toBe(true);
+    if (!compiled.ok) return;
+
+    const plan = planIndependentComponentCompilation(
+      compiled.program,
+      filePath,
+      {
+        allowSingleComponent: true,
+        automaticallyAssignCacheBreakpoints: false,
+        cacheBreakpoints: [{ filePath, line: 5 }],
+      },
+    );
+    expect(plan.eligible, JSON.stringify(plan)).toBe(true);
+    if (!plan.eligible) return;
+
+    const componentCache: PreparedComponentBrepCache = {
+      get: vi.fn(async () => new Uint8Array([1])),
+      put: vi.fn(async () => undefined),
+    };
+    const pool = {
+      snapshot: () => ({
+        desiredWorkers: 1,
+        readyWorkers: 1,
+        startupMs: 0,
+        aggregateWorkerRssBytes: 0,
+        peakAggregateWorkerRssBytes: 0,
+      }),
+      executionMetrics: () => EMPTY_POOL_EXECUTION_METRICS,
+    } as unknown as PersistentOcctWorkerPool;
+
+    await previewIndependentComponents(
+      compiled,
+      plan,
+      { filePath, cacheBreakpoints: [{ filePath, line: 5 }] },
+      pool,
+      0,
+      Date.now(),
+      componentCache,
+    );
+
+    expect(componentCache.get).toHaveBeenCalledWith(
+      expect.any(String),
+      expect.any(String),
+      'manual',
+    );
+  });
 });
 
 /** Supplies a completed part cache hit with no prior trace history. */

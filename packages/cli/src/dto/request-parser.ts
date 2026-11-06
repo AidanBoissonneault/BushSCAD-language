@@ -39,6 +39,7 @@ const REQUEST_KEYS = new Set([
   'engine',
   'drawingOutputMode',
   'componentCacheDirectory',
+  'componentCacheMaxSizeMb',
   'automaticallyAssignCacheBreakpoints',
   'cacheBreakpoints',
 ]);

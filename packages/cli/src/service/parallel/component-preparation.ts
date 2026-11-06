@@ -104,12 +104,13 @@ async function loadCachedComponent(
 }> {
   const traceEvents: OcctTraceEvent[] = [];
   const selected = hasCacheBreakpoint(task);
+  const priority = retentionPriority(task);
   if (options.occtTrace && selected) {
     appendTraceEvents(traceEvents, cacheBreakpointTrace(task), options);
   }
   const brep =
     cache && task.cacheSafe && selected
-      ? await readCachedBrep(cache, task)
+      ? await readCachedBrep(cache, task, priority)
       : undefined;
   if (!brep) return { traceEvents, cacheHit: false };
 
@@ -194,6 +195,7 @@ async function storeCompletedComponent(
       task.recipeCanonical,
       output.artifact.brep,
       output.elapsedMs,
+      retentionPriority(task),
     );
   } catch {
     // Cache storage failures must leave the normal compiler path available.
@@ -236,13 +238,29 @@ function materializeCurrentComponents(
 async function readCachedBrep(
   cache: PreparedComponentBrepCache,
   task: IndependentComponentTask,
+  priority: 'automatic' | 'manual',
 ): Promise<Uint8Array | undefined> {
   try {
-    const brep = await cache.get(task.recipeDigest, task.recipeCanonical);
+    const brep = await cache.get(
+      task.recipeDigest,
+      task.recipeCanonical,
+      priority,
+    );
     return brep instanceof Uint8Array && brep.byteLength > 0 ? brep : undefined;
   } catch {
     return undefined;
   }
+}
+
+/** Retains manually selected geometry ahead of compiler-assigned cache points. */
+function retentionPriority(
+  task: IndependentComponentTask,
+): 'automatic' | 'manual' {
+  return task.consumers.some(
+    (consumer) => consumer.cacheBreakpoint === 'manual',
+  )
+    ? 'manual'
+    : 'automatic';
 }
 
 /** Marks cache reuse in the operation trace without claiming native work ran. */

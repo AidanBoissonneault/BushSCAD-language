@@ -7,6 +7,7 @@ import type { CompilerEngine, CompilerRequestKind } from './types.js';
 
 export type ParsedCacheRequestOptions = {
   componentCacheDirectory?: string;
+  componentCacheMaxSizeMb?: number;
   automaticallyAssignCacheBreakpoints?: boolean;
   cacheBreakpoints?: CacheBreakpoint[];
 };
@@ -24,6 +25,7 @@ export function parseCacheRequestOptions(
     kind,
     normalizeAbsolutePath,
   );
+  const componentCacheMaxSizeMb = parseCacheSize(raw.componentCacheMaxSizeMb);
   const automaticallyAssignCacheBreakpoints = parseOptionalBoolean(
     raw.automaticallyAssignCacheBreakpoints,
     'Automatic cache breakpoint flag',
@@ -38,14 +40,33 @@ export function parseCacheRequestOptions(
     engine,
     automaticallyAssignCacheBreakpoints,
     cacheBreakpoints,
+    componentCacheMaxSizeMb,
   );
   return {
     ...(componentCacheDirectory ? { componentCacheDirectory } : {}),
+    ...(componentCacheMaxSizeMb !== undefined
+      ? { componentCacheMaxSizeMb }
+      : {}),
     ...(automaticallyAssignCacheBreakpoints !== undefined
       ? { automaticallyAssignCacheBreakpoints }
       : {}),
     ...(cacheBreakpoints ? { cacheBreakpoints } : {}),
   };
+}
+
+/** Accepts a bounded integer cache limit from a compiler-service request. */
+function parseCacheSize(value: unknown): number | undefined {
+  if (value === undefined) return undefined;
+  if (
+    !Number.isSafeInteger(value) ||
+    Number(value) < 128 ||
+    Number(value) > 4_096
+  ) {
+    throw new TypeError(
+      'Component cache maximum size must be an integer from 128 to 4096 MB.',
+    );
+  }
+  return Number(value);
 }
 
 /** Limits automatic or manual breakpoint controls to parallel preview requests. */
@@ -54,15 +75,18 @@ function assertCacheControlsAllowed(
   engine: CompilerEngine | undefined,
   automaticallyAssignCacheBreakpoints: boolean | undefined,
   cacheBreakpoints: readonly CacheBreakpoint[] | undefined,
+  componentCacheMaxSizeMb: number | undefined,
 ): void {
   const hasBreakpoints =
-    automaticallyAssignCacheBreakpoints !== undefined || cacheBreakpoints;
+    automaticallyAssignCacheBreakpoints !== undefined ||
+    cacheBreakpoints ||
+    componentCacheMaxSizeMb !== undefined;
   if (hasBreakpoints && kind !== 'preview') {
     throw new TypeError(
       'Cache breakpoints are only valid for preview requests.',
     );
   }
   if (hasBreakpoints && engine === 'classic') {
-    throw new TypeError('Cache breakpoints require the parallel engine.');
+    throw new TypeError('Cache controls require the parallel engine.');
   }
 }
