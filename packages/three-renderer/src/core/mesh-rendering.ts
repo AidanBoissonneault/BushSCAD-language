@@ -14,14 +14,14 @@ import {
 } from '../materials/materials.js';
 
 export const MESH_PALETTE = [
-  '#2563EB',
-  '#7C3AED',
-  '#059669',
-  '#DC2626',
-  '#D97706',
-  '#0891B2',
-  '#BE185D',
-  '#0D9488',
+  '#2D9CDB',
+  '#F65D5D',
+  '#27AE60',
+  '#F2C94C',
+  '#00B8D9',
+  '#F2994A',
+  '#00A896',
+  '#9BC53D',
 ];
 
 /** Selects themed colors only for meshes marked as bridge-generated defaults. */

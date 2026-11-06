@@ -18,7 +18,7 @@ describe('mesh rendering colors', () => {
   it('maps bridge defaults to the matching themed palette position', () => {
     expect(
       resolvedMeshColor(
-        { color: '#7C3AED', usesDefaultColor: true },
+        { color: '#F65D5D', usesDefaultColor: true },
         0,
         THEME_PALETTE,
       ),
@@ -28,11 +28,11 @@ describe('mesh rendering colors', () => {
   it('never replaces an explicit model color', () => {
     expect(
       resolvedMeshColor(
-        { color: '#7C3AED', usesDefaultColor: false },
+        { color: '#F65D5D', usesDefaultColor: false },
         0,
         THEME_PALETTE,
       ),
-    ).toBe('#7C3AED');
+    ).toBe('#F65D5D');
   });
 });
 

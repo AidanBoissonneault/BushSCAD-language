@@ -10,8 +10,8 @@ import { resolvePartMeshColor } from '../../src/mesh/mesh-colors.js';
 
 describe('mesh color provenance', () => {
   it('marks generated palette colors as defaults', () => {
-    expect(resolvePartMeshColor(null, () => '#2563EB')).toEqual({
-      color: '#2563EB',
+    expect(resolvePartMeshColor(null, () => '#2D9CDB')).toEqual({
+      color: '#2D9CDB',
       usesDefaultColor: true,
     });
   });

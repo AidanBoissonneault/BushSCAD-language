@@ -56,6 +56,11 @@ export const BUSHSCAD_TOP_LEVEL_SNIPPETS = [
     insertText: 'part ${1:name} {\n\t${2}\n}',
     detail: 'Declare a named part',
   },
+  {
+    label: 'ref',
+    insertText: 'ref ${1:name} {\n\t${2}\n}',
+    detail: 'Declare reusable hidden geometry',
+  },
   ...BUSHSCAD_JOINT_SNIPPETS,
   {
     label: 'fn',

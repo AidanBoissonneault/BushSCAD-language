@@ -41,6 +41,7 @@ export const BUSHSCAD_KEYWORDS = [
   'guide',
   'wrap',
   'part',
+  'ref',
   'fn',
   'for',
   'in',
