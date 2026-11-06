@@ -5,7 +5,7 @@
  */
 
 import { createHash, randomUUID } from 'node:crypto';
-import { readFile, rename, rm, stat, writeFile } from 'node:fs/promises';
+import { readFile, stat, writeFile } from 'node:fs/promises';
 import { join } from 'node:path';
 import type { PreparedComponentBrepCache } from '@bushscad/compiler';
 import {
@@ -13,6 +13,7 @@ import {
   type SessionCacheRetentionPriority,
   SessionDiskCacheBudget,
 } from './session-disk-cache-budget.js';
+import { publishDiskCacheEntry } from './disk-cache-entry-publisher.js';
 
 const CACHE_FORMAT_VERSION = 1;
 const LARGE_COMPONENT_DURATION_MS = 250;
@@ -146,23 +147,22 @@ export class DiskComponentBrepCache implements PreparedComponentBrepCache {
     const metadataTemporaryPath = `${metadataFilePath}.${suffix}.tmp`;
     const metadataText = JSON.stringify(metadata);
     const writeEntry = async (): Promise<number> => {
-      try {
-        await writeFile(dataTemporaryPath, brep);
-        await rename(dataTemporaryPath, dataPath);
-        await writeFile(metadataTemporaryPath, metadataText);
-        await rename(metadataTemporaryPath, metadataFilePath);
-        lastSuccessfulWriteAt = now;
-        const [dataStat, metadataStat] = await Promise.all([
-          stat(dataPath),
-          stat(metadataFilePath),
-        ]);
-        return dataStat.size + metadataStat.size;
-      } finally {
-        await Promise.all([
-          rm(dataTemporaryPath, { force: true }),
-          rm(metadataTemporaryPath, { force: true }),
-        ]);
-      }
+      await publishDiskCacheEntry(
+        dataPath,
+        dataTemporaryPath,
+        metadataFilePath,
+        metadataTemporaryPath,
+        async () => {
+          await writeFile(dataTemporaryPath, brep);
+          return metadataText;
+        },
+      );
+      lastSuccessfulWriteAt = now;
+      const [dataStat, metadataStat] = await Promise.all([
+        stat(dataPath),
+        stat(metadataFilePath),
+      ]);
+      return dataStat.size + metadataStat.size;
     };
     if (this.budget) {
       const estimatedBytes = brep.byteLength + Buffer.byteLength(metadataText);

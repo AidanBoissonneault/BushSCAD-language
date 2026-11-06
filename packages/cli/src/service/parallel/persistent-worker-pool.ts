@@ -133,15 +133,7 @@ export class PersistentOcctWorkerPool {
     this.disposed = true;
     this.clearIdleTimer();
     for (const slot of this.slots) {
-      if (slot.process.connected) {
-        try {
-          slot.process.send?.({ kind: 'shutdown' }, () => undefined);
-        } catch {
-          // A crashed worker is already stopped; its replacement is handled too.
-        }
-      }
-      if (!slot.process.killed) slot.process.kill();
-      slot.pending?.reject(new Error('Parallel OCCT worker pool stopped.'));
+      this.stopWorkerSlot(slot, 'Parallel OCCT worker pool stopped.');
     }
     this.slots.length = 0;
     this.publishStatus();
@@ -395,17 +387,22 @@ export class PersistentOcctWorkerPool {
     const idleSlots = this.slots.splice(0);
     for (const slot of idleSlots) {
       slot.intentionalStop = true;
-      if (slot.process.connected) {
-        try {
-          slot.process.send?.({ kind: 'shutdown' }, () => undefined);
-        } catch {
-          // A worker may already be exiting after its idle timer fired.
-        }
-      }
-      if (!slot.process.killed) slot.process.kill();
-      slot.pending?.reject(new Error('Parallel OCCT worker idled out.'));
+      this.stopWorkerSlot(slot, 'Parallel OCCT worker idled out.');
     }
     this.publishStatus();
+  }
+
+  /** Shuts down one child and rejects its task while preserving pool recovery policy. */
+  private stopWorkerSlot(slot: WorkerSlot, reason: string): void {
+    if (slot.process.connected) {
+      try {
+        slot.process.send?.({ kind: 'shutdown' }, () => undefined);
+      } catch {
+        // A worker may already be exiting or have crashed.
+      }
+    }
+    if (!slot.process.killed) slot.process.kill();
+    slot.pending?.reject(new Error(reason));
   }
 
   /** Cancels a pending countdown when new work or disposal takes ownership. */

@@ -7,7 +7,7 @@
  */
 
 import { randomUUID } from 'node:crypto';
-import { mkdir, readFile, rename, rm, stat, writeFile } from 'node:fs/promises';
+import { mkdir, readFile, stat } from 'node:fs/promises';
 import type { ParallelBuildOutput } from './worker-protocol.js';
 import type { CompletedBuildOutputCache } from './build-output-cache.js';
 import {
@@ -26,6 +26,7 @@ import {
   writeCompletedMeshPayload,
 } from './completed-build-mesh-payload.js';
 import { SessionDiskCacheBudget } from './session-disk-cache-budget.js';
+import { publishDiskCacheEntry } from './disk-cache-entry-publisher.js';
 
 const LARGE_BUILD_DURATION_MS = 250;
 const CACHE_WRITE_INTERVAL_MS = 10_000;
@@ -47,51 +48,18 @@ export class DiskCompletedBuildCache implements CompletedBuildOutputCache {
     if (!isValidCompletedBuildDigest(digest) || canonical.length === 0) {
       return undefined;
     }
-    try {
-      const metadata = parseCompletedBuildMetadata(
-        await readFile(
-          completedBuildMetadataPath(this.directory, digest),
-          'utf8',
-        ),
-        digest,
-        canonical,
-      );
-      if (!metadata) return undefined;
-      const payload = await readFile(
-        completedBuildPayloadPath(this.directory, digest),
-      );
-      if (
-        payload.byteLength !== metadata.payloadByteLength ||
-        completedBuildChecksum(payload) !== metadata.payloadSha256
-      ) {
-        return undefined;
-      }
-      const meshes = restoreCompletedMeshes(payload, metadata.meshes);
-      if (!meshes) return undefined;
-      if (this.budget) {
-        await this.budget
-          .touch(completedBuildCacheEntry(digest))
-          .catch(() => undefined);
-      }
-      return {
-        taskId: 0,
-        partName: metadata.output.partName,
-        sourceIndex: 0,
-        meshes,
-        drawings: metadata.output.drawings,
-        ...(metadata.output.interaction
-          ? { interaction: metadata.output.interaction }
-          : {}),
-        validations: metadata.output.validations,
-        joints: metadata.output.joints,
-        traceEvents: metadata.output.traceEvents,
-        elapsedMs: 0,
-        workerCpuMs: 0,
-        workerRssBytes: 0,
-      };
-    } catch {
-      return undefined;
+    const entry = await readCompletedCacheEntry(
+      this.directory,
+      digest,
+      canonical,
+    );
+    if (!entry) return undefined;
+    if (this.budget) {
+      await this.budget
+        .touch(completedBuildCacheEntry(digest))
+        .catch(() => undefined);
     }
+    return completedBuildOutput(entry.metadata, entry.meshes);
   }
 
   /** Persists a costly result or the first result after the idle-write interval. */
@@ -135,49 +103,48 @@ export class DiskCompletedBuildCache implements CompletedBuildOutputCache {
     const dataTemporaryPath = `${dataPath}.${suffix}.tmp`;
     const metadataTemporaryPath = `${metadataFilePath}.${suffix}.tmp`;
     const writeEntry = async (): Promise<number> => {
-      try {
-        const payload = await writeCompletedMeshPayload(
-          dataTemporaryPath,
-          output.meshes,
-        );
-        const metadata: CompletedBuildMetadata = {
-          version: COMPLETED_BUILD_CACHE_FORMAT_VERSION,
-          digest,
-          canonical,
-          payloadByteLength: payload.byteLength,
-          payloadSha256: payload.sha256,
-          output: {
-            partName: output.partName,
-            drawings: output.drawings,
-            ...(output.interaction ? { interaction: output.interaction } : {}),
-            validations: output.validations,
-            joints: output.joints,
-            traceEvents: output.traceEvents,
-          },
-          meshes: payload.meshes,
-        };
-        await rm(dataPath, { force: true });
-        await rename(dataTemporaryPath, dataPath);
-        const metadataText = JSON.stringify(metadata);
-        const sidecar: CompletedBuildSidecar = {
-          ...metadata,
-          metadataSha256: completedBuildTextChecksum(metadataText),
-        };
-        await writeFile(metadataTemporaryPath, JSON.stringify(sidecar));
-        await rm(metadataFilePath, { force: true });
-        await rename(metadataTemporaryPath, metadataFilePath);
-        lastSuccessfulWriteAt = now;
-        const [dataStat, metadataStat] = await Promise.all([
-          stat(dataPath),
-          stat(metadataFilePath),
-        ]);
-        return dataStat.size + metadataStat.size;
-      } finally {
-        await Promise.all([
-          rm(dataTemporaryPath, { force: true }),
-          rm(metadataTemporaryPath, { force: true }),
-        ]);
-      }
+      await publishDiskCacheEntry(
+        dataPath,
+        dataTemporaryPath,
+        metadataFilePath,
+        metadataTemporaryPath,
+        async () => {
+          const payload = await writeCompletedMeshPayload(
+            dataTemporaryPath,
+            output.meshes,
+          );
+          const metadata: CompletedBuildMetadata = {
+            version: COMPLETED_BUILD_CACHE_FORMAT_VERSION,
+            digest,
+            canonical,
+            payloadByteLength: payload.byteLength,
+            payloadSha256: payload.sha256,
+            output: {
+              partName: output.partName,
+              drawings: output.drawings,
+              ...(output.interaction
+                ? { interaction: output.interaction }
+                : {}),
+              validations: output.validations,
+              joints: output.joints,
+              traceEvents: output.traceEvents,
+            },
+            meshes: payload.meshes,
+          };
+          const metadataText = JSON.stringify(metadata);
+          const sidecar: CompletedBuildSidecar = {
+            ...metadata,
+            metadataSha256: completedBuildTextChecksum(metadataText),
+          };
+          return JSON.stringify(sidecar);
+        },
+      );
+      lastSuccessfulWriteAt = now;
+      const [dataStat, metadataStat] = await Promise.all([
+        stat(dataPath),
+        stat(metadataFilePath),
+      ]);
+      return dataStat.size + metadataStat.size;
     };
     if (this.budget) {
       await this.budget.store(completedBuildCacheEntry(digest), writeEntry);
@@ -185,6 +152,64 @@ export class DiskCompletedBuildCache implements CompletedBuildOutputCache {
     }
     await writeEntry();
   }
+}
+
+/** Reads and verifies a completed cache entry without exposing partial payloads. */
+async function readCompletedCacheEntry(
+  directory: string,
+  digest: string,
+  canonical: string,
+): Promise<
+  | {
+      metadata: CompletedBuildMetadata;
+      meshes: NonNullable<ReturnType<typeof restoreCompletedMeshes>>;
+    }
+  | undefined
+> {
+  try {
+    const metadata = parseCompletedBuildMetadata(
+      await readFile(completedBuildMetadataPath(directory, digest), 'utf8'),
+      digest,
+      canonical,
+    );
+    if (!metadata) return undefined;
+    const payload = await readFile(
+      completedBuildPayloadPath(directory, digest),
+    );
+    if (
+      payload.byteLength !== metadata.payloadByteLength ||
+      completedBuildChecksum(payload) !== metadata.payloadSha256
+    ) {
+      return undefined;
+    }
+    const meshes = restoreCompletedMeshes(payload, metadata.meshes);
+    return meshes ? { metadata, meshes } : undefined;
+  } catch {
+    return undefined;
+  }
+}
+
+/** Reconstructs a current worker output from verified cached metadata and meshes. */
+function completedBuildOutput(
+  metadata: CompletedBuildMetadata,
+  meshes: NonNullable<ReturnType<typeof restoreCompletedMeshes>>,
+): ParallelBuildOutput {
+  return {
+    taskId: 0,
+    partName: metadata.output.partName,
+    sourceIndex: 0,
+    meshes,
+    drawings: metadata.output.drawings,
+    ...(metadata.output.interaction
+      ? { interaction: metadata.output.interaction }
+      : {}),
+    validations: metadata.output.validations,
+    joints: metadata.output.joints,
+    traceEvents: metadata.output.traceEvents,
+    elapsedMs: 0,
+    workerCpuMs: 0,
+    workerRssBytes: 0,
+  };
 }
 
 /** Identifies one completed output with the lowest cache retention priority. */
