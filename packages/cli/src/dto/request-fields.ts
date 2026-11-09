@@ -15,6 +15,7 @@ export type StringMapLimits = {
   key: number;
   value: number;
   total: number;
+  allowEmptyValues?: boolean;
 };
 
 /** Parses a bounded string map used for overlays and environment values. */
@@ -35,7 +36,7 @@ export function parseStringMap(
   for (const [key, entry] of entries) {
     if (
       !boundedString(key, limits.key) ||
-      !boundedString(entry, limits.value)
+      !boundedString(entry, limits.value, limits.allowEmptyValues ?? false)
     ) {
       throw new TypeError(`${label} contains an invalid entry.`);
     }
@@ -167,8 +168,14 @@ export function assertPreviewControls(
 /**
  * Handles bounded string in the dto flow.
  */
-function boundedString(value: unknown, maximum: number): value is string {
+function boundedString(
+  value: unknown,
+  maximum: number,
+  allowEmpty = false,
+): value is string {
   return (
-    typeof value === 'string' && value.length > 0 && value.length <= maximum
+    typeof value === 'string' &&
+    (allowEmpty || value.length > 0) &&
+    value.length <= maximum
   );
 }

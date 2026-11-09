@@ -78,6 +78,47 @@ part plate {
     expectCircleDiameter(result, 5);
   });
 
+  it('preserves empty string overrides as valid string values', () => {
+    const result = compile(
+      `
+env mode fallback 'default';
+part plate {
+  sketch s = circle(4);
+  obj body = extrude(s, mode == '' ? 2 : 1);
+}
+`,
+      { mode: '' },
+    );
+
+    expect(result.ok).toBe(true);
+    if (!result.ok) return;
+    expect(
+      result.program.ops.find((op) => op.kind === 'extrude'),
+    ).toMatchObject({ depth: 2 });
+  });
+
+  it('preserves overrides for names that are special on JavaScript objects', () => {
+    const result = compile(
+      `
+env __proto__ fallback 'default';
+part plate {
+  sketch s = circle(4);
+  obj body = extrude(s, __proto__ == '' ? 2 : 1);
+}
+`,
+      Object.fromEntries([['__proto__', '']]),
+    );
+
+    expect(
+      result.ok,
+      !result.ok ? result.errors.map((error) => error.message).join('\n') : '',
+    ).toBe(true);
+    if (!result.ok) return;
+    expect(
+      result.program.ops.find((op) => op.kind === 'extrude'),
+    ).toMatchObject({ depth: 2 });
+  });
+
   it('coerces number, string, boolean, and list overrides from fallback types', () => {
     const result = compile(
       `

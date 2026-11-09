@@ -39,6 +39,22 @@ describe('canonical compiler request parser', () => {
     });
   });
 
+  it('accepts empty string values for environment overrides', () => {
+    expect(
+      parseCompilerRequest({ ...preview, env: { label: '' } }),
+    ).toMatchObject({ env: { label: '' } });
+  });
+
+  it('preserves prototype property names at the compiler service boundary', () => {
+    const parsed = parseCompilerRequest({
+      ...preview,
+      env: Object.fromEntries([['__proto__', '']]),
+    });
+
+    expect(Object.hasOwn(parsed.env ?? {}, '__proto__')).toBe(true);
+    expect(parsed.env?.['__proto__']).toBe('');
+  });
+
   it('rejects unknown, out-of-root, and operation-specific fields', () => {
     expect(() => parseCompilerRequest({ ...preview, unknown: true })).toThrow(
       'Unknown',

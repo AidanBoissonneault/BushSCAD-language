@@ -31,7 +31,8 @@ export function parseArgs(args: string[]): ParsedArgs {
   const options = defaultOptions();
   for (let index = 0; index < args.length; index++) {
     const result = handleArgument(args, index, options);
-    if (!result.handled) return { error: `Unexpected parser state at ${index}` };
+    if (!result.handled)
+      return { error: `Unexpected parser state at ${index}` };
     if (result.error) return { error: result.error };
     index = result.index;
   }
@@ -44,7 +45,7 @@ export function parseArgs(args: string[]): ParsedArgs {
 function defaultOptions(): CliOptions {
   return {
     filePath: '',
-    env: {},
+    env: Object.create(null) as Record<string, string>,
     format: 'step',
     out: null,
     check: false,

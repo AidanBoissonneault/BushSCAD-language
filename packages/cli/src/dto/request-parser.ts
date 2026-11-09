@@ -92,6 +92,7 @@ export function parseCompilerRequest(
     key: 128,
     value: 4_096,
     total: 256 * 4_224,
+    allowEmptyValues: true,
   });
   const format = parseFormat(raw.format, kind);
   const cursorOpIndex = parseOptionalIndex(

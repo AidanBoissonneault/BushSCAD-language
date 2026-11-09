@@ -6,7 +6,10 @@
  */
 
 import { describe, expect, it } from 'vitest';
-import { parseArgs, usage } from '../../../src/commands/arguments/parse-args.js';
+import {
+  parseArgs,
+  usage,
+} from '../../../src/commands/arguments/parse-args.js';
 import type { CliOptions } from '../../../src/commands/arguments/types.js';
 
 /**
@@ -73,6 +76,15 @@ describe('parseArgs', () => {
     expect(
       options(['model.bscd', '--env', 'mode=release', '--env=count=8']).env,
     ).toEqual({ mode: 'release', count: '8' });
+  });
+
+  it('preserves valid names that are special JavaScript object properties', () => {
+    const parsed = parseArgs(['model.bscd', '--env', '__proto__=value']);
+
+    expect(parsed).toMatchObject({ filePath: 'model.bscd' });
+    if ('error' in parsed || 'service' in parsed) return;
+    expect(Object.hasOwn(parsed.env, '__proto__')).toBe(true);
+    expect(parsed.env['__proto__']).toBe('value');
   });
 
   it('rejects invalid env names', () => {

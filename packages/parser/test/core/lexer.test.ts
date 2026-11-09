@@ -35,11 +35,18 @@ describe('lexer', () => {
     expect(toks[18].kind).toBe('AROUND');
   });
 
+  it('keeps object prototype property names as identifiers', () => {
+    const toks = tokenize('__proto__ constructor toString', 'test.bscd');
+
+    expect(toks.slice(0, 3).map((token) => [token.kind, token.value])).toEqual([
+      ['IDENT', '__proto__'],
+      ['IDENT', 'constructor'],
+      ['IDENT', 'toString'],
+    ]);
+  });
+
   it('tokenizes surface modeling keywords', () => {
-    const toks = tokenize(
-      'surface fill offset_surface thicken',
-      'test.bscd',
-    );
+    const toks = tokenize('surface fill offset_surface thicken', 'test.bscd');
     expect(toks.map((tok) => tok.kind).slice(0, 4)).toEqual([
       'SURFACE',
       'FILL',

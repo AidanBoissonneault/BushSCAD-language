@@ -271,7 +271,10 @@ export class LexerCursor {
     if (!isIdentifierStart(this.current())) return false;
 
     const value = this.readWhile(isIdentifierChar);
-    this.push(KEYWORDS[value] ?? 'IDENT', value, start);
+    const kind = Object.prototype.hasOwnProperty.call(KEYWORDS, value)
+      ? KEYWORDS[value]
+      : 'IDENT';
+    this.push(kind, value, start);
     return true;
   }
 
@@ -283,7 +286,9 @@ export class LexerCursor {
     unit: string,
     start: LexerMark,
   ): boolean {
-    const unitKind = UNIT_TOKENS[unit];
+    const unitKind = Object.prototype.hasOwnProperty.call(UNIT_TOKENS, unit)
+      ? UNIT_TOKENS[unit]
+      : undefined;
     if (!unitKind) return false;
 
     this.push('NUMBER', value, start);

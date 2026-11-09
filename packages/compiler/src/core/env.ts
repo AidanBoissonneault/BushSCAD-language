@@ -176,8 +176,7 @@ function parseListOverride(
  * error.
  */
 type EnvOverrideParseResult =
-  | { ok: true; value: EnvValue }
-  | { ok: false; error: CompileError };
+  { ok: true; value: EnvValue } | { ok: false; error: CompileError };
 
 /**
  * Handles invalid override in the core flow.
@@ -259,7 +258,7 @@ export function coerceEnvOverrides(
   | { ok: true; env: Record<string, EnvValue> }
   | { ok: false; errors: CompileError[] } {
   const entries = new Map(manifest.map((entry) => [entry.name, entry]));
-  const env: Record<string, EnvValue> = {};
+  const env = Object.create(null) as Record<string, EnvValue>;
   const errors: CompileError[] = [];
 
   for (const [name, value] of Object.entries(raw)) {
