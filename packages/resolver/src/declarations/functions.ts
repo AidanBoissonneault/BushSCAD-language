@@ -11,6 +11,7 @@ import type { State } from '../core/types.js';
 import { addError } from '../core/errors.js';
 import { resolveExpr } from '../references/expressions.js';
 import { isSelectorNameValue } from '../references/selector-vars.js';
+import { validateFunctionObjectNames } from './object-name-collisions.js';
 
 /**
  * Resolves function parameter defaults and validates supported return-block shape.
@@ -21,6 +22,7 @@ export function resolveFn(stmt: FnDecl, scope: Scope, state: State): void {
       resolveExpr(param.default, scope, state);
     }
   }
+  validateFunctionObjectNames(stmt.body, state);
   validateFunctionReturnRules(stmt.body, state);
   validateNoMetadataAssignments(stmt.body, state);
 }

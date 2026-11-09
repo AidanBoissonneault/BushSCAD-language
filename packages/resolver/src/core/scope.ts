@@ -14,6 +14,7 @@ import type { SymKind } from './types.js';
  */
 export class Scope {
   private map = new Map<string, SymKind>();
+  private objectNames = new Set<string>();
 
   /**
    * Initializes the `Scope` instance with the values supplied by its caller.
@@ -25,6 +26,20 @@ export class Scope {
    */
   define(name: string, kind: SymKind): void {
     this.map.set(name, kind);
+  }
+
+  /**
+   * Defines an object-producing name and reports whether it is new in this scope.
+   *
+   * Why:
+   * Object selectors must identify one output body, while other declaration
+   * kinds may still intentionally hand off a name to an object declaration.
+   */
+  defineObject(name: string): boolean {
+    const isUnique = !this.objectNames.has(name);
+    this.objectNames.add(name);
+    this.map.set(name, 'obj');
+    return isUnique;
   }
 
   /**

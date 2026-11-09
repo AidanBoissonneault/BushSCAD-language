@@ -24,7 +24,6 @@ export function resolvePlace(
   resolvePlaceArgs(stmt, scope, state);
   resolvePlaceRefs(stmt, scope, state);
   if (stmt.rotate) resolvePlacementRotation(stmt.rotate, scope, state);
-  if (stmt.as) scope.define(stmt.as, 'obj');
 }
 
 /**

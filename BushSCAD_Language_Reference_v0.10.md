@@ -4483,6 +4483,23 @@ Supported primitive names:
 
 `obj` binds an operation result to a named geometry object. The `obj` name is the reference frame for downstream surface references, placement, and details; sketch names do not carry solid faces or edges.
 
+Object-producing names must be unique within one scope. This includes `obj`
+declarations, `obj name = functionCall(...)`, reusable object declarations, and
+placed instances introduced with `as`. Reusing a sketch name for its resulting
+object is valid because only one object is declared:
+
+```
+sketch body = rect(60, 40);
+obj body = extrude(body, 10);
+place(bracket(), @body.top.center) as bracket_instance;
+fillet(@body.top.edges, 0.5); // selects only body
+fillet(@bracket_instance.top.edges, 0.5); // selects only the placed result
+```
+
+Use modifiers such as `fillet`, `chamfer`, or `shell` to edit an existing
+object. Declaring another object with its name makes face and edge references
+ambiguous and is reported as a resolver error before geometry compilation.
+
 #### Basic Syntax
 
 ```

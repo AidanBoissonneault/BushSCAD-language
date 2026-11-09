@@ -27,8 +27,13 @@ import { resolveBodyCallStmt } from './call/resolve-body-call.js';
 import { resolveInvalidReturn } from './return/resolve-body-return.js';
 import { resolveBodyPlane } from './plane/resolve-body-plane.js';
 import { resolveBodyAnchor } from './anchor/resolve-body-anchor.js';
+import { defineObjectName } from '../object-name-collisions.js';
 
-type BodyPredeclare = (stmt: ComponentStatement, scope: Scope) => void;
+type BodyPredeclare = (
+  stmt: ComponentStatement,
+  scope: Scope,
+  state: State,
+) => void;
 type BodyStmtResolver = (
   stmt: ComponentStatement,
   scope: Scope,
@@ -45,9 +50,9 @@ const BODY_PREDECLARES: Partial<
   surface: defineNamedBodySymbol('surface'),
   path: defineNamedBodySymbol('path'),
   obj: predeclareObj,
-  objCall: defineNamedBodySymbol('obj'),
+  objCall: predeclareObjCall,
   refPart: defineNamedBodySymbol('component'),
-  refObj: defineNamedBodySymbol('obj'),
+  refObj: predeclareRefObj,
   fn: defineNamedBodySymbol('fn'),
   plane: defineNamedBodySymbol('plane'),
   anchor: defineNamedBodySymbol('anchor'),
@@ -56,6 +61,7 @@ const BODY_PREDECLARES: Partial<
       (stmt as Extract<ComponentStatement, { kind: 'fit' }>).fitName,
       'fit',
     ),
+  place: predeclarePlaceAlias,
 };
 
 const BODY_STMT_RESOLVERS: Partial<
@@ -100,7 +106,7 @@ export function resolveBody(
 ): void {
   const prev = state.inComponent;
   state.inComponent = inComponent;
-  predeclareBodySymbols(body, scope);
+  predeclareBodySymbols(body, scope, state);
   for (const stmt of body.statements)
     resolveBodyStmt(stmt, scope, state, allowPartMetadata);
   state.inComponent = prev;
@@ -112,9 +118,13 @@ export function resolveBody(
  * Component bodies support references to later objects and anchor aliases in
  * the same scope, just like the top-level collector does for file-level names.
  */
-function predeclareBodySymbols(body: ComponentBody, scope: Scope): void {
+function predeclareBodySymbols(
+  body: ComponentBody,
+  scope: Scope,
+  state: State,
+): void {
   for (const stmt of body.statements) {
-    BODY_PREDECLARES[stmt.kind]?.(stmt, scope);
+    BODY_PREDECLARES[stmt.kind]?.(stmt, scope, state);
   }
 }
 
@@ -130,10 +140,49 @@ function defineNamedBodySymbol(kind: Parameters<Scope['define']>[1]) {
 /**
  * Handles predeclare obj in the declarations flow.
  */
-function predeclareObj(stmt: ComponentStatement, scope: Scope): void {
+function predeclareObj(
+  stmt: ComponentStatement,
+  scope: Scope,
+  state: State,
+): void {
   const obj = stmt as Extract<ComponentStatement, { kind: 'obj' }>;
-  scope.define(obj.name, 'obj');
+  defineObjectName(obj.name, obj.nameSpan ?? obj.span, scope, state);
   for (const anchor of obj.anchors) scope.define(anchor.name, 'anchor');
+}
+
+/** Registers a function-call object before the body resolves references. */
+function predeclareObjCall(
+  stmt: ComponentStatement,
+  scope: Scope,
+  state: State,
+): void {
+  const objCall = stmt as Extract<ComponentStatement, { kind: 'objCall' }>;
+  defineObjectName(
+    objCall.name,
+    objCall.nameSpan ?? objCall.span,
+    scope,
+    state,
+  );
+}
+
+/** Registers a reusable object declaration in the body's object namespace. */
+function predeclareRefObj(
+  stmt: ComponentStatement,
+  scope: Scope,
+  state: State,
+): void {
+  const refObj = stmt as Extract<ComponentStatement, { kind: 'refObj' }>;
+  defineObjectName(refObj.name, refObj.nameSpan ?? refObj.span, scope, state);
+}
+
+/** Makes placed instance aliases available to later and forward references. */
+function predeclarePlaceAlias(
+  stmt: ComponentStatement,
+  scope: Scope,
+  state: State,
+): void {
+  const place = stmt as Extract<ComponentStatement, { kind: 'place' }>;
+  if (place.as) defineObjectName(place.as, place.span, scope, state);
 }
 
 /**

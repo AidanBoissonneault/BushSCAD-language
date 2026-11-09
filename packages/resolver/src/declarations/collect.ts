@@ -14,6 +14,7 @@ import type {
 import type { State } from '../core/types.js';
 import type { Scope } from '../core/scope.js';
 import { sketchPrimitiveSegmentNames } from '../sketch/sketch-segment-names.js';
+import { defineObjectName } from './object-name-collisions.js';
 
 /**
  * Collects top-level symbols before the resolver validates references.
@@ -135,18 +136,21 @@ const TOP_LEVEL_COLLECTORS: Partial<
       'surface',
     ),
   obj: collectObj,
-  objCall: (stmt, scope) =>
-    scope.define(
-      (stmt as Extract<TopLevelStatement, { kind: 'objCall' }>).name,
-      'obj',
-    ),
+  objCall: (stmt, scope, state) => {
+    const objCall = stmt as Extract<TopLevelStatement, { kind: 'objCall' }>;
+    defineObjectName(
+      objCall.name,
+      objCall.nameSpan ?? objCall.span,
+      scope,
+      state,
+    );
+  },
   anchor: collectAnchor,
   refPart: collectRefPart,
-  refObj: (stmt, scope) =>
-    scope.define(
-      (stmt as Extract<TopLevelStatement, { kind: 'refObj' }>).name,
-      'obj',
-    ),
+  refObj: (stmt, scope, state) => {
+    const refObj = stmt as Extract<TopLevelStatement, { kind: 'refObj' }>;
+    defineObjectName(refObj.name, refObj.nameSpan ?? refObj.span, scope, state);
+  },
   place: collectPlace,
   fn: (stmt, scope) =>
     scope.define(
@@ -196,7 +200,7 @@ function collectSketchSegmentNames(
  */
 function collectObj(stmt: TopLevelStatement, scope: Scope, state: State): void {
   const obj = stmt as Extract<TopLevelStatement, { kind: 'obj' }>;
-  scope.define(obj.name, 'obj');
+  defineObjectName(obj.name, obj.nameSpan ?? obj.span, scope, state);
   for (const anchor of obj.anchors) {
     scope.define(anchor.name, 'anchor');
     state.globalAnchors.add(anchor.name);
@@ -232,9 +236,13 @@ function collectRefPart(
 /**
  * Collects place from the supplied values.
  */
-function collectPlace(stmt: TopLevelStatement, scope: Scope): void {
+function collectPlace(
+  stmt: TopLevelStatement,
+  scope: Scope,
+  state: State,
+): void {
   const place = stmt as Extract<TopLevelStatement, { kind: 'place' }>;
-  if (place.as) scope.define(place.as, 'obj');
+  if (place.as) defineObjectName(place.as, place.span, scope, state);
 }
 
 /**

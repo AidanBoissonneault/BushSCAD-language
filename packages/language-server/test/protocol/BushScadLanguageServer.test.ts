@@ -74,6 +74,22 @@ describe('BushScadLanguageServer', () => {
     ).toBe(true);
   });
 
+  it('reports duplicate object names before compilation is requested', async () => {
+    const server = await makeServer();
+    server.updateDocument(
+      mainUri,
+      'obj body = cube([20, 10, 5]);\nobj body = sphere(4);',
+    );
+
+    const diagnostics = await server.getDiagnostics(mainUri);
+
+    expect(
+      diagnostics.some((error) =>
+        error.message.includes("Duplicate object name 'body'"),
+      ),
+    ).toBe(true);
+  });
+
   it('collects workspace symbols across imported files', async () => {
     const server = await makeServer();
 
