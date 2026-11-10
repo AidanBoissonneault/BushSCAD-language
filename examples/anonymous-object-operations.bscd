@@ -1,0 +1,7 @@
+part plain_shape {
+  cube(8);
+}
+
+part inline_detail {
+  fillet(@cube(10).[top,bottom], 1);
+}

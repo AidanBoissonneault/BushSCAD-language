@@ -33,12 +33,14 @@ export const detailOperationHelp: Record<string, LanguageHelpEntry> = {
     ],
     behavior: [
       selectedEdges,
+      'An object operation can be built inline in the @ target, for example fillet(@cube(10).top, 2);. The inline result has no reusable source name.',
       '@body.(edge1, edge2) selects generated crossings; append [n] to select one.',
       'Modifier targets cannot contain placement offsets. .perimeter excludes inner loops, while .edges includes them.',
       'The old fillet: statement form is removed; use the call form.',
     ],
     examples: [
       'obj base = cube([40, 30, 8]);\nfillet(@base.top.edges, 1);',
+      'fillet(@cube(10).top, 2);',
       'sketch rounded = fillet(rect(40, 20), 3);\nobj plate = extrude(rounded, 4);',
     ],
     related: ['chamfer', 'edges', 'perimeter', 'roundrect'],

@@ -17,6 +17,7 @@ import type {
 } from '../placement.js';
 import type {
   AssertStatement,
+  AnonymousObjDecl,
   DefeatureDecl,
   EnvDecl,
   FitDecl,
@@ -54,6 +55,7 @@ export type ComponentStatement =
   | SurfaceDecl
   | PathDecl
   | ObjDecl
+  | AnonymousObjDecl
   | ObjFromCallDecl
   | RefPartDecl
   | RefObjDecl

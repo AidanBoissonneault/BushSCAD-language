@@ -54,7 +54,7 @@ export const placementHelp: Record<string, LanguageHelpEntry> = {
       {
         name: 'target',
         description:
-          'Destination face, point, or named plane. Omit it to place at world origin.',
+          'Destination face, point, or named plane. Any solid operation may be written inline after @, such as @cube(10).top. Omit it to place at world origin.',
       },
       {
         name: 'source_anchor',
@@ -66,6 +66,7 @@ export const placementHelp: Record<string, LanguageHelpEntry> = {
     ],
     examples: [
       'ref peg { obj shaft = cylinder(12, d: 4); }\nobj base = cube([30, 20, 4]);\nplace(peg, @base.top.center);',
+      'place(pin, @cube(10).top);',
     ],
     related: ['ref', 'fn', 'rotate', 'anchor', 'as'],
   },
@@ -172,9 +173,7 @@ export const placementHelp: Record<string, LanguageHelpEntry> = {
     behavior: [
       'For current extrude/cut and named plane declarations, use their documented comma-separated @ placement rather than depth from target.',
     ],
-    examples: [
-      "import { bracket } from './library.bscd';\nplace(bracket);",
-    ],
+    examples: ["import { bracket } from './library.bscd';\nplace(bracket);"],
     related: ['import', 'extrude', 'cut', 'plane'],
   },
   through: {

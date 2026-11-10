@@ -20,6 +20,7 @@ import { parsePattern } from '../objects/parse-patterns.js';
 import { parseTransform } from '../objects/parse-transform.js';
 import { parsePlace } from '../objects/parse-place.js';
 import { parseRotate } from './parse-top-level.js';
+import { parseAnonymousObjectOperation } from '../objects/parse-object-ops.js';
 
 type SharedBodyOperationParser = (p: Parser) => ComponentStatement;
 
@@ -42,6 +43,8 @@ const SHARED_BODY_OPERATION_PARSERS: Partial<
 
 /** Parses a body operation shared by root, part, function, loop, and branch scopes. */
 export function parseSharedBodyOperation(p: Parser): ComponentStatement | null {
+  const anonymousObject = parseAnonymousObjectOperation(p);
+  if (anonymousObject) return anonymousObject;
   const parser = SHARED_BODY_OPERATION_PARSERS[p.peek().kind];
   return parser ? parser(p) : null;
 }

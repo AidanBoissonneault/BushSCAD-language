@@ -147,6 +147,7 @@ function childImportState(state: State, importPath: string): State {
     objectProfileSegments: new Map(state.objectProfileSegments),
     inComponent: false,
     inWithinLoop: false,
+    resolveInlineObjectOperation: state.resolveInlineObjectOperation,
   };
 }
 

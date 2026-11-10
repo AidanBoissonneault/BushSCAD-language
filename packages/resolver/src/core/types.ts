@@ -5,8 +5,9 @@
  * @last-edited October 6, 2026
  */
 
-import type { CompileError, Program } from '@bushscad/ir';
+import type { CompileError, ObjectOperation, Program } from '@bushscad/ir';
 import type { ResolvedSelectorKind } from '@bushscad/ir';
+import type { Scope } from './scope.js';
 
 /**
  * Result of resolve, including ast and errors.
@@ -64,4 +65,10 @@ export interface State {
   objectProfileSegments: Map<string, Set<string>>;
   inComponent: boolean;
   inWithinLoop: boolean;
+  resolveInlineObjectOperation: (
+    operation: ObjectOperation,
+    profileName: string,
+    scope: Scope,
+    state: State,
+  ) => void;
 }

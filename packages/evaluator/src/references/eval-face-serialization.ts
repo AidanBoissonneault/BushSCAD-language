@@ -122,11 +122,36 @@ function serializeNormalizedFaceRefSegments(
  * Handles serialize face ref in the references flow.
  */
 export function serializeFaceRef(ref: FaceRef, ctx: EvalCtx): string {
-  const tagRef = rootTagFaceRef(ref, ctx);
+  const resolvedRef = materializeInlineObjectReference(ref, ctx);
+  const tagRef = rootTagFaceRef(resolvedRef, ctx);
   if (tagRef) return tagRef;
-  const partRef = partSnapshotFaceRef(ref, ctx);
+  const partRef = partSnapshotFaceRef(resolvedRef, ctx);
   if (partRef) return partRef;
-  return serializeNormalizedFaceRefSegments(ref.chain, ctx);
+  return serializeNormalizedFaceRefSegments(resolvedRef.chain, ctx);
+}
+
+/** Lowers an inline operation once and replaces its synthetic reference root. */
+export function materializeInlineObjectReference(
+  ref: FaceRef,
+  ctx: EvalCtx,
+): FaceRef {
+  const operation = ref.inlineOperation;
+  if (!operation) return ref;
+
+  let objectName = ctx.inlineObjectReferences.get(ref);
+  if (!objectName) {
+    objectName = ctx.evaluateInlineObjectOperation(operation, ctx);
+    ctx.inlineObjectReferences.set(ref, objectName);
+  }
+
+  return {
+    ...ref,
+    inlineOperation: undefined,
+    chain: [
+      { kind: 'name', value: objectName, span: operation.span },
+      ...ref.chain.slice(1),
+    ],
+  };
 }
 
 /**
@@ -137,9 +162,10 @@ export function serializeAnchorTarget(
   ctx: EvalCtx,
   relativeObjectName: string | null,
 ): string {
-  if (!relativeObjectName) return serializeFaceRef(point, ctx);
+  const resolvedPoint = materializeInlineObjectReference(point, ctx);
+  if (!relativeObjectName) return serializeFaceRef(resolvedPoint, ctx);
 
-  const first = point.chain[0];
+  const first = resolvedPoint.chain[0];
   const mappedRelativeObjectName =
     ctx.names.get(relativeObjectName) ?? relativeObjectName;
   if (
@@ -147,9 +173,9 @@ export function serializeAnchorTarget(
     (first.value === relativeObjectName ||
       first.value === mappedRelativeObjectName)
   ) {
-    return serializeFaceRef(point, ctx);
+    return serializeFaceRef(resolvedPoint, ctx);
   }
-  return normalizeReferenceParts(rawFaceRefParts(point.chain, ctx, false), {
+  return normalizeReferenceParts(rawFaceRefParts(resolvedPoint.chain, ctx, false), {
     relativeObjectName: mappedRelativeObjectName,
   }).join('.');
 }

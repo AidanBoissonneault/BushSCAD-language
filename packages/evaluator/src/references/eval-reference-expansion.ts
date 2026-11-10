@@ -15,6 +15,7 @@ import type {
 import type { EvalCtx, EvalValue } from '../core/eval-types.js';
 import { isFaceRefValue } from '../core/eval-types.js';
 import { addError } from '../core/eval-context.js';
+import { materializeInlineObjectReference } from './eval-face-serialization.js';
 import {
   knownReferenceExists,
   knownReferenceLabels,
@@ -34,8 +35,9 @@ interface SelectorOption {
  * `@body.[top, bottom].edges`, but only the evaluator has variable values.
  */
 export function expandFaceRefForEval(ref: FaceRef, ctx: EvalCtx): FaceRef[] {
-  const chains = expandSegmentsForEval(ref.chain, ctx);
-  return chains.map((chain) => ({ ...ref, chain }));
+  const resolvedRef = materializeInlineObjectReference(ref, ctx);
+  const chains = expandSegmentsForEval(resolvedRef.chain, ctx);
+  return chains.map((chain) => ({ ...resolvedRef, chain }));
 }
 
 /**

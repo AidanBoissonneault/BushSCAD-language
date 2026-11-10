@@ -16,7 +16,8 @@ import type { EvaluateOptions, EvaluateResult } from './eval-types.js';
 import { unitToMm } from '../expressions/eval-expressions.js';
 
 import { evalTopStmt } from './eval-top-stmt.js';
-import { captureScalarCacheContext } from './eval-context.js';
+import { captureScalarCacheContext, fresh } from './eval-context.js';
+import { evalObjOp } from '../geometry/eval-op-emission.js';
 
 import {
   collectEnvNamesFromTopLevel,
@@ -83,6 +84,9 @@ export function evaluate(
     holeRecipes: new Map(),
     cutThreads: new Map(),
     refBases: new Map(),
+    inlineObjectReferences: new WeakMap(),
+    evaluateInlineObjectOperation: (operation, activeCtx) =>
+      evalObjOp(fresh(activeCtx, '__inline-operation'), operation, activeCtx),
     activeProcessProfile: null,
     fitDecls: new Map(),
     emitHardwareVisuals: options.showHardwareVisuals ?? true,

@@ -24,7 +24,7 @@ import { resolveShapeImport } from '../modules/imports.js';
 import type { Scope } from '../core/scope.js';
 import type { State } from '../core/types.js';
 import { resolveFn } from './functions.js';
-import { resolveObj } from './objects.js';
+import { resolveAnonymousObj, resolveObj } from './objects.js';
 import { resolveSketch } from '../sketch/sketch.js';
 import { resolveSurface } from '../geometry/surface.js';
 import { resolvePlace as resolvePlaceStatement } from './resolve-place-statement.js';
@@ -73,6 +73,12 @@ const TOP_STMT_RESOLVERS: Partial<
   obj: (stmt, scope, state) =>
     resolveObj(
       stmt as Extract<TopLevelStatement, { kind: 'obj' }>,
+      scope,
+      state,
+    ),
+  anonymousObj: (stmt, scope, state) =>
+    resolveAnonymousObj(
+      stmt as Extract<TopLevelStatement, { kind: 'anonymousObj' }>,
       scope,
       state,
     ),

@@ -11,6 +11,7 @@ import {
   type SelectionContext,
 } from '../../references/eval-resolved-selection.js';
 import {
+  materializeInlineObjectReference,
   serializeFaceRef,
   serializeFaceRefSegments,
 } from '../../references/eval-face-expressions.js';
@@ -27,27 +28,30 @@ export function resolvePlacement(
 ): IRPlacement {
   if (ref.kind === 'pos')
     return resolvePositionPlacement(ref, ctx, evalNumber, selectionContext);
-  const alias = ctx.spatialAliases.get(spatialAliasKey(ref));
+  const alias = ref.inlineOperation
+    ? null
+    : ctx.spatialAliases.get(spatialAliasKey(ref));
   if (alias) return { ...alias };
-  const selection = evalResolvedSelection(ref, ctx, selectionContext);
-  if (ref.chain.length === 1 && ref.chain[0].kind === 'name') {
-    const tag = ctx.tags.get(ref.chain[0].value);
+  const resolvedRef = materializeInlineObjectReference(ref, ctx);
+  const selection = evalResolvedSelection(resolvedRef, ctx, selectionContext);
+  if (resolvedRef.chain.length === 1 && resolvedRef.chain[0].kind === 'name') {
+    const tag = ctx.tags.get(resolvedRef.chain[0].value);
     if (tag) return { faceRef: tag.label, selection };
-    const val = ctx.values.get(ref.chain[0].value);
+    const val = ctx.values.get(resolvedRef.chain[0].value);
     if (isIRPlacement(val)) return val;
     if (isFaceRefValue(val)) return { faceRef: val.label, selection };
     return {
-      faceRef: `${ctx.names.get(ref.chain[0].value) ?? ref.chain[0].value}.center`,
+      faceRef: `${ctx.names.get(resolvedRef.chain[0].value) ?? resolvedRef.chain[0].value}.center`,
       selection,
     };
   }
   const placement: IRPlacement = {
-    faceRef: serializeFaceRef(ref, ctx),
+    faceRef: serializeFaceRef(resolvedRef, ctx),
     selection,
   };
-  if (faceRefRoot(ref) === 'origin') placement.workplane = ctx.workplane;
-  if (ref.surfaceAngle !== undefined) {
-    placement.surfaceAngleDeg = evalNumber(ref.surfaceAngle, ctx);
+  if (faceRefRoot(resolvedRef) === 'origin') placement.workplane = ctx.workplane;
+  if (resolvedRef.surfaceAngle !== undefined) {
+    placement.surfaceAngleDeg = evalNumber(resolvedRef.surfaceAngle, ctx);
   }
   return placement;
 }
@@ -68,14 +72,28 @@ export function resolvePositionPlacement(
   evalNumber: EvalNumberExpression,
   selectionContext: SelectionContext = 'placement',
 ): IRPlacement {
-  const base = Array.isArray(ref.anchor)
-    ? {
-        faceRef: `${evalNumber(ref.anchor[0], ctx)},${evalNumber(ref.anchor[1], ctx)},${evalNumber(ref.anchor[2], ctx)}`,
-      }
-    : (ctx.spatialAliases.get(spatialAliasKey(ref.anchor)) ?? {
+  let base: IRPlacement;
+  if (Array.isArray(ref.anchor)) {
+    base = {
+      faceRef: `${evalNumber(ref.anchor[0], ctx)},${evalNumber(ref.anchor[1], ctx)},${evalNumber(ref.anchor[2], ctx)}`,
+    };
+  } else if (ref.anchor.inlineOperation) {
+    const resolvedAnchor = materializeInlineObjectReference(ref.anchor, ctx);
+    base = {
+      faceRef: serializeFaceRef(resolvedAnchor, ctx),
+      selection: evalResolvedSelection(
+        resolvedAnchor,
+        ctx,
+        selectionContext,
+      ),
+    };
+  } else {
+    base =
+      ctx.spatialAliases.get(spatialAliasKey(ref.anchor)) ?? {
         faceRef: serializeFaceRef(ref.anchor, ctx),
         selection: evalResolvedSelection(ref.anchor, ctx, selectionContext),
-      });
+      };
+  }
   const p: IRPlacement = { ...base };
   if (!Array.isArray(ref.anchor) && faceRefRoot(ref.anchor) === 'origin') {
     p.workplane = ctx.workplane;

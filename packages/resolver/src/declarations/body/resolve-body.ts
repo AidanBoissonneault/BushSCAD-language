@@ -19,6 +19,7 @@ import { resolveBodySketch } from './sketch/resolve-body-sketch.js';
 import { resolveBodySurface } from './surface/resolve-body-surface.js';
 import { resolveBodyPath } from './path/resolve-body-path.js';
 import { resolveBodyObj } from './obj/resolve-body-obj.js';
+import { resolveAnonymousObj } from '../objects.js';
 import { resolveBodyObjCall } from './obj-call/resolve-body-obj-call.js';
 import { resolveBodyRefPart } from './ref-part/resolve-body-ref-part.js';
 import { resolveBodyRefObj } from './ref-obj/resolve-body-ref-obj.js';
@@ -73,6 +74,12 @@ const BODY_STMT_RESOLVERS: Partial<
   surface: resolveBodySurface,
   path: resolveBodyPath,
   obj: resolveBodyObj,
+  anonymousObj: (stmt, scope, state) =>
+    resolveAnonymousObj(
+      stmt as Extract<ComponentStatement, { kind: 'anonymousObj' }>,
+      scope,
+      state,
+    ),
   objCall: resolveBodyObjCall,
   refPart: (stmt, scope, state) =>
     resolveBodyRefPart(stmt, scope, state, resolveBody),

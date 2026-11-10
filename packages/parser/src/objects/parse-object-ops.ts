@@ -6,22 +6,11 @@
  */
 
 import type {
-  CutOp,
-  ExtrudeOp,
-  HeatsetInsertOp,
-  HoleOp,
-  LoftOp,
+  AnonymousObjDecl,
   ObjDecl,
   ObjFromCallDecl,
   AnchorDecl,
-  RadialCutOp,
-  RadialExtrudeOp,
-  RevolveOp,
-  SolidCutOp,
-  SolidPrimitiveOp,
-  SweepCutOp,
-  SweepOp,
-  ThickenOp,
+  ObjectOperation,
 } from '@bushscad/ir';
 import type { Parser } from '../core/parser.js';
 import {
@@ -59,26 +48,6 @@ import {
 export { parseWrapSuffix } from './parse-object-basics.js';
 
 /**
- * Object operation accepts ExtrudeOp, CutOp, SolidCutOp, RevolveOp, RadialExtrudeOp,
- * RadialCutOp, LoftOp, HoleOp, HeatsetInsertOp, SweepOp, SweepCutOp, ThickenOp, and
- * SolidPrimitiveOp.
- */
-type ObjectOperation =
-  | ExtrudeOp
-  | CutOp
-  | SolidCutOp
-  | RevolveOp
-  | RadialExtrudeOp
-  | RadialCutOp
-  | LoftOp
-  | HoleOp
-  | HeatsetInsertOp
-  | SweepOp
-  | SweepCutOp
-  | ThickenOp
-  | SolidPrimitiveOp;
-
-/**
  * Object operation parser, including matches and parse.
  */
 type ObjectOperationParser = {
@@ -105,12 +74,17 @@ const OPERATION_PARSERS: ObjectOperationParser[] = [
   { matches: (p) => p.check('LOFT'), parse: parseLoftOp },
   { matches: (p) => p.check('THICKEN'), parse: parseThickenOp },
   {
-    matches: (p) => p.peek().kind === 'IDENT' && p.peek().value === 'hole',
+    matches: (p) =>
+      p.peek().kind === 'IDENT' &&
+      p.peek().value === 'hole' &&
+      p.peek(1).kind === 'LPAREN',
     parse: parseHoleOp,
   },
   {
     matches: (p) =>
-      p.peek().kind === 'IDENT' && p.peek().value === 'heatset_insert',
+      p.peek().kind === 'IDENT' &&
+      p.peek().value === 'heatset_insert' &&
+      p.peek(1).kind === 'LPAREN',
     parse: parseHeatsetInsertOp,
   },
   { matches: isSolidPrimitiveStart, parse: parseSolidPrimitiveOp },
@@ -147,11 +121,7 @@ export function parseObj(p: Parser): ObjDecl | ObjFromCallDecl {
     };
   }
 
-  const operation = parseObjectOperation(p);
-  if (operation.kind === 'extrude' || operation.kind === 'cut') {
-    const suffixWrap = parseWrapSuffix(p);
-    operation.wrap = operation.wrap || suffixWrap;
-  }
+  const operation = parseObjectOperationWithSuffix(p);
 
   const hasAnchorBlock = p.check('LBRACE');
   const anchors = hasAnchorBlock ? parseObjectAnchorBlock(p) : [];
@@ -168,6 +138,28 @@ export function parseObj(p: Parser): ObjDecl | ObjFromCallDecl {
 }
 
 /**
+ * Checks whether the current token sequence begins a solid-producing object
+ * operation, distinguishing those statements from ordinary function calls.
+ */
+export function isObjectOperationStart(p: Parser): boolean {
+  return OPERATION_PARSERS.some((parser) => parser.matches(p));
+}
+
+/**
+ * Parses an object operation used without an object name.
+ * Its result is not bound to a reusable language object name.
+ */
+export function parseAnonymousObjectOperation(
+  p: Parser,
+): AnonymousObjDecl | null {
+  if (!isObjectOperationStart(p)) return null;
+  const start = p.peek().span;
+  const operation = parseObjectOperationWithSuffix(p);
+  p.requireSemi();
+  return { kind: 'anonymousObj', operation, span: p.spanFrom(start) };
+}
+
+/**
  * Parses the operation body shared by visible `obj` and hidden one-line `ref`.
  * `ref name = <object-op>;` accepts the same solid-producing operation syntax
  * as `obj name = <object-op>;` while differing only in display policy.
@@ -180,6 +172,16 @@ export function parseObjectOperation(p: Parser): ObjectOperation {
     `Expected extrude, cut, sweep, revolve, radial_extrude, radial_cut, loft, hole, heatset_insert, or a solid primitive (or a function call), got ${p.peek().kind}`,
     p.peek().span,
   );
+}
+
+/** Parses a complete object operation, including an optional wrap suffix. */
+export function parseObjectOperationWithSuffix(p: Parser): ObjectOperation {
+  const operation = parseObjectOperation(p);
+  if (operation.kind === 'extrude' || operation.kind === 'cut') {
+    const suffixWrap = parseWrapSuffix(p);
+    operation.wrap = operation.wrap || suffixWrap;
+  }
+  return operation;
 }
 
 /**

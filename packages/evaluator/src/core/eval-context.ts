@@ -37,6 +37,7 @@ export function childCtx(ctx: EvalCtx): EvalCtx {
     holeRecipes: new Map(ctx.holeRecipes),
     cutThreads: new Map(ctx.cutThreads),
     refBases: new Map(ctx.refBases),
+    inlineObjectReferences: new WeakMap(),
   };
 }
 

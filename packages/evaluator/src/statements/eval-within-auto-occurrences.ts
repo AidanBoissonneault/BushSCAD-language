@@ -61,6 +61,9 @@ function collectStatementAutoOccurrences(
     case 'obj':
       collectObjectAutoOccurrences(stmt.operation, out);
       break;
+    case 'anonymousObj':
+      collectObjectAutoOccurrences(stmt.operation, out);
+      break;
     case 'place':
       collectPlaceAutoOccurrences(stmt, out);
       break;

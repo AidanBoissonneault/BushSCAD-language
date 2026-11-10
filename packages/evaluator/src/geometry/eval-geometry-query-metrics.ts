@@ -8,6 +8,7 @@
 import type { Expr } from '@bushscad/ir';
 import type { EvalCtx } from '../core/eval-types.js';
 import { serializeFaceRef } from '../expressions/eval-expressions.js';
+import { materializeInlineObjectReference } from '../references/eval-face-serialization.js';
 import { OCCT_DEFERRED } from './geometry-query-sets.js';
 
 /**
@@ -88,7 +89,8 @@ function exprToObjName(expr: Expr, ctx: EvalCtx): string | null {
   if (expr.kind === 'identifier') return ctx.names.get(expr.name) ?? expr.name;
   if (expr.kind !== 'faceRef' || expr.chain.length === 0) return null;
 
-  const first = expr.chain[0];
+  const resolved = materializeInlineObjectReference(expr, ctx);
+  const first = resolved.chain[0];
   return first.kind === 'name'
     ? (ctx.names.get(first.value) ?? first.value)
     : null;

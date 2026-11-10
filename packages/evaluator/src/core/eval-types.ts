@@ -23,6 +23,8 @@ import type {
   FnDecl,
   AutoExpr,
   Workplane,
+  FaceRef,
+  ObjectOperation,
 } from '@bushscad/ir';
 
 /**
@@ -180,6 +182,11 @@ export interface EvalCtx {
   holeRecipes: Map<string, HoleStep[]>;
   cutThreads: Map<string, ThreadTargetInfo>;
   refBases: Map<string, string>; // ref name → IR shape name (for ref-extends placement)
+  inlineObjectReferences: WeakMap<FaceRef, string>;
+  evaluateInlineObjectOperation: (
+    operation: ObjectOperation,
+    ctx: EvalCtx,
+  ) => string;
   activeProcessProfile: string | null; // e.g. 'std.printing.fdm', set by 'use' eval
   fitDecls: Map<string, IRFit>; // fitName → resolved IRFit, for fit_ok() lookup
   emitHardwareVisuals: boolean; // controlled by EvaluateOptions.showHardwareVisuals

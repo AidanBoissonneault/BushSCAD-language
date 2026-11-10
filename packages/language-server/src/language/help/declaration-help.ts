@@ -116,7 +116,7 @@ export const declarationHelp: Record<string, LanguageHelpEntry> = {
   obj: {
     summary:
       'Names the geometry produced by an operation so it can be selected, modified, placed, or exported.',
-    signatures: ['obj name = operation;'],
+    signatures: ['obj name = operation;', 'operation;'],
     parameters: [
       {
         name: 'operation',
@@ -126,11 +126,13 @@ export const declarationHelp: Record<string, LanguageHelpEntry> = {
     ],
     behavior: [
       'An obj result exposes semantic references such as @body.top. A sketch and the object built from it may use the same name.',
+      'A bare object operation emits geometry without creating a reusable object name. An operation can also be built inline inside an @ reference, such as @cube(10).top, for use by any selector consumer.',
     ],
     examples: [
       'sketch body = rect(40, 20);\nobj body = extrude(body, 8);\nfillet(@body.top.edges, 1);',
+      'cube(10);\nfillet(@cube(10).top, 2);',
     ],
-    related: ['sketch', 'part', 'ref'],
+    related: ['sketch', 'part', 'ref', 'fillet', 'place'],
   },
   part: {
     summary:

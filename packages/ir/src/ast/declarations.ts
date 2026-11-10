@@ -47,6 +47,7 @@ export type TopLevelStatement =
   | SurfaceDecl
   | PathDecl
   | ObjDecl
+  | AnonymousObjDecl
   | ObjFromCallDecl
   | AnchorDecl
   | RotateStatement
@@ -173,6 +174,13 @@ export type ObjDecl = {
   nameSpan?: ASTSourceSpan;
   operation: ObjectOperation;
   anchors: AnchorDecl[];
+  span: ASTSourceSpan;
+};
+
+/** Anonymous object operation, including its operation and source span. */
+export type AnonymousObjDecl = {
+  kind: 'anonymousObj';
+  operation: ObjectOperation;
   span: ASTSourceSpan;
 };
 

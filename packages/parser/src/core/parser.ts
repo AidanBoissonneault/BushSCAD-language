@@ -22,6 +22,7 @@ import type {
   PosRef,
   RepeatableSpatialRef,
   ASTSourceSpan,
+  ObjectOperation,
 } from '@bushscad/ir';
 import { parseTernary } from '../expressions/parse-expressions.js';
 import {
@@ -49,6 +50,10 @@ import {
   parseBaseUnit,
   parseWorkplane,
 } from '../statements/parse-top-level.js';
+import {
+  isObjectOperationStart as _isObjectOperationStart,
+  parseObjectOperationWithSuffix as _parseObjectOperationWithSuffix,
+} from '../objects/parse-object-ops.js';
 
 /**
  * Result of parse, including ast and errors.
@@ -322,6 +327,16 @@ export class Parser {
    */
   parseSpatialRef(): FaceRef | PosRef {
     return _parseSpatialRef(this);
+  }
+
+  /** Returns whether the current token sequence starts a solid-producing operation. */
+  isObjectOperationStart(): boolean {
+    return _isObjectOperationStart(this);
+  }
+
+  /** Parses an object operation and its optional wrap suffix from the current position. */
+  parseObjectOperationWithSuffix(): ObjectOperation {
+    return _parseObjectOperationWithSuffix(this);
   }
 
   /**

@@ -14,10 +14,14 @@ import {
   expandFaceRefForEval,
   expandRepeatableFaceRefForEval,
 } from './eval-reference-expansion.js';
-import { serializeFaceRef } from './eval-face-serialization.js';
+import {
+  materializeInlineObjectReference,
+  serializeFaceRef,
+} from './eval-face-serialization.js';
 export {
   FACE_WORDS,
   asFaceRefValue,
+  materializeInlineObjectReference,
   serializeAnchorTarget,
   serializeFaceRef,
   serializeFaceRefSegments,
@@ -56,15 +60,16 @@ const FACE_METRIC_READERS: Record<
  * Evaluates face ref expr with the current evaluation context.
  */
 export function evalFaceRefExpr(ref: FaceRef, ctx: EvalCtx): EvalValue {
-  const expanded = expandFaceRefForEval(ref, ctx);
+  const resolvedRef = materializeInlineObjectReference(ref, ctx);
+  const expanded = expandFaceRefForEval(resolvedRef, ctx);
   if (expanded.length > 1) {
     return expanded.map((item) => evalFaceRefExpr(item, ctx));
   }
-  const namedValue = evalTwoNameFaceRef(ref, ctx);
+  const namedValue = evalTwoNameFaceRef(resolvedRef, ctx);
   if (namedValue !== null) return namedValue;
-  const metricValue = evalFaceMetricProperty(ref, ctx);
+  const metricValue = evalFaceMetricProperty(resolvedRef, ctx);
   if (metricValue !== null) return metricValue;
-  return { kind: 'faceRefValue', label: serializeFaceRef(ref, ctx) };
+  return { kind: 'faceRefValue', label: serializeFaceRef(resolvedRef, ctx) };
 }
 
 /**

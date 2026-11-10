@@ -6,6 +6,7 @@
  */
 
 import type { ASTSourceSpan } from './sourceSpan.js';
+import type { ObjectOperation } from './operations/object-operation.js';
 
 /** Expression nodes accepted by the resolver and evaluator. */
 export type Expr =
@@ -162,6 +163,8 @@ export type ThisExpr = {
 export type FaceRef = {
   kind: 'faceRef';
   chain: FaceRefSegment[];
+  /** Inline operation that supplies the selector's temporary root object. */
+  inlineOperation?: ObjectOperation;
   surfaceAngle?: Expr;
   wrap?: boolean;
   span: ASTSourceSpan;

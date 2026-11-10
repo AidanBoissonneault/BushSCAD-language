@@ -45,10 +45,18 @@ export const primitiveHelp: Record<string, LanguageHelpEntry> = {
     signatures: [
       'obj name = cube(size, @placement);',
       'obj name = cube(width, depth, height);',
+      'cube(size);',
     ],
     parameters: boxParameters,
-    behavior: [bottomPlacement, primitiveUnits],
-    examples: ['obj block = cube([40, 20, 8]);', 'obj block = cube(12);'],
+    behavior: [
+      bottomPlacement,
+      primitiveUnits,
+      'A bare cube(size); emits an unnamed solid. Use @cube(size).top to select a face on a temporary inline cube anywhere an @ reference is accepted.',
+    ],
+    examples: [
+      'obj block = cube([40, 20, 8]);',
+      'cube(10);\nfillet(@cube(10).top, 2);',
+    ],
     related: ['cuboid', 'rect', 'extrude', 'roundedCuboid'],
   },
   cuboid: {

@@ -11,7 +11,7 @@ import type {
   FitDecl,
   TopLevelStatement,
 } from '@bushscad/ir';
-import { addError, toSpan } from '../core/eval-context.js';
+import { addError, fresh, toSpan } from '../core/eval-context.js';
 import type { EvalCtx } from '../core/eval-types.js';
 import {
   buildIRAssert,
@@ -50,6 +50,9 @@ export function evalSharedStmt(
       }
       return true;
     }
+    case 'anonymousObj':
+      evalObjOp(fresh(ctx, '__anonymous-operation'), stmt.operation, ctx);
+      return true;
     case 'refPart':
       if (stmt.extends) {
         evalRefDecl(stmt.name, stmt.extends, stmt.body, stmt.span, ctx);

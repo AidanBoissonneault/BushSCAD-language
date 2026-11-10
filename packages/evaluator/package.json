@@ -1,6 +1,6 @@
 {
     "name":  "@bushscad/evaluator",
-    "version":  "0.4.0",
+    "version":  "0.5.0",
     "type":  "module",
     "exports":  {
                     ".":  "./src/index.ts"
@@ -10,12 +10,12 @@
                     "test":  "vitest run"
                 },
     "dependencies":  {
-                         "@bushscad/ir":  "^0.4.0",
-                         "@bushscad/parser":  "^0.4.0",
-                         "@bushscad/resolver":  "^0.4.0",
-                         "@bushscad/sketch-solver":  "^0.3.0",
-                         "@bushscad/std-hardware":  "^0.3.0",
-                         "@bushscad/std-tolerances":  "^0.3.0"
+                         "@bushscad/ir":  "^0.5.0",
+                         "@bushscad/parser":  "^0.5.0",
+                         "@bushscad/resolver":  "^0.5.0",
+                         "@bushscad/sketch-solver":  "^0.5.0",
+                         "@bushscad/std-hardware":  "^0.5.0",
+                         "@bushscad/std-tolerances":  "^0.5.0"
                      },
     "devDependencies":  {
                             "typescript":  "^5.4.0",

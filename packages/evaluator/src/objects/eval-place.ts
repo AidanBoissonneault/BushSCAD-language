@@ -69,9 +69,28 @@ export function evalPlace(
   deferred: Deferred,
   callbacks: PlaceEvalCallbacks,
 ): void {
-  const targetPlacement = stmt.target
-    ? evalRepeatablePlacements(stmt.target, ctx)[0]
-    : { faceRef: '0,0,0' };
+  const targetPlacements = stmt.target
+    ? evalRepeatablePlacements(stmt.target, ctx)
+    : [{ faceRef: '0,0,0' }];
+  for (const targetPlacement of targetPlacements) {
+    placeAtTarget(stmt, ctx, deferred, callbacks, targetPlacement);
+  }
+}
+
+/**
+ * Emits one placed instance for a concrete target in a repeatable selector.
+ *
+ * Why:
+ * Keeping single-target lowering here makes wildcard and ordinary placements
+ * share the same function, reusable-ref, and component behavior.
+ */
+function placeAtTarget(
+  stmt: PlaceStatement,
+  ctx: EvalCtx,
+  deferred: Deferred,
+  callbacks: PlaceEvalCallbacks,
+  targetPlacement: IRPlacement,
+): void {
   const placement = withPlacementRotation(targetPlacement, stmt.rotate, ctx);
   const thisContext = metricsForPlacement(ctx, placement);
 

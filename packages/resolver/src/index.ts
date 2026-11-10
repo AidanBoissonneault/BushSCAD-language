@@ -12,6 +12,7 @@ import {
 } from './declarations/collect.js';
 import { resolveProgram } from './core/program.js';
 import { Scope } from './core/scope.js';
+import { resolveInlineObjectOperation } from './declarations/objects.js';
 import type {
   AssetLoader,
   FileLoader,
@@ -45,6 +46,7 @@ export function resolve(
     objectProfileSegments: new Map(),
     inComponent: false,
     inWithinLoop: false,
+    resolveInlineObjectOperation,
   };
 
   const globalScope = new Scope();

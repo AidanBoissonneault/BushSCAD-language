@@ -13,6 +13,7 @@ import type {
 } from '@bushscad/ir';
 import { toSpan } from '../core/eval-context.js';
 import type { EvalCtx } from '../core/eval-types.js';
+import { materializeInlineObjectReference } from '../references/eval-face-serialization.js';
 import { buildFitOkAssert } from './eval-fit-ok-assert.js';
 import { ALL_GEOMETRY_QUERY_FNS } from './geometry-query-sets.js';
 
@@ -128,7 +129,10 @@ function resolvedQueryArgs(args: Expr[], ctx: EvalCtx): string[] | null {
 function exprArgToString(expr: Expr, ctx: EvalCtx): string | null {
   if (expr.kind === 'identifier') return ctx.names.get(expr.name) ?? expr.name;
   if (expr.kind !== 'faceRef' || expr.chain.length === 0) return null;
-  return expr.chain.map((seg) => faceRefSegmentToString(seg, ctx)).join('.');
+  const resolved = materializeInlineObjectReference(expr, ctx);
+  return resolved.chain
+    .map((seg) => faceRefSegmentToString(seg, ctx))
+    .join('.');
 }
 
 /**

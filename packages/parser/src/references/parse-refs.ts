@@ -13,6 +13,7 @@ import type {
   Expr,
   FnCallExpr,
   RepeatableSpatialRef,
+  ObjectOperation,
 } from '@bushscad/ir';
 import type { Token } from '../core/token-types.js';
 import type { Parser } from '../core/parser.js';
@@ -205,7 +206,11 @@ function parsePlaneSpatialRef(p: Parser, start: Token['span']): PosRef {
  * Spatial root is tagged by kind: 'segments' carries segments and 'pos' carries ref.
  */
 type SpatialRoot =
-  | { kind: 'segments'; segments: FaceRefSegment[] }
+  | {
+      kind: 'segments';
+      segments: FaceRefSegment[];
+      inlineOperation?: ObjectOperation;
+    }
   | { kind: 'pos'; ref: PosRef };
 
 /**
@@ -219,6 +224,14 @@ function parseSpatialRoot(p: Parser, start: Token['span']): SpatialRoot {
     segments.push(parseFaceRefGroupSeg(p));
   } else if (p.check('STAR')) {
     segments.push({ kind: 'wildcard', span: p.advance().span });
+  } else if (p.isObjectOperationStart()) {
+    const operation = p.parseObjectOperationWithSuffix();
+    segments.push({
+      kind: 'name',
+      value: inlineOperationRootName(operation),
+      span: operation.span,
+    });
+    return { kind: 'segments', segments, inlineOperation: operation };
   } else if (p.check('PLANE')) {
     return { kind: 'pos', ref: parsePlaneSpatialRef(p, start) };
   } else {
@@ -230,6 +243,12 @@ function parseSpatialRoot(p: Parser, start: Token['span']): SpatialRoot {
   return { kind: 'segments', segments };
 }
 
+/** Gives an inline operation a private selector root for resolver profile data. */
+function inlineOperationRootName(operation: ObjectOperation): string {
+  const { file, line, col } = operation.span;
+  return `\u0000inline:${file}:${line}:${col}`;
+}
+
 /**
  * Parses spatial suffix from the supplied source into the references representation.
  */
@@ -237,9 +256,15 @@ function parseSpatialSuffix(
   p: Parser,
   start: Token['span'],
   segments: FaceRefSegment[],
+  inlineOperation?: ObjectOperation,
 ): FaceRef | PosRef | null {
   while (p.eat('DOT')) {
-    const offsetRef = parseSpatialSuffixSegment(p, start, segments);
+    const offsetRef = parseSpatialSuffixSegment(
+      p,
+      start,
+      segments,
+      inlineOperation,
+    );
     if (offsetRef) return offsetRef;
   }
   return null;
@@ -252,6 +277,7 @@ function parseSpatialSuffixSegment(
   p: Parser,
   start: Token['span'],
   segments: FaceRefSegment[],
+  inlineOperation?: ObjectOperation,
 ): FaceRef | PosRef | null {
   if (p.check('LPAREN')) {
     segments.push(parseEdgeIntersectionSegment(p));
@@ -273,10 +299,12 @@ function parseSpatialSuffixSegment(
 
   segments.splice(beforeSegment);
   if (isSpatialOffsetCall(p, segment.value)) {
-    const face = spatialFaceRef(p, start, [
-      ...segments,
-      referenceNameSegment(segment),
-    ]);
+    const face = spatialFaceRef(
+      p,
+      start,
+      [...segments, referenceNameSegment(segment)],
+      inlineOperation,
+    );
     const args = parseSpatialArgs(p, segment.value, face);
     p.expect('RPAREN');
     return spatialArgsToRef(face, args, p.spanFrom(start));
@@ -292,10 +320,12 @@ function spatialFaceRef(
   p: Parser,
   start: Token['span'],
   segments: FaceRefSegment[],
+  inlineOperation?: ObjectOperation,
 ): FaceRef {
   return {
     kind: 'faceRef',
     chain: segments,
+    ...(inlineOperation ? { inlineOperation } : {}),
     span: p.spanFrom(start),
   };
 }
@@ -312,10 +342,15 @@ export function parseSpatialRef(p: Parser): FaceRef | PosRef {
   const root = parseSpatialRoot(p, start);
   if (root.kind === 'pos') return root.ref;
 
-  const offsetRef = parseSpatialSuffix(p, start, root.segments);
+  const offsetRef = parseSpatialSuffix(
+    p,
+    start,
+    root.segments,
+    root.inlineOperation,
+  );
   if (offsetRef) return offsetRef;
 
-  const face = spatialFaceRef(p, start, root.segments);
+  const face = spatialFaceRef(p, start, root.segments, root.inlineOperation);
   if (p.eat('LPAREN')) {
     const args = parseSpatialArgs(p, '', face);
     p.expect('RPAREN');

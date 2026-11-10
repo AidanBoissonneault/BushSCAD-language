@@ -62,13 +62,27 @@ export function resolveFaceRef(
   resolveExpr: ResolveExprFn,
   consumer?: SelectorConsumer,
 ): void {
-  for (const concrete of expandFaceRef(ref)) {
-    resolveConcreteFaceRef(concrete, scope, state, span);
+  const inlineProfileName = ref.inlineOperation ? faceRefRootName(ref) : null;
+  try {
+    if (ref.inlineOperation) {
+      state.resolveInlineObjectOperation(
+        ref.inlineOperation,
+        inlineProfileName!,
+        scope,
+        state,
+      );
+    }
+    for (const concrete of expandFaceRef(ref)) {
+      resolveConcreteFaceRef(concrete, scope, state, span);
+    }
+    if (consumer) {
+      validateSingleFaceRefConsumer(ref, consumer, scope, state, span);
+    }
+    if (ref.surfaceAngle) resolveExpr(ref.surfaceAngle, scope, state);
+  } finally {
+    if (inlineProfileName)
+      state.objectProfileSegments.delete(inlineProfileName);
   }
-  if (consumer) {
-    validateSingleFaceRefConsumer(ref, consumer, scope, state, span);
-  }
-  if (ref.surfaceAngle) resolveExpr(ref.surfaceAngle, scope, state);
 }
 
 /**
@@ -84,11 +98,35 @@ export function resolveRepeatableFaceRef(
   resolveExpr: ResolveExprFn,
   consumer?: SelectorConsumer,
 ): void {
-  for (const concrete of expandRepeatableFaceRef(ref)) {
-    resolveConcreteFaceRef(concrete, scope, state, span);
-    if (concrete.surfaceAngle) resolveExpr(concrete.surfaceAngle, scope, state);
+  const resolvedOperations = new Set<NonNullable<FaceRef['inlineOperation']>>();
+  const inlineProfileNames = new Set<string>();
+  try {
+    for (const concrete of expandRepeatableFaceRef(ref)) {
+      if (
+        concrete.inlineOperation &&
+        !resolvedOperations.has(concrete.inlineOperation)
+      ) {
+        const profileName = faceRefRootName(concrete);
+        state.resolveInlineObjectOperation(
+          concrete.inlineOperation,
+          profileName,
+          scope,
+          state,
+        );
+        resolvedOperations.add(concrete.inlineOperation);
+        inlineProfileNames.add(profileName);
+      }
+      resolveConcreteFaceRef(concrete, scope, state, span);
+      if (concrete.surfaceAngle)
+        resolveExpr(concrete.surfaceAngle, scope, state);
+    }
+    if (consumer) {
+      validateSelectorConsumer(ref, consumer, scope, state, span);
+    }
+  } finally {
+    for (const profileName of inlineProfileNames)
+      state.objectProfileSegments.delete(profileName);
   }
-  if (consumer) validateSelectorConsumer(ref, consumer, scope, state, span);
 }
 
 /**
@@ -107,7 +145,9 @@ function resolveConcreteFaceRef(
   const rootName = faceRefRootName(ref);
   if (!rootName) return;
 
-  const rootKnown = isKnownFaceRoot(rootName, scope, state);
+  const rootKnown =
+    ref.inlineOperation !== undefined ||
+    isKnownFaceRoot(rootName, scope, state);
 
   if (shouldReportUnknownRoot(rootName, rootKnown, ref)) {
     addError(state, `Undefined reference '${rootName}'`, span);
@@ -178,11 +218,10 @@ function validateNamedFaceSegment(
 
   const segments = state.objectProfileSegments.get(rootName);
   if (segments?.has(namedFace)) return;
-  addError(
-    state,
-    `Unknown named face '${namedFace}' on object '${rootName}'`,
-    span,
-  );
+  const owner = ref.inlineOperation
+    ? 'inline object operation'
+    : `object '${rootName}'`;
+  addError(state, `Unknown named face '${namedFace}' on ${owner}`, span);
 }
 
 /**

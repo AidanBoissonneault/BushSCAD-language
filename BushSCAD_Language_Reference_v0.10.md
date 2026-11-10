@@ -285,6 +285,26 @@ obj body = cube([40, 30, 8]);
 obj cap = cube([40, 30, 3], @body.top);
 ```
 
+Solid-producing operations can also be written without an `obj` declaration.
+The result is emitted, but it has no reusable source name:
+
+```bushscad
+cube(10);
+extrude(rect(20, 10), 4);
+```
+
+An operation can be placed directly inside an `@` reference when a selector is
+needed. The operation is built as a temporary target, and the selected face,
+edge, or other feature can be used anywhere an `@` reference is accepted:
+
+```bushscad
+fillet(@cube(10).top, 2);
+place(pin, @cube(10).top);
+```
+
+Inline targets do not create a reusable name or remain available after that
+reference is evaluated.
+
 #### `return`
 
 **Purpose.** Ends a function body and emits its named geometry results.
@@ -4420,6 +4440,7 @@ sketch profile = path(
     constraint(right, length, height)
 );
 ```
+
 #### Geometric Constraints
 
 `coincident`, `horizontal`, `vertical`, `parallel`, `perpendicular`, `tangent`, `equal`, `symmetric`, `fixed`
@@ -4481,7 +4502,7 @@ Supported primitive names:
 
 #### Named Geometry Objects - `obj`
 
-`obj` binds an operation result to a named geometry object. The `obj` name is the reference frame for downstream surface references, placement, and details; sketch names do not carry solid faces or edges.
+`obj` binds an operation result to a named geometry object. The `obj` name is the reference frame for downstream surface references, placement, and details; sketch names do not carry solid faces or edges. A bare operation such as `cube(10);` emits geometry without adding a reusable source name. An inline operation such as `@cube(10).top` is built as a temporary reference target and can be used anywhere an `@` reference is accepted.
 
 Object-producing names must be unique within one scope. This includes `obj`
 declarations, `obj name = functionCall(...)`, reusable object declarations, and
@@ -4847,12 +4868,12 @@ Geometric details - fillets, chamfers, shells, draft angles - refine existing ge
 
 #### Execution Order
 
-| Detail    | Behaviour                                                                                                                                                                                                                                |
-| --------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `shell`   | Executes immediately in declaration order. Operations after a shell see the hollowed geometry.                                                                                                                                           |
-| `draft`   | Applies after geometry, before chamfers and fillets. |
-| `chamfer` | Runs after drafts and before fillets. |
-| `fillet`  | Runs after drafts and chamfers. |
+| Detail    | Behaviour                                                                                      |
+| --------- | ---------------------------------------------------------------------------------------------- |
+| `shell`   | Executes immediately in declaration order. Operations after a shell see the hollowed geometry. |
+| `draft`   | Applies after geometry, before chamfers and fillets.                                           |
+| `chamfer` | Runs after drafts and before fillets.                                                          |
+| `fillet`  | Runs after drafts and chamfers.                                                                |
 
 Drafts run first for each body. Chamfers generally follow drafts, then fillets. A cut-feature fillet may stay before a later body chamfer when that order preserves valid edges. Keep radii and offsets within the local geometry; an open-shell rim fillet should be smaller than the shell wall thickness.
 
@@ -5219,6 +5240,7 @@ fillet(@body.*.edges, 0.5);          // edges on every known face of body
 fillet(@body.*.top.edges, 0.5);      // top edges of every valid child under body
 fillet(@[body1, body2].*.edges, 1);  // arrays and wildcards compose
 fillet(@pocket[1].*.edges, 0.25);    // indexes can select one generated object
+place(bracket(), @body.*.center);    // places one bracket at every face center
 ```
 
 The leading `@` is also required for wildcards. Bare syntax such as
@@ -5715,6 +5737,7 @@ transform(boss, scale(1.05));          // non-manufacturing / visual only unless
 `scale` is visual-only unless the project opts into geometry scaling. Translation and rotation change the modeled geometry.
 
 ## Parts and Assemblies
+
 ### Assembly & Placing Components
 
 Components are instantiated into an assembly using `place`. Each placed instance gets its own resolved `this.` binding and anchor point context.
@@ -5872,9 +5895,9 @@ The positional order is `assert(condition, severity?, message?)`. Use
 | --------------------- | ------------------------------------------------ |
 | `distance(a, b)`      | Minimum distance between two geometry references |
 | `clearance(a, b)`     | Unsigned minimum distance, as with `distance`    |
-| `bounding_box(obj)`   | Axis-aligned bounding-box volume in mmÂ³          |
-| `face_area(ref)`      | Built-shape surface area in mmÂ²                  |
-| `volume(obj)`         | Volume of a solid in mmÂ³                         |
+| `bounding_box(obj)`   | Axis-aligned bounding-box volume in mmÂ³         |
+| `face_area(ref)`      | Built-shape surface area in mmÂ²                 |
+| `volume(obj)`         | Volume of a solid in mmÂ³                        |
 | `wall_thickness(obj)` | Approximate minimum positive face separation     |
 
 `face_area` resolves the root built shape and can therefore measure the whole

@@ -8,6 +8,7 @@
 import type {
   ComponentBody,
   ComponentStatement,
+  FaceRef,
   CutOp,
   ExtrudeOp,
   HeatsetInsertOp,
@@ -19,23 +20,62 @@ import type {
   SketchInput,
   SolidPrimitiveOp,
   SolidCutOp,
+  PosRef,
+  RepeatableFaceRef,
   RepeatableSpatialRef,
   SweepCutOp,
   SweepOp,
   ThickenOp,
 } from '@bushscad/ir';
+import {
+  expandRepeatableFaceRef,
+  expandRepeatableSpatialRef,
+} from '@bushscad/ir';
 import { exprUsesThis, primitiveUsesThis } from '../sketch/eval-sketch-this.js';
 import {
-  faceRefUsesThis,
   pathInputUsesThis,
-  placementUsesThis,
-  repeatableFaceRefUsesThis,
   surfaceInputUsesThis,
 } from './eval-reference-this.js';
 
 /** Detects whether a component body depends on the caller's `this.` context. */
 export function bodyUsesThis(body: ComponentBody): boolean {
   return body.statements.some(componentStmtUsesThis);
+}
+
+/** Checks whether a face reference or its inline geometry uses caller context. */
+function faceRefUsesCallerContext(ref: FaceRef): boolean {
+  return (
+    (ref.surfaceAngle ? exprUsesThis(ref.surfaceAngle) : false) ||
+    (ref.inlineOperation
+      ? objOpUsesThis(ref.inlineOperation as ObjectThisOp)
+      : false)
+  );
+}
+
+/** Checks all expanded face selectors for inline operations that use `this.`. */
+function repeatableFaceRefUsesCallerContext(ref: RepeatableFaceRef): boolean {
+  return expandRepeatableFaceRef(ref).some(faceRefUsesCallerContext);
+}
+
+/** Checks a placement and its inline reference geometry for caller context. */
+function placementUsesCallerContext(ref: RepeatableSpatialRef): boolean {
+  return expandRepeatableSpatialRef(ref).some((item) =>
+    item.kind === 'pos'
+      ? posRefUsesCallerContext(item)
+      : faceRefUsesCallerContext(item),
+  );
+}
+
+/** Checks a position reference and any inline operation used by its anchor. */
+function posRefUsesCallerContext(ref: PosRef): boolean {
+  return (
+    (Array.isArray(ref.anchor)
+      ? ref.anchor.some(exprUsesThis)
+      : faceRefUsesCallerContext(ref.anchor)) ||
+    [ref.x, ref.y, ref.radius, ref.angle, ref.offset].some((expression) =>
+      expression ? exprUsesThis(expression) : false,
+    )
+  );
 }
 
 /**
@@ -56,8 +96,10 @@ const COMPONENT_STMT_THIS_CHECKS: Partial<
   obj: (stmt) =>
     stmt.kind === 'obj'
       ? objOpUsesThis(stmt.operation) ||
-        stmt.anchors.some((anchor) => placementUsesThis(anchor.point))
+        stmt.anchors.some((anchor) => placementUsesCallerContext(anchor.point))
       : false,
+  anonymousObj: (stmt) =>
+    stmt.kind === 'anonymousObj' ? objOpUsesThis(stmt.operation) : false,
   refObj: (stmt) =>
     stmt.kind === 'refObj' ? objOpUsesThis(stmt.operation) : false,
   fn: (stmt) => (stmt.kind === 'fn' ? bodyUsesThis(stmt.body) : false),
@@ -74,21 +116,24 @@ const COMPONENT_STMT_THIS_CHECKS: Partial<
       : false,
   fillet: (stmt) =>
     stmt.kind === 'fillet'
-      ? repeatableFaceRefUsesThis(stmt.target) || exprUsesThis(stmt.radius)
+      ? repeatableFaceRefUsesCallerContext(stmt.target) ||
+        exprUsesThis(stmt.radius)
       : false,
   chamfer: (stmt) =>
     stmt.kind === 'chamfer'
-      ? repeatableFaceRefUsesThis(stmt.target) || exprUsesThis(stmt.offset)
+      ? repeatableFaceRefUsesCallerContext(stmt.target) ||
+        exprUsesThis(stmt.offset)
       : false,
   draft: (stmt) =>
     stmt.kind === 'draft'
-      ? repeatableFaceRefUsesThis(stmt.target) || exprUsesThis(stmt.angle)
+      ? repeatableFaceRefUsesCallerContext(stmt.target) ||
+        exprUsesThis(stmt.angle)
       : false,
   shell: (stmt) =>
     stmt.kind === 'shell' ? exprUsesThis(stmt.thickness) : false,
   plane: (stmt) =>
     stmt.kind === 'plane'
-      ? exprUsesThis(stmt.offset) || placementUsesThis(stmt.from)
+      ? exprUsesThis(stmt.offset) || placementUsesCallerContext(stmt.from)
       : false,
 };
 
@@ -108,7 +153,7 @@ function sketchStmtUsesThis(
   return (
     primitiveUsesThis(stmt.primitive) ||
     (stmt.placement
-      ? placementUsesThis(stmt.placement.face) ||
+      ? placementUsesCallerContext(stmt.placement.face) ||
         optionalExprUsesThis(stmt.placement.angle)
       : false)
   );
@@ -123,7 +168,7 @@ function surfaceStmtUsesThis(
   return stmt.operation.kind === 'offset_surface'
     ? surfaceInputUsesThis(stmt.operation.surface) ||
         exprUsesThis(stmt.operation.distance)
-    : repeatableFaceRefUsesThis(stmt.operation.boundary);
+    : repeatableFaceRefUsesCallerContext(stmt.operation.boundary);
 }
 
 /**
@@ -159,7 +204,9 @@ function rotateStmtUsesThis(
 ): boolean {
   return (
     exprUsesThis(stmt.angle) ||
-    (typeof stmt.around === 'string' ? false : faceRefUsesThis(stmt.around))
+    (typeof stmt.around === 'string'
+      ? false
+      : faceRefUsesCallerContext(stmt.around))
   );
 }
 
@@ -240,7 +287,9 @@ function revolveOpUsesThis(op: RevolveOp): boolean {
   return (
     sketchInputUsesThis(op.sketch) ||
     exprUsesThis(op.angle) ||
-    (typeof op.around === 'string' ? false : faceRefUsesThis(op.around))
+    (typeof op.around === 'string'
+      ? false
+      : faceRefUsesCallerContext(op.around))
   );
 }
 
@@ -268,7 +317,7 @@ function hardwareOpUsesThis(op: HoleOp | HeatsetInsertOp): boolean {
 function solidCutOpUsesThis(op: SolidCutOp): boolean {
   const toolUsesThis =
     op.tool.kind === 'operation' ? objOpUsesThis(op.tool.operation) : false;
-  return toolUsesThis || placementUsesThis(op.from);
+  return toolUsesThis || placementUsesCallerContext(op.from);
 }
 
 /**
@@ -328,9 +377,15 @@ function radialExtentUsesThis(op: RadialExtrudeOp | RadialCutOp): boolean {
     return exprUsesThis(op.extent.angle) || exprUsesThis(op.extent.length);
   }
   if (op.extent.kind === 'between') {
-    return placementUsesThis(op.extent.a) || placementUsesThis(op.extent.b);
+    return (
+      placementUsesCallerContext(op.extent.a) ||
+      placementUsesCallerContext(op.extent.b)
+    );
   }
-  return placementUsesThis(op.extent.from) || placementUsesThis(op.extent.to);
+  return (
+    placementUsesCallerContext(op.extent.from) ||
+    placementUsesCallerContext(op.extent.to)
+  );
 }
 
 /**
@@ -339,7 +394,7 @@ function radialExtentUsesThis(op: RadialExtrudeOp | RadialCutOp): boolean {
 function radialAxisUsesThis(op: RadialExtrudeOp | RadialCutOp): boolean {
   return !op.axis || typeof op.axis === 'string'
     ? false
-    : faceRefUsesThis(op.axis);
+    : faceRefUsesCallerContext(op.axis);
 }
 
 /**
@@ -349,8 +404,10 @@ function placeStmtUsesThis(
   stmt: Extract<ComponentStatement, { kind: 'place' }>,
 ): boolean {
   return (
-    (stmt.target ? placementUsesThis(stmt.target) : false) ||
-    (stmt.sourceAnchor ? placementUsesThis(stmt.sourceAnchor) : false) ||
+    (stmt.target ? placementUsesCallerContext(stmt.target) : false) ||
+    (stmt.sourceAnchor
+      ? placementUsesCallerContext(stmt.sourceAnchor)
+      : false) ||
     stmt.args.some(exprUsesThis) ||
     stmt.namedArgs.some((arg) => exprUsesThis(arg.value)) ||
     (stmt.rotate
@@ -378,5 +435,5 @@ function optionalExprUsesThis(
 function optionalPlacementUsesThis(
   placement: RepeatableSpatialRef | null | undefined,
 ): boolean {
-  return placement ? placementUsesThis(placement) : false;
+  return placement ? placementUsesCallerContext(placement) : false;
 }

@@ -22,6 +22,31 @@ describe('rich language help in protocol providers', () => {
     expect(hover?.contents[1]).not.toContain('language construct');
   });
 
+  it('documents anonymous operations and inline @ operation targets', async () => {
+    const server = new BushScadLanguageServer();
+    const uri = 'file:///project/main.bscd';
+    server.updateDocument(uri, 'obj body = cube(10);');
+    const hover = await server.getHover(uri, { line: 1, col: 2 });
+
+    expect(hover?.contents[0]).toBe('`obj`');
+    expect(hover?.contents[1]).toContain('operation;');
+    expect(hover?.contents[1]).toContain('@cube(10).top');
+    expect(hover?.contents[1]).toContain(
+      'without creating a reusable object name',
+    );
+  });
+
+  it('shows inline operation target syntax in primitive help', async () => {
+    const server = new BushScadLanguageServer();
+    const uri = 'file:///project/main.bscd';
+    server.updateDocument(uri, 'fillet(@cube(10).top, 2);');
+    const hover = await server.getHover(uri, { line: 1, col: 12 });
+
+    expect(hover?.contents[0]).toBe('`cube`');
+    expect(hover?.contents[1]).toContain('cube(size);');
+    expect(hover?.contents[1]).toContain('@cube(size).top');
+  });
+
   it('preserves authored symbol hover instead of attaching command documentation', async () => {
     const server = new BushScadLanguageServer();
     const uri = 'file:///project/main.bscd';

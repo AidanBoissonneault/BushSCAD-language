@@ -1,6 +1,6 @@
 {
     "name":  "@bushscad/three-renderer",
-    "version":  "0.4.0",
+    "version":  "0.5.0",
     "type":  "module",
     "exports":  {
                     ".":  "./src/index.ts",
@@ -11,7 +11,7 @@
                     "test":  "vitest run --passWithNoTests"
                 },
     "dependencies":  {
-                         "@bushscad/ir":  "^0.4.0"
+                         "@bushscad/ir":  "^0.5.0"
                      },
     "peerDependencies":  {
                              "three":  "^0.165.0"

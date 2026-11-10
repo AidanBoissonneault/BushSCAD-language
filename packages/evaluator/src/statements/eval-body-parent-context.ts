@@ -39,6 +39,9 @@ const STATEMENT_CHECKS: Partial<
     stmt.kind === 'sketch' && primitiveRequiresParentContext(stmt.primitive),
   obj: (stmt) =>
     stmt.kind === 'obj' && operationRequiresParentContext(stmt.operation),
+  anonymousObj: (stmt) =>
+    stmt.kind === 'anonymousObj' &&
+    operationRequiresParentContext(stmt.operation),
   refObj: (stmt) =>
     stmt.kind === 'refObj' && operationRequiresParentContext(stmt.operation),
   refPart: (stmt) =>
